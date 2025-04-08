@@ -1,35 +1,56 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
+import { useState, useContext} from 'react'
+import Login from "./screens/Login";
+import AdminDashboard from './screens/AdminDashboard';
+import StudentDashboard from './screens/StudentDashboard';
+import TeacherDashboard from './screens/TeacherDashboard';
+import Unauthorized from './screens/Unauthorized';
+import ProtectedRoute from './routes/ProtectedRoute';
+import { AuthContext } from './context/AuthContext';
+import { Navigate, BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import './App.css'
 
 function App() {
-  const [count, setCount] = useState(0)
+  const auth = useContext(AuthContext);
+  const role = localStorage.getItem("role");
 
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.jsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
-}
+    <Router>
+      <Routes>
+        <Route path="/login" element={<Login />} />
 
-export default App
+        <Route
+          path="/admin"
+          element={
+            <ProtectedRoute allowedRoles={["ADMIN"]}>
+              <AdminDashboard />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/teacher"
+          element={
+            <ProtectedRoute allowedRoles={["TEACHER", "ADMIN"]}>
+              <TeacherDashboard />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/student"
+          element={
+            <ProtectedRoute allowedRoles={["STUDENT", "TEACHER", "ADMIN"]}>
+              <StudentDashboard />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route path="/unauthorized" element={<Unauthorized />} />
+
+        {/* Nếu không khớp route nào thì chuyển về login */}
+        <Route path="*" element={<Navigate to="/login" />} />
+      </Routes>
+    </Router>
+  );
+}
+export default App;
