@@ -14,9 +14,15 @@ import StudentJoinRoom from './screens/student/StudentJoinRoom';
 import TeacherCreateClass from './screens/teacher/TeacherCreateClass';
 import StudentJoinClass from './screens/student/StudentJoinClass';
 import ClassDetail from './screens/teacher/ClassDetail';
+import TeacherCreateRoom from './screens/teacher/TeacherCreateRoom';
+import StudentJoinRoom from './screens/student/StudentJoinRoom';
+import TeacherCreateClass from './screens/teacher/TeacherCreateClass';
+import StudentJoinClass from './screens/student/StudentJoinClass';
+import ClassDetail from './screens/teacher/ClassDetail';
 
 function App() {
-  const [count, setCount] = useState(0)
+  const auth = useContext(AuthContext);
+  const role = localStorage.getItem("role");
 
   return (
     <AuthProvider>
@@ -80,6 +86,66 @@ function App() {
       </Router>
     </AuthProvider>
   );
-}
+    <AuthProvider>
+      <Router>
+        <Routes>
+          <Route path="/login" element={<Login />} />
 
-export default App
+          <Route
+            path="/admin"
+            element={
+              <ProtectedRoute allowedRoles={["ADMIN"]}>
+                <AdminDashboard />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/teacher"
+            element={
+              <ProtectedRoute allowedRoles={["TEACHER", "ADMIN"]}>
+                {/* <TeacherCreateRoom /> */}
+                <TeacherDashboard />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/class-management"
+            element={
+              <ProtectedRoute allowedRoles={["TEACHER", "ADMIN"]}>
+                {/* <TeacherCreateRoom /> */}
+                <TeacherCreateClass />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/classes/:classId"
+            element={
+              <ProtectedRoute allowedRoles={["TEACHER", "ADMIN"]}>
+                <ClassDetail />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/student"
+            element={
+              <ProtectedRoute allowedRoles={["STUDENT", "TEACHER", "ADMIN"]}>
+                {/* <StudentJoinRoom /> */}
+                <StudentJoinClass />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route path="/unauthorized" element={<Unauthorized />} />
+
+          {/* Nếu không khớp route nào thì chuyển về login */}
+          <Route path="*" element={<Navigate to="/login" />} />
+        </Routes>
+      </Router>
+    </AuthProvider>
+  );
+}
+export default App;
