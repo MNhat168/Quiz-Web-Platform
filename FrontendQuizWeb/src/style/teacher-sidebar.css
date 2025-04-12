@@ -1,0 +1,122 @@
+/* Sidebar.css */
+.sidebar {
+    width: 200px;
+    background-color: #f8f9fa;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    border-right: 1px solid #e9ecef;
+    padding: 20px 0;
+  }
+  
+  .logo {
+    display: flex;
+    align-items: center;
+    padding: 0 20px 20px;
+    position: relative;
+    font-size: 28px;
+    font-weight: bold;
+  }
+  
+  .q {
+    color: #ff9800;
+  }
+  
+  .uiz {
+    color: #4169e1;
+  }
+  
+  .role-badge {
+    position: absolute;
+    bottom: 5px;
+    right: 20px;
+    background-color: #4169e1;
+    color: white;
+    font-size: 10px;
+    padding: 2px 6px;
+    border-radius: 10px;
+  }
+  
+  .nav-links {
+    flex: 1;
+  }
+  
+  .nav-item {
+    display: flex;
+    align-items: center;
+    padding: 12px 20px;
+    color: #495057;
+    text-decoration: none;
+    transition: all 0.3s;
+    position: relative;
+    font-size: 14px;
+  }
+  
+  .nav-item:hover {
+    background-color: rgba(65, 105, 225, 0.1);
+    color: #4169e1;
+  }
+  
+  .active {
+    background-color: rgba(65, 105, 225, 0.15);
+    color: #4169e1;
+    font-weight: 500;
+    border-left: 3px solid #4169e1;
+  }
+  
+  .nav-icon {
+    margin-right: 10px;
+    display: flex;
+    align-items: center;
+  }
+  
+  .icon-container {
+    position: absolute;
+    right: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+  }
+  
+  .upgrade-section {
+    margin-top: auto;
+    padding: 15px;
+    background-color: #f1f3f5;
+    border-radius: 8px;
+    margin: 20px;
+  }
+  
+  .upgrade-text {
+    font-size: 12px;
+    color: #6c757d;
+    margin-bottom: 10px;
+    text-align: center;
+  }
+  
+  .upgrade-icon {
+    color: #ffc107;
+    margin-right: 5px;
+  }
+  
+  .upgrade-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    padding: 8px;
+    background-color: #f8f9fa;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    color: #495057;
+    font-size: 12px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s;
+  }
+  
+  .upgrade-button:hover {
+    background-color: #e9ecef;
+  }
+  
+  .upgrade-button svg {
+    margin-right: 5px;
+  }
