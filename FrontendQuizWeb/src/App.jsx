@@ -19,6 +19,7 @@ import StudentJoinRoom from './screens/student/StudentJoinRoom';
 import TeacherCreateClass from './screens/teacher/TeacherCreateClass';
 import StudentJoinClass from './screens/student/StudentJoinClass';
 import ClassDetail from './screens/teacher/ClassDetail';
+import Checkotp from './screens/Checkotp';
 
 function App() {
   const auth = useContext(AuthContext);
@@ -30,6 +31,7 @@ function App() {
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
+          <Route path="/checkotp" element={<Checkotp />} />
 
           <Route
             path="/admin"

@@ -18,6 +18,8 @@ const Signup = () => {
     password: '',
     role: ''
   });
+  const [isLoading, setIsLoading] = useState(false);
+  const [message, setMessage] = useState('');
 
   const validateEmail = (email: string) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -92,103 +94,126 @@ const Signup = () => {
       return;
     }
 
+    setIsLoading(true);
+    setMessage('');
+
     try {
       const response = await axios.post('http://localhost:8080/api/auth/register', formData);
       if (response.status === 200) {
-        alert('Registration successful! Please login.');
-        navigate('/login');
+        setMessage('Mã OTP đã được gửi đến email của bạn. Vui lòng kiểm tra email.');
+        navigate('/checkotp', { state: { email: formData.email } });
       }
     } catch (error: any) {
       if (error.response) {
-        alert(error.response.data);
+        setMessage(error.response.data);
       } else {
-        alert('An error occurred during registration');
+        setMessage('An error occurred during registration');
       }
+    } finally {
+      setIsLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
-        <div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
+    <div className="min-h-screen bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-md w-full space-y-8 bg-white p-10 rounded-xl shadow-2xl">
+        <div className="text-center">
+          <h2 className="mt-6 text-4xl font-bold text-gray-900">
             Create your account
           </h2>
+          <p className="mt-2 text-sm text-gray-600">
+            Sign up to get started
+          </p>
         </div>
+
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-          <div className="rounded-md shadow-sm -space-y-px">
+          <div className="space-y-4">
             <div>
-              <label htmlFor="email" className="sr-only">Email address</label>
+              <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+                Email address
+              </label>
               <input
                 id="email"
                 name="email"
                 type="email"
                 required
-                className={`appearance-none rounded-none relative block w-full px-3 py-2 border ${
+                className={`mt-1 block w-full px-4 py-3 border ${
                   errors.email ? 'border-red-500' : 'border-gray-300'
-                } placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm`}
-                placeholder="Email address"
+                } rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500`}
+                placeholder="Enter your email"
                 value={formData.email}
                 onChange={handleChange}
               />
               {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email}</p>}
             </div>
+
             <div>
-              <label htmlFor="username" className="sr-only">Username</label>
+              <label htmlFor="username" className="block text-sm font-medium text-gray-700">
+                Username
+              </label>
               <input
                 id="username"
                 name="username"
                 type="text"
                 required
-                className={`appearance-none rounded-none relative block w-full px-3 py-2 border ${
+                className={`mt-1 block w-full px-4 py-3 border ${
                   errors.username ? 'border-red-500' : 'border-gray-300'
-                } placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm`}
-                placeholder="Username"
+                } rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500`}
+                placeholder="Enter your username"
                 value={formData.username}
                 onChange={handleChange}
               />
               {errors.username && <p className="text-red-500 text-xs mt-1">{errors.username}</p>}
             </div>
+
             <div>
-              <label htmlFor="displayName" className="sr-only">Display Name</label>
+              <label htmlFor="displayName" className="block text-sm font-medium text-gray-700">
+                Display Name
+              </label>
               <input
                 id="displayName"
                 name="displayName"
                 type="text"
                 required
-                className={`appearance-none rounded-none relative block w-full px-3 py-2 border ${
+                className={`mt-1 block w-full px-4 py-3 border ${
                   errors.displayName ? 'border-red-500' : 'border-gray-300'
-                } placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm`}
-                placeholder="Display Name"
+                } rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500`}
+                placeholder="Enter your display name"
                 value={formData.displayName}
                 onChange={handleChange}
               />
               {errors.displayName && <p className="text-red-500 text-xs mt-1">{errors.displayName}</p>}
             </div>
+
             <div>
-              <label htmlFor="password" className="sr-only">Password</label>
+              <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+                Password
+              </label>
               <input
                 id="password"
                 name="password"
                 type="password"
                 required
-                className={`appearance-none rounded-none relative block w-full px-3 py-2 border ${
+                className={`mt-1 block w-full px-4 py-3 border ${
                   errors.password ? 'border-red-500' : 'border-gray-300'
-                } placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm`}
-                placeholder="Password"
+                } rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500`}
+                placeholder="Enter your password"
                 value={formData.password}
                 onChange={handleChange}
               />
               {errors.password && <p className="text-red-500 text-xs mt-1">{errors.password}</p>}
             </div>
+
             <div>
-              <label htmlFor="role" className="block text-sm font-medium text-gray-700">Role</label>
+              <label htmlFor="role" className="block text-sm font-medium text-gray-700">
+                Role
+              </label>
               <select
                 id="role"
                 name="role"
-                className={`mt-1 block w-full pl-3 pr-10 py-2 text-base border ${
+                className={`mt-1 block w-full px-4 py-3 border ${
                   errors.role ? 'border-red-500' : 'border-gray-300'
-                } focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md`}
+                } rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500`}
                 value={formData.role}
                 onChange={handleChange}
               >
@@ -203,23 +228,37 @@ const Signup = () => {
           <div>
             <button
               type="submit"
-              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+              disabled={isLoading}
+              className="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition duration-150 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Sign up
+              {isLoading ? 'Đang xử lý...' : 'Sign up'}
             </button>
           </div>
         </form>
-        <div className="text-center">
+
+        <div className="mt-6 text-center">
           <p className="text-sm text-gray-600">
             Already have an account?{' '}
             <button
               onClick={() => navigate('/login')}
-              className="font-medium text-indigo-600 hover:text-indigo-500"
+              className="font-medium text-indigo-600 hover:text-indigo-500 transition duration-150 ease-in-out"
             >
               Sign in
             </button>
           </p>
         </div>
+
+        {message && (
+          <div className="mt-4 text-center">
+            <p className={`text-sm font-medium ${
+              message.includes('OTP') 
+                ? 'text-green-600 bg-green-50 p-2 rounded-lg' 
+                : 'text-red-600 bg-red-50 p-2 rounded-lg'
+            }`}>
+              {message}
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );
