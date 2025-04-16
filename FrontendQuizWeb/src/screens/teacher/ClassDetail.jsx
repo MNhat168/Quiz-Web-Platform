@@ -16,6 +16,7 @@ import {
     Trophy
 } from "lucide-react";
 import Sidebar from "../../layout/teacher/teacherHeader";
+import "../../style/teacher-class-detail.css";
 
 const ClassDetail = () => {
     const { classId } = useParams();
@@ -211,8 +212,33 @@ const ClassDetail = () => {
 
     return (
         <>
+        <header className="dashboard-header">
+            <div className="header-left">
+            <div className="logo-container">
+                <div className="logo-circle">Q</div>
+                <span className="logo-text">uiz</span>
+            </div>
+            <div className="teacher-badge">TEACHER</div>
+            <h1 className="header-title">Dashboard</h1>
+            </div>
+            <div className="header-right">
+            <div className="notification-icon">
+                <i className="icon-bell"></i>
+            </div>
+            <div className="user-profile">
+                <span className="user-name">LuxyAnna</span>
+                <span className="user-role">Teacher</span>
+                <div className="avatar">
+                <span>L</span>
+                </div>
+                <i className="icon-chevron-down"></i>
+            </div>
+            </div>
+        </header>
+        <div className="app-container">
             <Sidebar />
-            <div className="max-w-7xl mx-auto p-4">
+            <div className="main-content">
+
                 {error && (
                     <div className="bg-red-50 border-l-4 border-red-500 text-red-700 p-4 rounded-md mb-6 shadow-sm">
                         <div className="flex items-center">
@@ -243,288 +269,222 @@ const ClassDetail = () => {
                     </div>
                 )}
 
-                <div className="bg-blue-500 rounded-t-lg text-white p-6">
-                    <div className="flex justify-between items-center">
-                        <div>
-                            <h1 className="text-2xl font-bold mb-2">
-                                {classData?.name || "Class"}
-                            </h1>
-                            <div className="flex items-center text-sm text-white/80">
-                                <Calendar className="h-4 w-4 mr-1" />
-                                <span>
-                                    {classData?.createdAt ? formatDate(classData.createdAt) : "No date available"}
-                                </span>
+                <div className="bg-blue-500 rounded-xl text-white p-6">
+                <div className="class-card-container">
+                    <div className="class-card-custome">
+                    {/* Left: Class Info */}
+                    <div className="class-info">
+                        <h1 className="class-title">{classData?.name || "Class"}</h1>
+                        <div className="class-date">
+                        <Calendar className="icon" />
+                        <span>{classData?.createdAt ? formatDate(classData.createdAt) : "No date available"}</span>
+                        </div>
+
+                        {/* Actions */}
+                        <div className="class-actions">
+                        <button onClick={toggleShowCode} className="code-toggle-btn">
+                            {isCodeVisible ? (
+                            <>
+                                <EyeOff className="icon" />
+                                Hide Code
+                            </>
+                            ) : (
+                            <>
+                                <Eye className="icon" />
+                                Show Code
+                            </>
+                            )}
+                        </button>
+
+                        <button onClick={markAttendance} className="attendance-btn">
+                            <CheckCircle className="icon" />
+                            Mark Attendance
+                        </button>
+                        </div>
+
+                        {/* Class Code */}
+                        {isCodeVisible && (
+                        <div className="class-code-box">
+                            <div className="flex items-center">
+                            <span className="text-sm font-medium mr-2">Class Code:</span>
+                            <span className="font-mono bg-white/20 px-2 py-1 rounded text-sm">{classCode}</span>
                             </div>
-                        </div>
-
-                        <div className="flex space-x-2">
                             <button
-                                onClick={toggleShowCode}
-                                className="bg-white/10 hover:bg-white/20 text-white text-sm rounded-md px-3 py-1.5 flex items-center"
+                            onClick={generateNewCode}
+                            className="text-xs bg-white/10 hover:bg-white/20 rounded-md px-2 py-1 flex items-center"
                             >
-                                {isCodeVisible ? (
-                                    <>
-                                        <EyeOff className="h-4 w-4 mr-1" />
-                                        Hide Code
-                                    </>
-                                ) : (
-                                    <>
-                                        <Eye className="h-4 w-4 mr-1" />
-                                        Show Code
-                                    </>
-                                )}
-                            </button>
-
-                            <button
-                                onClick={markAttendance}
-                                className="bg-white text-blue-600 text-sm font-medium rounded-md px-3 py-1.5 flex items-center"
-                            >
-                                <CheckCircle className="h-4 w-4 mr-1" />
-                                Mark Attendance
+                            <RefreshCw className="h-3 w-3 mr-1" />
+                            New Code
                             </button>
                         </div>
+                        )}
                     </div>
 
-                    {isCodeVisible && (
-                        <div className="mt-4 bg-white/10 p-3 rounded-md flex items-center justify-between">
-                            <div className="flex items-center">
-                                <span className="text-sm font-medium mr-2">Class Code:</span>
-                                <span className="font-mono bg-white/20 px-2 py-1 rounded text-sm">{classCode}</span>
+                    {/* Right: Tutor Info */}
+                    <div className="tutor-section">
+                        <div className="tutor-header">
+                        <h3 className="tutor-title">Tutors</h3>
+                        <span className="status-badge">In Progress</span>
+                        </div>
+                        <div className="tutor-box">
+                        <div className="tutor-left">
+                            <img src={`/api/placeholder/40/40`} alt="Tutor" className="tutor-avatar" />
+                            <div>
+                            <div className="tutor-name">Teacher Name</div>
+                            <div className="tutor-role">Lead Tutor</div>
                             </div>
-                            <button
-                                onClick={generateNewCode}
-                                className="text-xs bg-white/10 hover:bg-white/20 rounded-md px-2 py-1 flex items-center"
-                            >
-                                <RefreshCw className="h-3 w-3 mr-1" />
-                                New Code
-                            </button>
+                        </div>
+                        <div className="tutor-indicator" />
+                        </div>
+                        {/* Members */}
+                        <div className="members-section">
+                            <span className="text-sm font-medium">Members</span>
+                            <button className="invite-btn">Invite</button>
+                            <div className="avatar-group">
+                                {students.slice(0, 5).map((student, index) => (
+                                <div
+                                    key={index}
+                                    className={`avatar-circle bg-${['orange', 'green', 'purple', 'red', 'blue'][index % 5]}-400`}
+                                >
+                                    {student.name
+                                    ? `${student.name.charAt(0)}${student.name.split(' ')[1]?.charAt(0) || ''}`
+                                    : 'U'}
+                                </div>
+                                ))}
+                                {students.length > 5 && (
+                                <div className="avatar-circle bg-blue-500 text-white border-white">+{students.length - 5}</div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                    </div>
+                </div>
+                </div>
+
+                <div className="class-page">
+                <div className="main-content-custome">
+                    <div className="tab-nav">
+                    <nav className="tab-buttons">
+                        <button
+                        className={`tab-button ${activeTab === "students" ? "active" : ""}`}
+                        onClick={() => setActiveTab("students")}
+                        >
+                        Students
+                        </button>
+                        <button
+                        className={`tab-button ${activeTab === "attendance" ? "active" : ""}`}
+                        onClick={() => setActiveTab("attendance")}
+                        >
+                        Attendance
+                        </button>
+                        <button
+                        className={`tab-button ${activeTab === "quiz" ? "active" : ""}`}
+                        onClick={() => setActiveTab("quiz")}
+                        >
+                        Quiz
+                        </button>
+                    </nav>
+                    </div>
+
+                    <div className="tab-content">
+                    {activeTab === "students" && (
+                        <div>
+                        {students.length > 0 ? (
+                            <table className="student-table">
+                            <thead>
+                                <tr>
+                                <th>Name/Email</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {students.map((student, index) => (
+                                <tr key={index}>
+                                    <td>
+                                    <div className="student-info">
+                                        <img src="/api/placeholder/40/40" alt="Student" className="avatar" />
+                                        <div>
+                                        <div className="student-name">{student.name || student.username}</div>
+                                        <div className="student-email">{student.email}</div>
+                                        </div>
+                                    </div>
+                                    </td>
+                                    <td>
+                                    <span className="status-badge">{student.status || "Active"}</span>
+                                    </td>
+                                    <td>
+                                    <button onClick={() => removeStudent(student.id)} className="remove-button">
+                                        Remove
+                                    </button>
+                                    </td>
+                                </tr>
+                                ))}
+                            </tbody>
+                            </table>
+                        ) : (
+                            <div className="empty-message">No students have joined this class yet.</div>
+                        )}
                         </div>
                     )}
 
-                    <div className="flex items-center mt-4 space-x-1">
-                        <span className="text-sm">Members</span>
-                        <button className="bg-white/10 hover:bg-white/20 text-white text-xs rounded-md px-2 py-1">
-                            Invite
-                        </button>
-                        <div className="flex -space-x-2 ml-2">
-                            {students.slice(0, 5).map((student, index) => (
-                                <div key={index} className={`w-8 h-8 rounded-full bg-${['orange', 'green', 'purple', 'red', 'blue'][index % 5]}-400 border-2 border-blue-500 flex items-center justify-center text-xs font-bold`}>
-                                    {student.name ? `${student.name.charAt(0)}${student.name.split(' ')[1]?.charAt(0) || ''}` : 'U'}
-                                </div>
-                            ))}
-                            {students.length > 5 && (
-                                <div className="w-8 h-8 rounded-full bg-blue-500 border-2 border-white flex items-center justify-center text-xs font-bold text-white">
-                                    +{students.length - 5}
-                                </div>
-                            )}
+                    {activeTab === "attendance" && (
+                        <div>
+                        <div className="tab-header">
+                            <h3>Attendance History</h3>
+                            <button className="action-button">Take Attendance</button>
                         </div>
+                        <div className="empty-message">Attendance reports will be shown here</div>
+                        </div>
+                    )}
+
+                    {activeTab === "quiz" && (
+                        <div>
+                        <div className="tab-header">
+                            <h3>Quiz Management</h3>
+                            <button className="action-button">Create Quiz</button>
+                        </div>
+                        <div className="empty-message">No quizzes have been created for this class yet</div>
+                        </div>
+                    )}
                     </div>
                 </div>
 
-                <div className="flex">
-                    <div className="w-3/4 bg-white border-r border-gray-200">
-                        <div className="border-b border-gray-200">
-                            <nav className="flex -mb-px">
-                                <button
-                                    className={`py-4 px-6 border-b-2 font-medium text-sm ${activeTab === "students"
-                                            ? "border-blue-500 text-blue-600"
-                                            : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-                                        }`}
-                                    onClick={() => setActiveTab("students")}
-                                >
-                                    Students
-                                </button>
-                                <button
-                                    className={`py-4 px-6 border-b-2 font-medium text-sm ${activeTab === "attendance"
-                                            ? "border-blue-500 text-blue-600"
-                                            : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-                                        }`}
-                                    onClick={() => setActiveTab("attendance")}
-                                >
-                                    Attendance
-                                </button>
-                                <button
-                                    className={`py-4 px-6 border-b-2 font-medium text-sm ${activeTab === "quiz"
-                                            ? "border-blue-500 text-blue-600"
-                                            : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-                                        }`}
-                                    onClick={() => setActiveTab("quiz")}
-                                >
-                                    Quiz
-                                </button>
-                            </nav>
-                        </div>
-
-                        <div className="p-4">
-                            {activeTab === "students" && (
-                                <div>
-                                    {students.length > 0 ? (
-                                        <table className="min-w-full">
-                                            <thead>
-                                                <tr className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                    <th className="px-6 py-3">Name/Email</th>
-                                                    <th className="px-6 py-3">Status</th>
-                                                    <th className="px-6 py-3">Actions</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody className="divide-y divide-gray-200">
-                                                {students.map((student, index) => (
-                                                    <tr key={index}>
-                                                        <td className="px-6 py-4">
-                                                            <div className="flex items-center">
-                                                                <img
-                                                                    src={`/api/placeholder/40/40`}
-                                                                    alt="Student"
-                                                                    className="w-10 h-10 rounded-full mr-3"
-                                                                />
-                                                                <div>
-                                                                    <div className="font-medium text-gray-900">
-                                                                        {student.name || student.username || "Unknown Student"}
-                                                                    </div>
-                                                                    <div className="text-sm text-gray-500">
-                                                                        {student.email || "No email available"}
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                        </td>
-                                                        <td className="px-6 py-4">
-                                                            <span className="px-3 py-1 text-xs rounded-full bg-green-100 text-green-800">
-                                                                {student.status || "Active"}
-                                                            </span>
-                                                        </td>
-                                                        <td className="px-6 py-4">
-                                                            <button
-                                                                onClick={() => removeStudent(student.id)}
-                                                                className="text-red-600 hover:text-red-900 text-sm font-medium"
-                                                            >
-                                                                Remove
-                                                            </button>
-                                                        </td>
-                                                    </tr>
-                                                ))}
-                                            </tbody>
-                                        </table>
-                                    ) : (
-                                        <div className="text-center text-gray-500 py-8">
-                                            No students have joined this class yet.
-                                        </div>
-                                    )}
-                                </div>
-                            )}
-
-                            {activeTab === "attendance" && (
-                                <div>
-                                    <div className="flex justify-between items-center mb-4">
-                                        <h3 className="text-lg font-medium text-gray-900">Attendance History</h3>
-                                        <button className="bg-blue-500 text-white px-3 py-1 rounded-md text-sm">
-                                            Take Attendance
-                                        </button>
-                                    </div>
-                                    <div className="text-center text-gray-500 py-8">
-                                        Attendance reports will be shown here
-                                    </div>
-                                </div>
-                            )}
-
-                            {activeTab === "quiz" && (
-                                <div>
-                                    <div className="flex justify-between items-center mb-4">
-                                        <h3 className="text-lg font-medium text-gray-900">Quiz Management</h3>
-                                        <button className="bg-blue-500 text-white px-3 py-1 rounded-md text-sm">
-                                            Create Quiz
-                                        </button>
-                                    </div>
-                                    <div className="text-center text-gray-500 py-8">
-                                        No quizzes have been created for this class yet
-                                    </div>
-                                </div>
-                            )}
-                        </div>
+                <div className="leaderboard-container">
+                    <h3 className="leaderboard-title">Leaderboard</h3>
+                    <div className="leaderboard-card">
+                    <div className="leaderboard-tabs">
+                        <button className="leaderboard-tab active">Weekly</button>
+                        <button className="leaderboard-tab">All Time</button>
                     </div>
-
-                    <div className="w-1/4 bg-gray-50 p-4">
-                        <div className="mb-4">
-                            <div className="flex justify-between items-center mb-2">
-                                <h3 className="font-medium text-gray-900">Tutors</h3>
-                                <span className="text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded">In Progress</span>
-                            </div>
-                            <div className="bg-white rounded-lg p-3 shadow-sm border border-gray-100">
-                                <div className="flex items-center justify-between">
-                                    <div className="flex items-center">
-                                        <img
-                                            src={`/api/placeholder/40/40`}
-                                            alt="Tutor"
-                                            className="w-10 h-10 rounded-full mr-3"
-                                        />
-                                        <div>
-                                            <div className="font-medium">Teacher Name</div>
-                                            <div className="text-xs text-gray-500">Lead Tutor</div>
-                                        </div>
-                                    </div>
-                                    <div className="w-8 h-4 bg-blue-500 rounded-full"></div>
+                    <div className="leaderboard-list">
+                        {leaderboardData.length > 0 ? (
+                        leaderboardData.map((student, index) => (
+                            <div key={index} className="leaderboard-item">
+                            <div className="leaderboard-rank">
+                                <div className="rank-circle">{index + 1}</div>
+                                <img src="/api/placeholder/32/32" alt={student.name} className="avatar-small" />
+                                <div>
+                                <div className="student-name">{student.name}</div>
+                                <div className="student-email">{student.points} points</div>
                                 </div>
                             </div>
-                        </div>
-
-                        <div>
-                            <div className="flex justify-between items-center mb-4">
-                                <h3 className="font-medium text-gray-900 text-center">Leaderboard</h3>
+                            <div className="leaderboard-icon">
+                                {index === 0 && <div className="gold"><Trophy className="icon" /></div>}
+                                {index === 1 && <div className="silver"><Trophy className="icon" /></div>}
+                                {index === 2 && <div className="bronze"><Trophy className="icon" /></div>}
                             </div>
-                            <div className="bg-white rounded-lg shadow-sm border border-gray-100">
-                                <div className="border-b border-gray-100 p-2">
-                                    <div className="flex justify-center gap-6">
-                                        <button className="px-3 py-1 bg-blue-500 text-white rounded-md text-sm">Weekly</button>
-                                        <button className="px-3 py-1 text-gray-500 hover:bg-gray-100 rounded-md text-sm">All Time</button>
-                                    </div>
-                                </div>
-                                <div className="p-2">
-                                    {leaderboardData.length > 0 ? (
-                                        leaderboardData.map((student, index) => (
-                                            <div key={index} className="flex items-center justify-between p-2 hover:bg-gray-50 rounded">
-                                                <div className="flex items-center">
-                                                    <div className="w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center text-xs mr-2">
-                                                        {index + 1}
-                                                    </div>
-                                                    <img
-                                                        src={`/api/placeholder/32/32`}
-                                                        alt={student.name}
-                                                        className="w-8 h-8 rounded-full mr-2"
-                                                    />
-                                                    <div>
-                                                        <div className="text-sm font-medium">{student.name}</div>
-                                                        <div className="text-xs text-gray-500">{student.points} points</div>
-                                                    </div>
-                                                </div>
-                                                <div className="w-6 h-6">
-                                                    {index === 0 && (
-                                                        <div className="w-6 h-6 bg-yellow-400 rounded-full flex items-center justify-center">
-                                                            <Trophy className="w-3 h-3 text-white" />
-                                                        </div>
-                                                    )}
-                                                    {index === 1 && (
-                                                        <div className="w-6 h-6 bg-gray-300 rounded-full flex items-center justify-center">
-                                                            <Trophy className="w-3 h-3 text-white" />
-                                                        </div>
-                                                    )}
-                                                    {index === 2 && (
-                                                        <div className="w-6 h-6 bg-amber-600 rounded-full flex items-center justify-center">
-                                                            <Trophy className="w-3 h-3 text-white" />
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            </div>
-                                        ))
-                                    ) : (
-                                        <div className="text-center text-gray-500 py-4">
-                                            No leaderboard data available
-                                        </div>
-                                    )}
-                                </div>
                             </div>
-                        </div>
+                        ))
+                        ) : (
+                        <div className="empty-message">No leaderboard data available</div>
+                        )}
                     </div>
+                    </div>
+                </div>
                 </div>
             </div>
+        </div>
         </>
     );
 };
