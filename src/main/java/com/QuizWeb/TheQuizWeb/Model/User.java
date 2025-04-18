@@ -25,6 +25,7 @@ public class User {
     private Date lastLoginAt;
     private UserStats stats;
     private List<Achievement> achievements;
+    private boolean enabled = false;
 
     public String getId() {
         return id;

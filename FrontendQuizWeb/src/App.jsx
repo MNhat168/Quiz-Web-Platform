@@ -1,5 +1,6 @@
 import { useState, useContext } from 'react'
 import Login from "./screens/Login";
+import Signup from "./screens/Signup";
 import AdminDashboard from './screens/admin/AdminDashboard';
 import StudentDashboard from './screens/student/StudentDashboard';
 import TeacherDashboard from './screens/teacher/TeacherDashboard';
@@ -9,11 +10,16 @@ import { AuthContext } from './context/AuthContext';
 import { AuthProvider } from './context/AuthContext';
 import { Navigate, BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import './App.css'
+
+
+
+
 import TeacherCreateRoom from './screens/teacher/TeacherCreateRoom';
 import StudentJoinRoom from './screens/student/StudentJoinRoom';
 import TeacherCreateClass from './screens/teacher/TeacherCreateClass';
 import StudentJoinClass from './screens/student/StudentJoinClass';
 import ClassDetail from './screens/teacher/ClassDetail';
+import Checkotp from './screens/Checkotp';
 import TeacherProfile from './screens/teacher/TeacherProfile';
 
 
@@ -25,6 +31,8 @@ function App() {
       <AuthProvider>
         <Routes>
           <Route path="/login" element={<Login />} />
+          <Route path="/signup" element={<Signup />} />
+          <Route path="/checkotp" element={<Checkotp />} />
 
           <Route
             path="/admin"
@@ -58,15 +66,6 @@ function App() {
             element={
               <ProtectedRoute allowedRoles={["TEACHER", "ADMIN"]}>
                 <ClassDetail />
-              </ProtectedRoute>
-            }
-          />
-
-          <Route
-            path="/profile"
-            element={
-              <ProtectedRoute allowedRoles={["TEACHER", "ADMIN"]}>
-                <TeacherProfile />
               </ProtectedRoute>
             }
           />
