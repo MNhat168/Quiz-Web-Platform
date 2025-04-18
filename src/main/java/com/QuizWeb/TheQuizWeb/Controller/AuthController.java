@@ -51,7 +51,7 @@ public class AuthController {
             User user = userRepository.findByEmail(principal.getUsername()).orElseThrow();
             String jwt = jwtUtils.generateToken(user);
 
-            return ResponseEntity.ok(new LoginResponse(jwt, user.getRole().name()));
+            return ResponseEntity.ok(new LoginResponse(jwt, user.getRole().name(), user.getDisplayName()));
         } catch (Exception e) {
             e.printStackTrace(); 
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Login failed: " + e.getMessage());

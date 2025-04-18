@@ -26,13 +26,16 @@ function Login() {
   
       const token = response.data.token;
       const role = response.data.role;
+      const name = response.data.name;
 
       localStorage.setItem("token", token);
       localStorage.setItem("role", role);
+      localStorage.setItem("username", name);
   
       setMessage("Đăng nhập thành công!");
       console.log("Token:", token);
       console.log("Role:", role);
+      console.log("UserName:", name);
   
       // ✅ Chuyển hướng theo role
       if (role === "ADMIN") {

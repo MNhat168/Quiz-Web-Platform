@@ -1,83 +1,133 @@
-// Sidebar.jsx
-import React from 'react';
-import { NavLink } from 'react-router-dom';
-import '../../style/teacher-sidebar.css';
+import React, { useState, useRef, useEffect } from "react";
+import { useLocation, Link } from "react-router-dom";
+import { useAuth } from "../../context/AuthContext";
+import "../../style/teacher-header.css"
+import axios from 'axios';
 
-const Sidebar = () => {
+const teacherHeader = () => {
+  const { name, role, token } = useAuth();
+  const [avatarUrl, setAvatarUrl] = useState(localStorage.getItem('avatarUrl'));
+  const location = useLocation();
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const dropdownRef = useRef(null);
+  const { logout } = useAuth();
+  
+  useEffect(() => {
+    const handleStorageChange = () => {
+      setAvatarUrl(localStorage.getItem('avatarUrl'));
+    };
+
+    window.addEventListener('avatarUpdated', handleStorageChange);
+    return () => window.removeEventListener('avatarUpdated', handleStorageChange);
+  }, []);
+  
+  useEffect(() => {
+    const fetchAvatar = async () => {
+      try {
+        const res = await axios.get("http://localhost:8080/api/user/profile", {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        setAvatarUrl(res.data.avatarUrl);
+      } catch (err) {
+        console.error("Failed to fetch avatar", err);
+      }
+    };
+    
+    if (token) fetchAvatar();
+  }, [token]);
+
+  // Đóng dropdown khi click bên ngoài
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setDropdownOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const getPageTitle = () => {
+    const path = location.pathname.toLowerCase();
+    
+    // Xử lý cả 2 định dạng URL
+    if (path.startsWith("/class-management") || 
+        path.startsWith("/class%20management") || 
+        path.startsWith("/classes")) {
+      return "Class Management";
+    }
+    
+    switch (path) {
+      case "/teacher":
+        return "Dashboard";
+      case "/quizzes":
+        return "Quizzes";
+      case "/profile":
+        return "Your Profile";
+      default:
+        return "Home";
+    }
+  };
+
   return (
-    <div className="sidebar">
-      <div className="logo">
-        <span className="q">Q</span>
-        <span className="uiz">uiz</span>
-        <div className="role-badge">TEACHER</div>
-      </div>
-      
-      <div className="nav-links">
-        <NavLink to="/teacher" className={({ isActive }) => isActive ? "nav-item active" : "nav-item"}>
-          <div className="nav-icon">
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <rect x="3" y="3" width="7" height="7"></rect>
-              <rect x="14" y="3" width="7" height="7"></rect>
-              <rect x="14" y="14" width="7" height="7"></rect>
-              <rect x="3" y="14" width="7" height="7"></rect>
-            </svg>
-          </div>
-          Dashboard
-        </NavLink>
-        
-        <NavLink to="/quiz-management" className={({ isActive }) => isActive ? "nav-item active" : "nav-item"}>
-          <div className="nav-icon">
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-              <circle cx="10" cy="13" r="2"></circle>
-              <path d="M14 13h4"></path>
-              <path d="M14 17h4"></path>
-              <path d="M10 9H6"></path>
-            </svg>
-          </div>
-          Quiz management
-          <span className="icon-container">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M5 12h14"></path>
-              <path d="M12 5l7 7-7 7"></path>
-            </svg>
-          </span>
-        </NavLink>
-        
-        <NavLink to="/class-management" className={({ isActive }) => isActive ? "nav-item active" : "nav-item"}>
-          <div className="nav-icon">
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-              <circle cx="9" cy="7" r="4"></circle>
-              <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
-              <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-            </svg>
-          </div>
-          Class management
-          <span className="icon-container">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M5 12h14"></path>
-              <path d="M12 5l7 7-7 7"></path>
-            </svg>
-          </span>
-        </NavLink>
-      </div>
-      
-      <div className="upgrade-section">
-        <div className="upgrade-text">
-          <span className="upgrade-icon">⭐</span>
-          Upgrade your account for more features
+    <header className="dashboard-header">
+
+        <div className="header-left">
+            <div className="logo-wrapper">
+            <div className="logo-container">
+                <div className="logo-circle">Q</div>
+                <span className="logo-text">uiz</span>
+            </div>
+            {/* <div className={`role-badge ${role?.toLowerCase()}`}>
+                {role || "GUEST"}
+            </div> */}
+            </div>
+            <h1 className="header-title">{getPageTitle()}</h1>
         </div>
-        <button className="upgrade-button">
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-            <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
-          </svg>
-          UPGRADE
-        </button>
-      </div>
-    </div>
+
+        <div className="header-right" ref={dropdownRef}>
+            <div className="user-profile">
+                <div className="user-info">
+                <span className="user-name">{name || "Guest"}</span>
+                <span className="user-role">{role || "Unknown"}</span>
+                </div>
+
+                <div className="avatar-dropdown-container">
+                <div className="avatar-wrapper" onClick={() => setDropdownOpen(!dropdownOpen)}>
+                  {avatarUrl ? (
+                    <img 
+                      src={avatarUrl} 
+                      alt="User avatar" 
+                      className="avatar" 
+                    />
+                  ) : (
+                    <div className="avatar">
+                      <span>{name?.charAt(0)?.toUpperCase() || "G"}</span>
+                    </div>
+                  )}
+                  {/* ... */}
+                </div>
+
+                {dropdownOpen && (
+                    <div className="dropdown-menu">
+                    <Link to="/profile" className="dropdown-item">
+                    <i className="icon-user"></i> Profile
+                    </Link>
+                    <div className="dropdown-item">
+                        <i className="icon-settings"></i> Settings
+                    </div>
+                    <div className="dropdown-divider"></div>
+                    <div className="dropdown-item" onClick={logout}>
+                        <i className="icon-logout"></i> Logout
+                    </div>
+                    </div>
+                )}
+                </div>
+            </div>
+        </div>
+    </header>
   );
 };
 
-export default Sidebar;
+export default teacherHeader;

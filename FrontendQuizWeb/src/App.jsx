@@ -14,19 +14,15 @@ import StudentJoinRoom from './screens/student/StudentJoinRoom';
 import TeacherCreateClass from './screens/teacher/TeacherCreateClass';
 import StudentJoinClass from './screens/student/StudentJoinClass';
 import ClassDetail from './screens/teacher/ClassDetail';
-import TeacherCreateRoom from './screens/teacher/TeacherCreateRoom';
-import StudentJoinRoom from './screens/student/StudentJoinRoom';
-import TeacherCreateClass from './screens/teacher/TeacherCreateClass';
-import StudentJoinClass from './screens/student/StudentJoinClass';
-import ClassDetail from './screens/teacher/ClassDetail';
+import TeacherProfile from './screens/teacher/TeacherProfile';
+
 
 function App() {
-  const auth = useContext(AuthContext);
-  const role = localStorage.getItem("role");
+ 
 
   return (
-    <AuthProvider>
-      <Router>
+    <Router>
+      <AuthProvider>
         <Routes>
           <Route path="/login" element={<Login />} />
 
@@ -43,7 +39,6 @@ function App() {
             path="/teacher"
             element={
               <ProtectedRoute allowedRoles={["TEACHER", "ADMIN"]}>
-                {/* <TeacherCreateRoom /> */}
                 <TeacherDashboard />
               </ProtectedRoute>
             }
@@ -53,7 +48,6 @@ function App() {
             path="/class-management"
             element={
               <ProtectedRoute allowedRoles={["TEACHER", "ADMIN"]}>
-                {/* <TeacherCreateRoom /> */}
                 <TeacherCreateClass />
               </ProtectedRoute>
             }
@@ -69,10 +63,18 @@ function App() {
           />
 
           <Route
+            path="/profile"
+            element={
+              <ProtectedRoute allowedRoles={["TEACHER", "ADMIN"]}>
+                <TeacherProfile />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
             path="/student"
             element={
               <ProtectedRoute allowedRoles={["STUDENT", "TEACHER", "ADMIN"]}>
-                {/* <StudentJoinRoom /> */}
                 <StudentJoinClass />
               </ProtectedRoute>
             }
@@ -83,69 +85,9 @@ function App() {
           {/* Nếu không khớp route nào thì chuyển về login */}
           <Route path="*" element={<Navigate to="/login" />} />
         </Routes>
-      </Router>
-    </AuthProvider>
-  );
-    <AuthProvider>
-      <Router>
-        <Routes>
-          <Route path="/login" element={<Login />} />
-
-          <Route
-            path="/admin"
-            element={
-              <ProtectedRoute allowedRoles={["ADMIN"]}>
-                <AdminDashboard />
-              </ProtectedRoute>
-            }
-          />
-
-          <Route
-            path="/teacher"
-            element={
-              <ProtectedRoute allowedRoles={["TEACHER", "ADMIN"]}>
-                {/* <TeacherCreateRoom /> */}
-                <TeacherDashboard />
-              </ProtectedRoute>
-            }
-          />
-
-          <Route
-            path="/class-management"
-            element={
-              <ProtectedRoute allowedRoles={["TEACHER", "ADMIN"]}>
-                {/* <TeacherCreateRoom /> */}
-                <TeacherCreateClass />
-              </ProtectedRoute>
-            }
-          />
-
-          <Route
-            path="/classes/:classId"
-            element={
-              <ProtectedRoute allowedRoles={["TEACHER", "ADMIN"]}>
-                <ClassDetail />
-              </ProtectedRoute>
-            }
-          />
-
-          <Route
-            path="/student"
-            element={
-              <ProtectedRoute allowedRoles={["STUDENT", "TEACHER", "ADMIN"]}>
-                {/* <StudentJoinRoom /> */}
-                <StudentJoinClass />
-              </ProtectedRoute>
-            }
-          />
-
-          <Route path="/unauthorized" element={<Unauthorized />} />
-
-          {/* Nếu không khớp route nào thì chuyển về login */}
-          <Route path="*" element={<Navigate to="/login" />} />
-        </Routes>
-      </Router>
-    </AuthProvider>
+      </AuthProvider>
+    </Router>
   );
 }
+
 export default App;

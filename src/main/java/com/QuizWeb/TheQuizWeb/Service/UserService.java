@@ -60,4 +60,13 @@ public class UserService {
             userRepository.save(user);
         }
     }
+
+    public User updateUserAvatar(String userId, String avatarUrl) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+        
+        user.updateAvatar(avatarUrl);
+        return userRepository.save(user);
+    }
+
 }

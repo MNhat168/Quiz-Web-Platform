@@ -1,0 +1,151 @@
+/* File: teacher-profile.css */
+
+.teacher-profile-container {
+  display: flex;
+  min-height: 100vh;
+  background-color: #f5f7fa;
+}
+
+.profile-content-wrapper {
+  flex: 1;
+  padding: 2rem;
+  position: relative;
+}
+
+.profile-card {
+  position: relative;
+  margin-top: 60px; /* Dành chỗ cho avatar */
+}
+
+.avatar-overlap-container {
+  position: absolute;
+  top: -25px; /* Kéo avatar lên trên */
+  left: 60px;
+  z-index: 2;
+}
+
+.avatar-container {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  border: 4px solid white;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  position: relative;
+  overflow: hidden;
+  background-color: #e2e8f0;
+}
+
+.avatar-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.profile-info-card {
+  background: white;
+  border-radius: 12px;
+  padding: 2.5rem 2rem 2rem;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  position: relative;
+  z-index: 1;
+  padding-top: 60px; /* Để avatar chồng lên */
+  margin-left: 30px; /* Cân đối với avatar */
+}
+
+.profile-name {
+  font-size: 1.8rem;
+  margin-bottom: 1.5rem;
+  color: #2d3748;
+  margin-left: -25%;
+}
+
+.profile-info {
+  display: flex;
+  flex-direction: column;
+  gap: 1.2rem;
+}
+
+.profile-info-item {
+  display: flex;
+  align-items: baseline;
+}
+
+.info-label {
+  flex: 0 0 100px;
+  font-size: 0.95rem;
+  color: #718096;
+  font-weight: 500;
+}
+
+.info-value {
+  flex: 1;
+  font-size: 1.05rem;
+  color: #2d3748;
+  font-weight: 600;
+  text-align: left;
+}
+
+/* Phần hover và upload */
+.avatar-hover-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  cursor: pointer;
+}
+
+.avatar-container:hover .avatar-hover-overlay {
+  opacity: 1;
+}
+
+.avatar-upload-icon {
+  color: white;
+  font-size: 1.8rem;
+}
+
+.avatar-upload-input {
+  display: none;
+}
+
+.upload-loading {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: rgba(255, 255, 255, 0.8);
+  border-radius: 50%;
+  font-size: 0.9rem;
+  color: #4a5568;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .avatar-overlap-container {
+    left: 50%;
+    transform: translateX(-50%);
+  }
+  
+  .profile-info-card {
+    margin-left: 0;
+    padding-top: 100px;
+    text-align: center;
+  }
+  
+  .profile-info-item {
+    flex-direction: column;
+    align-items: center;
+    gap: 0.3rem;
+  }
+}

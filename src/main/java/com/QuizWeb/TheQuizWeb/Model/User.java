@@ -122,6 +122,10 @@ public class User {
         this.achievements = achievements;
     }
 
+    public void updateAvatar(String newAvatarUrl) {
+        this.avatarUrl = newAvatarUrl;
+    }
+
     @Data
     public static class UserStats {
         private int gamesPlayed;

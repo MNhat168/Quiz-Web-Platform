@@ -15,8 +15,9 @@ import {
     User,
     Trophy
 } from "lucide-react";
-import Sidebar from "../../layout/teacher/teacherHeader";
+import Sidebar from "../../layout/teacher/teacherSidebar";
 import "../../style/teacher-class-detail.css";
+import Header from "../../layout/teacher/teacherHeader";
 
 const ClassDetail = () => {
     const { classId } = useParams();
@@ -212,29 +213,7 @@ const ClassDetail = () => {
 
     return (
         <>
-        <header className="dashboard-header">
-            <div className="header-left">
-            <div className="logo-container">
-                <div className="logo-circle">Q</div>
-                <span className="logo-text">uiz</span>
-            </div>
-            <div className="teacher-badge">TEACHER</div>
-            <h1 className="header-title">Dashboard</h1>
-            </div>
-            <div className="header-right">
-            <div className="notification-icon">
-                <i className="icon-bell"></i>
-            </div>
-            <div className="user-profile">
-                <span className="user-name">LuxyAnna</span>
-                <span className="user-role">Teacher</span>
-                <div className="avatar">
-                <span>L</span>
-                </div>
-                <i className="icon-chevron-down"></i>
-            </div>
-            </div>
-        </header>
+        <Header />
         <div className="app-container">
             <Sidebar />
             <div className="main-content">
