@@ -167,7 +167,7 @@ public class GameSession {
 
     @Data
     public static class Participant {
-        private String userId; // Reference to User (student)
+        private String userId; 
         private String displayName;
         private String avatarUrl;
         private String teamId;
