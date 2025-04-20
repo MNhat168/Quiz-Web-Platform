@@ -53,7 +53,7 @@ const TeacherProfile = () => {
           return;
       }
 
-      if (file.size > 5 * 1024 * 1024) {
+      if (file.size > 10 * 1024 * 1024) {
           toast.error('Kích thước file tối đa là 5MB');
           return;
       }
@@ -95,10 +95,6 @@ const TeacherProfile = () => {
       } finally {
           setIsUploading(false);
       }
-      if (response.data.avatarUrl) {
-        localStorage.setItem('avatarUrl', response.data.avatarUrl);
-        window.dispatchEvent(new Event('avatarUpdated'));
-      }
   };
 
 
@@ -116,7 +112,7 @@ const TeacherProfile = () => {
               <div className="avatar-overlap-container">
                 <div className="avatar-container">
                   <img
-                    src={profile.avatarUrl || '/default-avatar.png'}
+                    src={profile.avatarUrl || null}
                     alt="Avatar"
                     className="avatar-image"
                     onError={(e) => {
@@ -125,8 +121,11 @@ const TeacherProfile = () => {
                   />
                   
                   <div className="avatar-hover-overlay">
-                    <span className="avatar-upload-icon"><FaCamera /></span>
+                    <label htmlFor="avatar-upload" className="avatar-upload-icon">
+                      <FaCamera />
+                    </label>
                     <input
+                      id="avatar-upload"
                       type="file"
                       accept="image/*"
                       onChange={handleAvatarChange}
