@@ -35,5 +35,8 @@ public class UserPrincipal implements UserDetails {
         return user.getEmail();
     }
 
+    @Override
+    public boolean isEnabled() {
+        return true; // Or implement your logic
+    }
 }
-

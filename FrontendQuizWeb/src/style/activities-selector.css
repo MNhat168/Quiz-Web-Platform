@@ -1,0 +1,111 @@
+/* Styles for selected activities list */
+.selected-activities-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.selected-activity-item {
+    display: flex;
+    align-items: center;
+    padding: 0.75rem;
+    background-color: #f3f4f6;
+    border-radius: 0.375rem;
+    position: relative;
+}
+
+.activity-order-badge {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 2rem;
+    height: 2rem;
+    background-color: #8b5cf6;
+    color: white;
+    border-radius: 9999px;
+    font-weight: 600;
+    margin-right: 0.75rem;
+}
+
+.selected-activity-details {
+    flex: 1;
+}
+
+.remove-selection-button {
+    color: #6b7280;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0.25rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 0.25rem;
+    transition: background-color 0.2s;
+}
+
+.remove-selection-button:hover {
+    background-color: #e5e7eb;
+    color: #ef4444;
+}
+
+/* Styles for activity selectors with order badge */
+.activity-selector-item {
+    position: relative;
+    padding: 1rem;
+    border: 1px solid #e5e7eb;
+    border-radius: 0.375rem;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.activity-selector-item.selected {
+    border-color: #8b5cf6;
+    background-color: rgba(139, 92, 246, 0.1);
+}
+
+.selection-order-badge {
+    position: absolute;
+    top: -0.5rem;
+    left: -0.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.5rem;
+    height: 1.5rem;
+    background-color: #8b5cf6;
+    color: white;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    z-index: 10;
+}
+
+/* Updates to the library activity cards */
+.library-activity-card {
+    position: relative;
+}
+
+.library-activity-card.selected {
+    border-color: #8b5cf6;
+    background-color: rgba(139, 92, 246, 0.1);
+}
+
+.activity-checkbox {
+    margin-right: 0.75rem;
+    accent-color: #9333ea; /* Purple color to match theme */
+}
+
+.activity-selector-item {
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    padding: 0.75rem;
+}
+
+.activity-selector-item.selected {
+    background-color: #f3e8ff; /* Light purple background */
+}

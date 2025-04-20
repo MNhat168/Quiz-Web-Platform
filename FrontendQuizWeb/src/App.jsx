@@ -13,13 +13,15 @@ import './App.css'
 
 
 
-
+import TeacherCreateGame from './screens/teacher/TeacherCreateGame';
 import TeacherCreateRoom from './screens/teacher/TeacherCreateRoom';
 import StudentJoinRoom from './screens/student/StudentJoinRoom';
 import TeacherCreateClass from './screens/teacher/TeacherCreateClass';
 import StudentJoinClass from './screens/student/StudentJoinClass';
 import ClassDetail from './screens/teacher/ClassDetail';
 import Checkotp from './screens/Checkotp';
+import SimpleSocketTest from './screens/teacher/Sockettest';
+import GameActivityEditor from './screens/teacher/GameEditor';
 import TeacherProfile from './screens/teacher/TeacherProfile';
 
 
@@ -48,6 +50,8 @@ function App() {
             element={
               <ProtectedRoute allowedRoles={["TEACHER", "ADMIN"]}>
                 <TeacherDashboard />
+                {/* <TeacherCreateRoom /> */}
+                {/* <SimpleSocketTest/> */}
               </ProtectedRoute>
             }
           />
@@ -57,6 +61,24 @@ function App() {
             element={
               <ProtectedRoute allowedRoles={["TEACHER", "ADMIN"]}>
                 <TeacherCreateClass />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/game-management"
+            element={
+              <ProtectedRoute allowedRoles={["TEACHER", "ADMIN"]}>
+                <TeacherCreateGame />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/games/edit/:gameId"
+            element={
+              <ProtectedRoute allowedRoles={["TEACHER", "ADMIN"]}>
+                <GameActivityEditor />
               </ProtectedRoute>
             }
           />
@@ -84,7 +106,7 @@ function App() {
             path="/student"
             element={
               <ProtectedRoute allowedRoles={["STUDENT", "TEACHER", "ADMIN"]}>
-                <StudentJoinClass />
+                <StudentJoinRoom />
               </ProtectedRoute>
             }
           />

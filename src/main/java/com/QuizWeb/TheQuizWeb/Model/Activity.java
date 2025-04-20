@@ -60,10 +60,16 @@ public class Activity {
     // Activity Content Models (polymorphic design)
     @Data
     public static class MultipleChoiceContent {
-        private String question;
-        private List<Option> options;
+        private List<QuestionItem> questions;
         private boolean allowMultipleAnswers;
         private List<String> hints;
+    }
+    
+    @Data
+    public static class QuestionItem {
+        private String question;
+        private List<Option> options;
+        private String explanation;
     }
 
     @Data
@@ -118,7 +124,14 @@ public class Activity {
         private boolean requireStepByStep; // Whether student must show work
         private List<String> hints;
     }
+
+    @Data
+    public static class TeamChallengeContent {
+        private List<String> prompts; // List of drawing prompts
+        private int roundTime; // Seconds per round
+        private int maxRounds;
+        private boolean allowGuessing; // Team members can guess
+        private int pointsPerCorrect;
+        private List<String> allowedWords; // Optional restricted word list
+    }
 }
-
-
-

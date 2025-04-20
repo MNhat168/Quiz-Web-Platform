@@ -423,6 +423,7 @@ const ClassDetail = () => {
                             <h3>Quiz Management</h3>
                             <button className="action-button">Create Quiz</button>
                         </div>
+                        
                         <div className="empty-message">No quizzes have been created for this class yet</div>
                         </div>
                     )}
