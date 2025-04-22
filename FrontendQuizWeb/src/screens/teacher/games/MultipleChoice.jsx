@@ -1,4 +1,5 @@
-import { Plus, Trash2 } from "lucide-react"
+import { Plus, Trash2, X } from "lucide-react"
+import "../../../style/games-multiplechoice.css"
 
 const MultipleChoiceForm = ({ 
     content, 
@@ -86,8 +87,8 @@ const MultipleChoiceForm = ({
   
               <div className="form-group">
                 <label className="form-label">Question Text</label>
-                <textarea
-                  className="form-textarea"
+                <input
+                  className="form-question-input"
                   value={question.question}
                   onChange={(e) => handleQuestionChange(questionIndex, 'question', e.target.value)}
                 />
@@ -201,7 +202,6 @@ const MultipleChoiceForm = ({
       {/* Hints Section */}
       <div className="hints-section">
         <h3 className="content-section-title">Hints</h3>
-        <div className="hints-container">
           <div className="add-hint-form">
             <input
               type="text"
@@ -209,7 +209,7 @@ const MultipleChoiceForm = ({
               className="form-input"
               value={currentHint}
               onChange={(e) => setCurrentHint(e.target.value)}
-              onKeyPress={(e) => {
+              onKeyDown={(e) => {
                 if (e.key === 'Enter') {
                   e.preventDefault()
                   addHint()
@@ -239,7 +239,6 @@ const MultipleChoiceForm = ({
               </div>
             ))}
           </div>
-        </div>
       </div>
     </div>
   )

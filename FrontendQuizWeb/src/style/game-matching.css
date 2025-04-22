@@ -1,0 +1,368 @@
+.matching-content {
+    padding: 1.5rem;
+    background-color: #fff;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    max-width: 900px;
+    margin: auto;
+    font-family: "Segoe UI", sans-serif;
+  }
+  
+  .content-section-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
+  }
+  
+  .form-options {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+  
+  .form-checkbox {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  
+  .match-pair-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border: 1px solid #ddd;
+    padding: 1rem;
+    border-radius: 8px;
+    background-color: #f9f9f9;
+    position: relative;
+
+  }
+  
+  .match-pair-content {
+    display: flex;
+    gap: 1.5rem;
+    flex: 1;
+  }
+  
+  .match-pair-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    flex: 1;
+  }
+  
+  .match-pair-item label {
+    font-weight: 500;
+    margin-bottom: 0.25rem;
+  }
+
+  /* Input with Upload Icon Container */
+.match-pair-item .input-with-icon {
+    position: relative;
+    width: 100%;
+  }
+  
+  /* Form Input */
+  .match-pair-item .form-input {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    font-size: 14px;
+    transition: all 0.2s ease;
+  }
+  
+  .match-pair-item .form-input:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+  }
+  
+  .match-pair-item .form-input.pr-10 {
+    padding-right: 40px;
+  }
+  
+  /* Upload Icon Styles */
+  .match-pair-item .upload-icon-container {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    cursor: pointer;
+  }
+  
+  .match-pair-item .upload-icon {
+    width: 20px;
+    height: 20px;
+    color: #6b7280;
+    transition: color 0.2s ease;
+  }
+  
+  .match-pair-item .upload-icon:hover {
+    color: #3b82f6;
+  }
+  
+  .match-pair-item .hidden-file-input {
+    display: none;
+  }
+  
+  .match-pair-item .thumbnail-container {
+    position: relative;
+    display: inline-block;
+    margin-top: 8px;
+    overflow: hidden;
+    border-radius: 6px;
+  }
+  
+/* CSS */
+.match-pair-item .thumbnail-container {
+    position: relative;
+    display: inline-block;
+    margin-top: 8px;
+    border-radius: 6px;
+  }
+  
+  .match-pair-item .thumbnail-image {
+    width: 96px;
+    height: 96px;
+    object-fit: cover;
+    border-radius: 6px;
+    border: 1px solid #e5e7eb;
+    transition: filter 0.3s ease;
+  }
+  
+  .match-pair-item .thumbnail-container:hover .thumbnail-image {
+    filter: brightness(0.7);
+  }
+  
+  .match-pair-item .trash-icon {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 24px;
+    height: 24px;
+    color: white;
+    opacity: 0;
+    cursor: pointer;
+    transition: opacity 0.3s ease;
+  }
+  
+  .match-pair-item .thumbnail-container:hover .trash-icon {
+    opacity: 0.8;
+  }
+  
+  .match-pair-item .trash-icon:hover {
+    opacity: 1 !important;
+  }
+  
+  .form-input {
+    padding: 0.5rem 0.75rem;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    font-size: 1rem;
+    width: 100%;
+  }
+  
+  .remove-pair-button {
+    background: none;
+    border: none;
+    color: #888;
+    cursor: pointer;
+    transition: color 0.2s;
+    padding: 4px;
+    margin-left: 15px;
+  }
+  
+  .remove-pair-button:hover {
+    color: #e00;
+  }
+  
+  .add-pair-button {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    background-color: #007bff;
+    border: none;
+    color: white;
+    border-radius: 6px;
+    font-size: 1rem;
+    cursor: pointer;
+    width: fit-content;
+    margin-top: 1rem;
+  }
+  
+  .add-pair-button:hover {
+    background-color: #0056b3;
+  }
+  
+  /* Hints Section */
+  .hints-section {
+    margin-top: 2rem;
+  }
+  
+  .hints-container {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+  
+  .add-hint-form {
+    display: flex;
+    gap: 0.5rem;
+  }
+  
+  .add-hint-button {
+    background-color: #28a745;
+    border: none;
+    color: white;
+    padding: 0.5rem;
+    border-radius: 6px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+  }
+  
+  .hints-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  
+  .hint-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background-color: #eef2f7;
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+  }
+  
+  .remove-hint-button {
+    background: none;
+    border: none;
+    color: #888;
+    cursor: pointer;
+  }
+  
+  .remove-hint-button:hover {
+    color: #e00;
+  }
+  
+  /* Responsive */
+  @media (max-width: 768px) {
+    .match-pair-content {
+      flex-direction: column;
+    }
+  
+    .form-input {
+      font-size: 0.95rem;
+    }
+  }
+
+  .form-input.pr-10 {
+    padding-right: 2.5rem !important;
+  }
+  
+  .thumbnail-container {
+    position: relative;
+    display: inline-block;
+    margin-top: 8px;
+    transition: all 0.3s ease;
+  }
+  
+  /* Ảnh thu nhỏ */
+  .thumbnail-image {
+    width: 96px;
+    height: 96px;
+    object-fit: cover;
+    border-radius: 6px;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    transition: transform 0.2s ease;
+  }
+  
+  
+  /* Nút xóa ảnh */
+  .remove-image-btn {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    width: 20px;
+    height: 20px;
+    background-color: #ef4444;
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    border: none;
+    padding: 0;
+    transition: all 0.2s ease;
+  }
+  
+  .remove-image-btn:hover {
+    background-color: #dc2626;
+    transform: scale(1.1);
+  }
+  
+  /* Icon xóa ảnh */
+  .remove-image-icon {
+    width: 12px;
+    height: 12px;
+  }
+  
+  /* Container input + icon upload */
+  .input-with-icon {
+    position: relative;
+    width: 100%;
+  }
+  
+  /* Icon upload */
+  .upload-icon {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 20px;
+    height: 20px;
+    color: #64748b;
+    cursor: pointer;
+    transition: color 0.2s ease;
+  }
+  
+  .upload-icon:hover {
+    color: #3b82f6;
+  }
+  
+  /* Input file ẩn */
+  .hidden-file-input {
+    display: none;
+  }
+  
+  /* Hiệu ứng khi upload */
+  .uploading-indicator {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 16px;
+    height: 16px;
+    border: 2px solid #e2e8f0;
+    border-top-color: #3b82f6;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+  }
+  
+  @keyframes spin {
+    to { transform: translateY(-50%) rotate(360deg); }
+  }
+
+  .center-trash-wrapper {
+    display: flex;
+    justify-content: center; /* căn giữa ngang */
+    margin-top: 8px; /* hoặc điều chỉnh tùy ý */
+  }
+  
