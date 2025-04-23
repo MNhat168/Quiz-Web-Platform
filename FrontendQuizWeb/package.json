@@ -10,15 +10,19 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@splinetool/react-spline": "^4.0.0",
     "@stomp/stompjs": "^7.1.1",
+    "@tailwindcss/vite": "^4.1.4",
     "axios": "^1.8.4",
     "esbuild": "^0.25.2",
+    "framer-motion": "^12.7.4",
     "frontendquizweb": "file:",
     "lucide-react": "^0.487.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-router-dom": "^7.5.0",
-    "sockjs-client": "^1.6.1"
+    "sockjs-client": "^1.6.1",
+    "tailwindcss": "^4.1.4"
   },
   "devDependencies": {
     "@eslint/js": "^9.19.0",
