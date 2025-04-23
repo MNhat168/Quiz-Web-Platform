@@ -16,6 +16,8 @@
     "frontendquizweb": "file:",
     "lucide-react": "^0.487.0",
     "react": "^19.0.0",
+    "react-dnd": "^16.0.1",
+    "react-dnd-html5-backend": "^16.0.1",
     "react-dom": "^19.0.0",
     "react-router-dom": "^7.5.0",
     "sockjs-client": "^1.6.1"

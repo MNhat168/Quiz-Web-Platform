@@ -126,28 +126,61 @@ const GameActivityEditor = () => {
         fetchActivityTypes();
     }, [token]);
 
-    // Fetch game details and teacher's activities
     useEffect(() => {
+        // Inside the fetchData function in GameEditor.jsx
         const fetchData = async () => {
             setLoading(true);
             try {
                 if (!token) {
                     throw new Error("Must be logged in");
                 }
-                // 1) load game
-                const { data: gameData } = await axios.get(
-                    `http://localhost:8080/api/games/${gameId}`,
-                    { headers: { Authorization: `Bearer ${token}` } }
-                );
-                setGame(gameData);
-                setGameActivities(gameData.activities || []);
 
-                // 2) load teacher's activities
-                const { data: activitiesData } = await axios.get(
-                    "http://localhost:8080/api/activities/teacher",
-                    { headers: { Authorization: `Bearer ${token}` } }
-                );
+                // Fetch both data sources in parallel for efficiency
+                const [activitiesResponse, gameResponse] = await Promise.all([
+                    axios.get("http://localhost:8080/api/activities/teacher",
+                        { headers: { Authorization: `Bearer ${token}` } }),
+                    axios.get(`http://localhost:8080/api/games/${gameId}`,
+                        { headers: { Authorization: `Bearer ${token}` } })
+                ]);
+
+                const activitiesData = activitiesResponse.data;
+                const gameData = gameResponse.data;
+
+                console.log("Raw game data from API:", gameData);
+                console.log("Activities in game data:", gameData.activities ? gameData.activities.length : 0);
+                console.log("All teacher activities count:", activitiesData.length);
+
+                // Create a map of activities by ID for faster lookup
+                const activitiesMap = {};
+                activitiesData.forEach(activity => {
+                    activitiesMap[activity.id] = activity;
+                });
+
+                // Enrich game activities with full activity details
+                const gameActs = gameData.activities || [];
+                const enrichedActivities = gameActs.map(gameAct => {
+                    const fullActivity = activitiesMap[gameAct.activityId];
+
+                    if (!fullActivity) {
+                        console.warn(`Activity with ID ${gameAct.activityId} not found in teacher's activities`);
+                    }
+
+                    return {
+                        ...gameAct,
+                        title: fullActivity?.title || "Unknown Activity",
+                        type: fullActivity?.type || gameAct.activityType,
+                        timeLimit: fullActivity?.timeLimit,
+                        points: fullActivity?.points || gameAct.points,
+                        difficulty: fullActivity?.difficulty,
+                        subject: fullActivity?.subject,
+                        topic: fullActivity?.topic
+                    };
+                });
+
+                setGame(gameData);
                 setActivities(activitiesData);
+                setGameActivities(enrichedActivities);
+
             } catch (err) {
                 console.error(err);
                 setError(err.message || "Failed to load game data. Please try again.");
@@ -209,7 +242,7 @@ const GameActivityEditor = () => {
                 points: response.data.points
             })
 
-            setSelectedActivities(response.data)
+            setSelectedActivities([response.data])
 
         } catch (err) {
             console.error("Failed to create activity", err)
@@ -217,7 +250,27 @@ const GameActivityEditor = () => {
         }
     }
 
-    // Add activity to game
+    const enrichGameActivities = (gameActs, activitiesMap) => {
+        return gameActs.map(gameAct => {
+            const fullActivity = activitiesMap[gameAct.activityId];
+
+            if (!fullActivity) {
+                console.warn(`Activity with ID ${gameAct.activityId} not found in teacher's activities`);
+            }
+
+            return {
+                ...gameAct,
+                title: fullActivity?.title || "Unknown Activity",
+                type: fullActivity?.type || gameAct.activityType,
+                timeLimit: fullActivity?.timeLimit,
+                points: fullActivity?.points || gameAct.points,
+                difficulty: fullActivity?.difficulty,
+                subject: fullActivity?.subject,
+                topic: fullActivity?.topic
+            };
+        });
+    };
+
     const addActivitiesToGame = async () => {
         try {
             setError("");
@@ -258,8 +311,16 @@ const GameActivityEditor = () => {
                         { headers: { Authorization: `Bearer ${token}` } }
                     );
 
-                    // Update game activities with the latest response
-                    setGameActivities(response.data.activities || []);
+                    // Create a map of activities by ID for faster lookup
+                    const activitiesMap = {};
+                    activities.forEach(activity => {
+                        activitiesMap[activity.id] = activity;
+                    });
+
+                    // Use the enriched activities
+                    const enrichedActivities = enrichGameActivities(response.data.activities, activitiesMap);
+
+                    setGameActivities(enrichedActivities);
                     setGame(response.data);
                     successCount++;
                 } catch (err) {
@@ -292,38 +353,54 @@ const GameActivityEditor = () => {
     // Remove activity from game
     const removeActivityFromGame = async (activityId) => {
         try {
-            const response = await axios.delete(
-                `http://localhost:8080/api/activities/${activityId}/games/${gameId}`,
-                { headers: { Authorization: `Bearer ${token}` } }
-            )
-
-            // Use the response data to update state
-            setGameActivities(response.data.activities)
-            setSuccessMessage("Activity removed from game successfully!")
-
+          const response = await axios.delete(
+            `http://localhost:8080/api/activities/${activityId}/games/${gameId}`,
+            { headers: { Authorization: `Bearer ${token}` } }
+          );
+      
+          // Create a map of activities by ID for faster lookup
+          const activitiesMap = {};
+          activities.forEach(activity => {
+            activitiesMap[activity.id] = activity;
+          });
+          
+          // Use the enriched activities
+          const enrichedActivities = enrichGameActivities(response.data.activities, activitiesMap);
+          
+          setGameActivities(enrichedActivities);
+          setSuccessMessage("Activity removed from game successfully!");
+      
         } catch (err) {
-            console.error("Failed to remove activity from game", err)
-            setError(err.response?.data || "Failed to remove activity from game")
+          console.error("Failed to remove activity from game", err);
+          setError(err.response?.data || "Failed to remove activity from game");
         }
-    }
+      };
 
-    // Reorder activities
-    const reorderActivities = async (activities) => {
+      const reorderActivities = async (activitiesToReorder) => {
         try {
-            const response = await axios.put(
-                `http://localhost:8080/api/activities/games/${gameId}/reorder`,
-                activities,
-                { headers: { Authorization: `Bearer ${token}` } }
-            )
-
-            setGameActivities(response.data.activities)
-            setSuccessMessage("Game activities reordered successfully!")
-
+          const response = await axios.put(
+            `http://localhost:8080/api/activities/games/${gameId}/reorder`,
+            activitiesToReorder,
+            { headers: { Authorization: `Bearer ${token}` } }
+          );
+      
+          // Create a map of activities by ID for faster lookup
+          const activitiesMap = {};
+          activities.forEach(activity => {
+            activitiesMap[activity.id] = activity;
+          });
+          
+          // Use the enriched activities
+          const enrichedActivities = enrichGameActivities(response.data.activities, activitiesMap);
+          
+          setGameActivities(enrichedActivities);
+          setSuccessMessage("Game activities reordered successfully!");
+      
         } catch (err) {
-            console.error("Failed to reorder activities", err)
-            setError(err.response?.data || "Failed to reorder activities")
+          console.error("Failed to reorder activities", err);
+          setError(err.response?.data || "Failed to reorder activities");
         }
-    }
+      };
 
     // Move activity up in order
     const moveActivityUp = (index) => {
@@ -608,7 +685,7 @@ const GameActivityEditor = () => {
                     <div className="game-activities-list">
                         {gameActivities && gameActivities.length > 0 ? (
                             gameActivities.map((activity, index) => (
-                                <div key={activity.id || index} className="game-activity-item">
+                                <div key={`${activity.activityId}_${activity.order}`} className="game-activity-item">
                                     <div className="activity-info">
                                         <div className="activity-title">
                                             <span>{index + 1}. {activity.title}</span>

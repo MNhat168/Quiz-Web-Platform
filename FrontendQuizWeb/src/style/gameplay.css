@@ -1,0 +1,245 @@
+.student-game-play {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 20px;
+    font-family: 'Arial', sans-serif;
+  }
+  
+  .game-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid #eaeaea;
+  }
+  
+  .game-header h2 {
+    font-size: 24px;
+    margin: 0;
+    color: #333;
+  }
+  
+  .activity-number {
+    font-size: 14px;
+    color: #666;
+    background-color: #f5f5f5;
+    padding: 5px 10px;
+    border-radius: 15px;
+  }
+  
+  .activity-container {
+    background-color: white;
+    border-radius: 8px;
+    padding: 25px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    margin-bottom: 30px;
+  }
+  
+  .quiz-activity h3,
+  .true-false-activity h3,
+  .text-input-activity h3,
+  .poll-activity h3 {
+    font-size: 20px;
+    margin-top: 0;
+    margin-bottom: 20px;
+    color: #333;
+  }
+  
+  .activity-media {
+    margin-bottom: 20px;
+    text-align: center;
+  }
+  
+  .activity-media img,
+  .activity-media video {
+    max-width: 100%;
+    max-height: 300px;
+    border-radius: 8px;
+  }
+  
+  .quiz-options,
+  .tf-options,
+  .poll-options {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  
+  .quiz-option,
+  .tf-option,
+  .poll-option {
+    padding: 15px;
+    background-color: #f8f8f8;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 16px;
+    transition: all 0.2s ease;
+    text-align: left;
+  }
+  
+  .quiz-option:hover,
+  .tf-option:hover,
+  .poll-option:hover {
+    background-color: #eaeaea;
+  }
+  
+  .tf-options {
+    flex-direction: row;
+  }
+  
+  .tf-option {
+    flex: 1;
+    text-align: center;
+    font-weight: bold;
+  }
+  
+  .text-input-activity form {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+  }
+  
+  .text-input-activity input {
+    padding: 12px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 16px;
+  }
+  
+  .text-input-activity button,
+  .submission-result button {
+    padding: 12px;
+    background-color: #4a90e2;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 16px;
+    transition: background-color 0.2s ease;
+  }
+  
+  .text-input-activity button:hover,
+  .submission-result button:hover {
+    background-color: #357abd;
+  }
+  
+  .submission-result {
+    text-align: center;
+    padding: 20px;
+  }
+  
+  .result {
+    font-size: 24px;
+    margin: 20px 0;
+    padding: 15px;
+    border-radius: 8px;
+  }
+  
+  .result.correct {
+    background-color: #e7f7e7;
+    color: #2e7d32;
+  }
+  
+  .result.incorrect {
+    background-color: #ffebee;
+    color: #c62828;
+  }
+  
+  .explanation {
+    background-color: #f5f5f5;
+    padding: 15px;
+    border-radius: 8px;
+    margin-top: 20px;
+    text-align: left;
+  }
+  
+  .explanation h4 {
+    margin-top: 0;
+    margin-bottom: 10px;
+    color: #555;
+  }
+  
+  .game-footer {
+    margin-top: 30px;
+  }
+  
+  .leaderboard {
+    background-color: white;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  }
+  
+  .leaderboard h3 {
+    margin-top: 0;
+    margin-bottom: 15px;
+    text-align: center;
+    color: #333;
+  }
+  
+  .leaderboard ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+  
+  .leaderboard-entry {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 15px;
+    margin-bottom: 8px;
+    background-color: #f8f8f8;
+    border-radius: 6px;
+  }
+  
+  .leaderboard-entry:first-child {
+    background-color: #fff9c4;
+  }
+  
+  .rank {
+    font-weight: bold;
+    font-size: 18px;
+    width: 30px;
+  }
+  
+  .player-name {
+    flex-grow: 1;
+    text-align: left;
+  }
+  
+  .score {
+    font-weight: bold;
+    color: #4a90e2;
+  }
+  
+  .loading-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 300px;
+  }
+  
+  .loading-spinner {
+    border: 5px solid #f3f3f3;
+    border-top: 5px solid #4a90e2;
+    border-radius: 50%;
+    width: 50px;
+    height: 50px;
+    animation: spin 2s linear infinite;
+    margin-bottom: 20px;
+  }
+  
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+  
+  /* Make the buttons non-clickable when submitting */
+  button[disabled] {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }

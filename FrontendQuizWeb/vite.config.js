@@ -8,6 +8,6 @@ export default defineConfig({
     include: ['sockjs-client'],
   },
   define: {
-    global: {}
+    global: 'globalThis',
   }
 })

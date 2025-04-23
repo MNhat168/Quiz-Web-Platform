@@ -1,10 +1,12 @@
 package com.QuizWeb.TheQuizWeb.Controller;
 
 import com.QuizWeb.TheQuizWeb.Model.Activity;
+import com.QuizWeb.TheQuizWeb.Model.GameSession;
 import com.QuizWeb.TheQuizWeb.Model.Games;
 import com.QuizWeb.TheQuizWeb.Model.User;
 import com.QuizWeb.TheQuizWeb.Service.ActivityService;
 import com.QuizWeb.TheQuizWeb.Service.GameService;
+import com.QuizWeb.TheQuizWeb.Service.GameSessionService;
 import com.QuizWeb.TheQuizWeb.Service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -29,6 +31,9 @@ public class ActivityController {
 
     @Autowired
     private UserService userService;
+
+    @Autowired
+    private GameSessionService gameSessionService;
 
     /**
      * Get all activities created by the authenticated teacher
@@ -169,6 +174,10 @@ public class ActivityController {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body("You don't have permission to modify this game");
         }
 
+        if (!activity.getCreatorId().equals(teacher.getId())) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("You can only add your own activities to the game");
+        }
+
         // Set the activity ID and type
         gameActivity.setActivityId(activityId);
         gameActivity.setActivityType(activity.getType());
@@ -261,6 +270,48 @@ public class ActivityController {
         Games updatedGame = gameService.updateGame(game);
 
         return ResponseEntity.ok(updatedGame);
+    }
+
+    @GetMapping("/session/{accessCode}/activity/{activityId}")
+    public ResponseEntity<?> getActivityForSession(
+            @PathVariable String accessCode,
+            @PathVariable String activityId,
+            Authentication authentication) {
+
+        User student = userService.getCurrentUser(authentication);
+
+        // Get the session
+        GameSession session = gameSessionService.getSessionByAccessCode(accessCode);
+        if (session == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Session not found");
+        }
+
+        // Verify the student is a participant in this session
+        boolean isParticipant = session.getParticipants().stream()
+                .anyMatch(p -> p.getUserId().equals(student.getEmail()));
+
+        if (!isParticipant) {
+            System.out.println("Participant bug");
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("You are not a participant in this session");
+        }
+
+        // Get the activity
+        Activity activity = activityService.getActivityById(activityId);
+        if (activity == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Activity not found");
+        }
+
+        // Check if the activity is part of the current game
+        Games game = gameService.getGameById(session.getGameId());
+        boolean activityInGame = game.getActivities().stream()
+                .anyMatch(a -> a.getActivityId().equals(activityId));
+
+        if (!activityInGame) {
+            System.out.println("Activity not belong");
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Activity not part of this game session");
+        }
+
+        return ResponseEntity.ok(activity);
     }
 
     @GetMapping("/types")

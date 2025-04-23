@@ -4,9 +4,11 @@ import lombok.Data;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
+import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @Data
 @Document(collection = "activities")
@@ -25,6 +27,7 @@ public class Activity {
     private String topic;
     private String learningObjective;
     private String gradeLevel;
+    private List<ActivityContent> contentItems; // Multiple content items for this activity
     private Object content; // Will be deserialized to specific activity content
     private List<String> tags;
     private List<PowerUpRule> powerUpRules;
@@ -51,6 +54,15 @@ public class Activity {
     }
 
     @Data
+    public static class ActivityContent {
+        private String contentId;
+        private String title;
+        private String instructions;
+        private Object data; // The actual content data
+        private int duration; // Duration in seconds
+    }
+
+    @Data
     public static class PowerUpRule {
         private String powerUpId;
         private int pointThreshold;
@@ -64,7 +76,7 @@ public class Activity {
         private boolean allowMultipleAnswers;
         private List<String> hints;
     }
-    
+
     @Data
     public static class QuestionItem {
         private String question;
@@ -133,5 +145,105 @@ public class Activity {
         private boolean allowGuessing; // Team members can guess
         private int pointsPerCorrect;
         private List<String> allowedWords; // Optional restricted word list
+    }
+    
+    public String getCorrectAnswer() {
+        if (this.content == null) {
+            return null;
+        }
+
+        switch (this.type) {
+            case MULTIPLE_CHOICE:
+                if (this.content instanceof MultipleChoiceContent) {
+                    MultipleChoiceContent mcContent = (MultipleChoiceContent) this.content;
+                    if (mcContent.getQuestions() != null && !mcContent.getQuestions().isEmpty()) {
+                        QuestionItem question = mcContent.getQuestions().get(0);
+                        return question.getOptions().stream()
+                                .filter(Option::isCorrect)
+                                .map(Option::getText)
+                                .collect(Collectors.joining(", "));
+                    }
+                }
+                break;
+
+            case TRUE_FALSE:
+                if (this.content instanceof Map) {
+                    Map<String, Object> tfContent = (Map<String, Object>) this.content;
+                    if (tfContent.containsKey("correctAnswer")) {
+                        return String.valueOf(tfContent.get("correctAnswer"));
+                    }
+                }
+                break;
+
+            case FILL_IN_BLANK:
+                if (this.content instanceof FillInBlankContent) {
+                    FillInBlankContent fbContent = (FillInBlankContent) this.content;
+                    return fbContent.getAnswers().values().stream()
+                            .collect(Collectors.joining(", "));
+                }
+                break;
+
+            case MATH_PROBLEM:
+                if (this.content instanceof MathProblemContent) {
+                    MathProblemContent mpContent = (MathProblemContent) this.content;
+                    return mpContent.getCorrectAnswer();
+                }
+                break;
+
+            case SORTING:
+                if (this.content instanceof SortingContent) {
+                    SortingContent sContent = (SortingContent) this.content;
+                    return "Correct order: " + sContent.getItems().stream()
+                            .sorted(Comparator.comparingInt(SortItem::getCorrectPosition))
+                            .map(SortItem::getText)
+                            .collect(Collectors.joining(" → "));
+                }
+                break;
+
+            case MATCHING:
+                if (this.content instanceof MatchingContent) {
+                    MatchingContent mContent = (MatchingContent) this.content;
+                    return mContent.getPairs().stream()
+                            .map(pair -> pair.getItem1() + " → " + pair.getItem2())
+                            .collect(Collectors.joining(", "));
+                }
+                break;
+
+            default:
+                return "No single correct answer for this activity type";
+        }
+
+        return null;
+    }
+    public String getExplanation() {
+        if (this.content == null) {
+            return null;
+        }
+
+        switch (this.type) {
+            case MULTIPLE_CHOICE:
+                if (this.content instanceof MultipleChoiceContent) {
+                    MultipleChoiceContent mcContent = (MultipleChoiceContent) this.content;
+                    if (mcContent.getQuestions() != null && !mcContent.getQuestions().isEmpty()) {
+                        QuestionItem question = mcContent.getQuestions().get(0);
+                        return question.getExplanation();
+                    }
+                }
+                break;
+
+            case MATH_PROBLEM:
+                if (this.content instanceof MathProblemContent) {
+                    MathProblemContent mpContent = (MathProblemContent) this.content;
+                    if (mpContent.getSolutionSteps() != null) {
+                        return String.join("\n", mpContent.getSolutionSteps());
+                    }
+                }
+                break;
+
+            default:
+                return null;
+        }
+
+        return null;
     }
 }

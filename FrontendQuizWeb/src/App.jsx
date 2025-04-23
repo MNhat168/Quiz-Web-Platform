@@ -22,6 +22,8 @@ import ClassDetail from './screens/teacher/ClassDetail';
 import Checkotp from './screens/Checkotp';
 import SimpleSocketTest from './screens/teacher/Sockettest';
 import GameActivityEditor from './screens/teacher/GameEditor';
+import StudentGamePlay from './screens/student/StudentGameplay';
+import GameCompletedLeaderboard from './screens/student/activities/Leaderboard';
 
 function App() {
   const auth = useContext(AuthContext);
@@ -51,6 +53,15 @@ function App() {
                 <TeacherDashboard />
                 {/* <TeacherCreateRoom /> */}
                 {/* <SimpleSocketTest/> */}
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/teacher/game-room"
+            element={
+              <ProtectedRoute allowedRoles={["TEACHER", "ADMIN"]}>
+                <TeacherCreateRoom />
               </ProtectedRoute>
             }
           />
@@ -92,10 +103,28 @@ function App() {
           />
 
           <Route
-            path="/student"
+            path="/student/join"
             element={
               <ProtectedRoute allowedRoles={["STUDENT", "TEACHER", "ADMIN"]}>
                 <StudentJoinRoom />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/student/play"
+            element={
+              <ProtectedRoute allowedRoles={["STUDENT", "TEACHER", "ADMIN"]}>
+                <StudentGamePlay />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/student/completed"
+            element={
+              <ProtectedRoute allowedRoles={["STUDENT", "TEACHER", "ADMIN"]}>
+                <GameCompletedLeaderboard/>
               </ProtectedRoute>
             }
           />

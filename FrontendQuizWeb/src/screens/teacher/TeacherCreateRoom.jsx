@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import SockJS from 'sockjs-client';
 import { Client } from '@stomp/stompjs';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
 
 const TeacherCreateRoom = () => {
@@ -18,9 +18,10 @@ const TeacherCreateRoom = () => {
   const [selectedClass, setSelectedClass] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [autoCreateAttempted, setAutoCreateAttempted] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
 
-  // Extract teacher ID from token
   const getTeacherId = () => {
     try {
       return JSON.parse(atob(token.split(".")[1])).sub;
@@ -30,14 +31,55 @@ const TeacherCreateRoom = () => {
     }
   };
 
-  // Fetch available games and classes for the teacher
+  useEffect(() => {
+    const savedSessionId = localStorage.getItem('teacherSessionId');
+    const savedAccessCode = localStorage.getItem('teacherAccessCode');
+    const savedGameState = localStorage.getItem('teacherGameState');
+
+    if (savedSessionId && savedAccessCode && savedGameState) {
+      setSessionId(savedSessionId);
+      setAccessCode(savedAccessCode);
+      setGameState(savedGameState);
+
+      if (savedGameState === 'LOBBY' || savedGameState === 'ACTIVE') {
+        fetchSessionDetails(savedAccessCode);
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    const queryParams = new URLSearchParams(location.search);
+    const classIdParam = queryParams.get('classId');
+    const gameIdParam = queryParams.get('gameId');
+
+    if (classIdParam) {
+      setSelectedClass(classIdParam);
+    }
+
+    if (gameIdParam) {
+      setSelectedGame(gameIdParam);
+    }
+  }, [location.search]);
+
   useEffect(() => {
     fetchGamesAndClasses();
-  }, [token]); // Only depend on token, not user
+  }, [token]);
 
-  // Setup WebSocket connection when access code is available
   useEffect(() => {
-    if (accessCode) {
+    const shouldAutoCreate = selectedClass && selectedGame && !autoCreateAttempted && !loading && gameState === 'SETUP';
+    if (shouldAutoCreate) {
+      const timer = setTimeout(() => {
+        console.log("Auto-creating game session...");
+        setAutoCreateAttempted(true);
+        createRoom();
+      }, 100);
+
+      return () => clearTimeout(timer);
+    }
+  }, [selectedClass, selectedGame, loading, autoCreateAttempted, gameState]);
+
+  useEffect(() => {
+    if (accessCode && (gameState === 'LOBBY' || gameState === 'ACTIVE')) {
       setupWebSocket();
     }
     return () => {
@@ -45,21 +87,56 @@ const TeacherCreateRoom = () => {
         stompClient.deactivate();
       }
     };
-  }, [accessCode]);
+  }, [accessCode, gameState]);
+
+  const fetchSessionDetails = async (code) => {
+    try {
+      const response = await axios.get(`http://localhost:8080/api/sessions/${code}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      const session = response.data;
+      setParticipants(session.participants || []);
+      const participantsResponse = await axios.get(
+        `http://localhost:8080/api/sessions/${code}/participants`,
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        }
+      );
+      if (participantsResponse.data) {
+        setParticipants(participantsResponse.data);
+      }
+    } catch (error) {
+      console.error('Failed to fetch session details:', error);
+      resetSession();
+    }
+  };
+
+  const resetSession = () => {
+    setSessionId('');
+    setAccessCode('');
+    setGameState('SETUP');
+    setParticipants([]);
+    localStorage.removeItem('teacherSessionId');
+    localStorage.removeItem('teacherAccessCode');
+    localStorage.removeItem('teacherGameState');
+  };
 
   const fetchGamesAndClasses = async () => {
     setLoading(true);
     setError(null);
-    
+
     try {
       console.log("Starting API calls to fetch games and classes");
       const teacherId = getTeacherId();
-      
+
       if (!teacherId) {
         throw new Error("Could not determine teacher ID from token");
       }
-      
-      // Fetch teacher's games - with better error logging
       let gamesData = [];
       try {
         console.log("Fetching games...");
@@ -74,10 +151,8 @@ const TeacherCreateRoom = () => {
         gamesData = Array.isArray(gamesResponse.data) ? gamesResponse.data : [];
       } catch (gamesError) {
         console.error("Games fetch error:", gamesError);
-        // Continue with classes even if games fetch failed
       }
-      
-      // Fetch teacher's classes - with better error logging
+
       let classesData = [];
       try {
         console.log("Fetching classes...");
@@ -92,15 +167,10 @@ const TeacherCreateRoom = () => {
         classesData = Array.isArray(classesResponse.data) ? classesResponse.data : [];
       } catch (classesError) {
         console.error("Classes fetch error:", classesError);
-        // Continue anyway so we at least set loading to false
       }
-      
-      // Update state even if one of the requests failed
       setGames(gamesData);
       setClasses(classesData);
       setLoading(false);
-      
-      // Show error if both failed
       if (gamesData.length === 0 && classesData.length === 0) {
         setError("Could not load games or classes. Check console for details.");
       }
@@ -112,6 +182,8 @@ const TeacherCreateRoom = () => {
   };
 
   const setupWebSocket = () => {
+    console.log('Setting up WebSocket with access code:', accessCode);
+
     const client = new Client({
       webSocketFactory: () => new SockJS('http://localhost:8080/ws-sessions'),
       connectHeaders: {
@@ -119,36 +191,79 @@ const TeacherCreateRoom = () => {
       },
       onConnect: () => {
         console.log('WebSocket Connected!');
+        fetchSessionDetails(accessCode);
 
-        // Subscribe to participants updates
         client.subscribe(
           `/topic/session/${accessCode}/participants`,
           (message) => {
-            const participantsData = JSON.parse(message.body);
-            setParticipants(participantsData);
+            try {
+              const updatedParticipants = JSON.parse(message.body);
+              setParticipants(updatedParticipants);
+            } catch (error) {
+              console.error('Error parsing participants update:', error);
+            }
           }
         );
 
-        // Subscribe to session status updates
         client.subscribe(
           `/topic/session/${accessCode}/status`,
           (message) => {
-            const status = message.body;
-            setGameState(status);
+            console.log('Received status update:', message.body);
+            setGameState(message.body);
+            localStorage.setItem('teacherGameState', message.body);
+            if (message.body === 'COMPLETED') {
+              setTimeout(() => {
+                resetSession();
+              }, 300000); // 5 minutes
+            }
+          }
+        );
 
-            if (status === 'COMPLETED') {
-              navigate(`/session/${sessionId}/results`);
+        client.subscribe(
+          `/topic/session/${accessCode}/leaderboard`,
+          (message) => {
+            try {
+              const leaderboardData = JSON.parse(message.body);
+              console.log('Received leaderboard update:', leaderboardData);
+              setParticipants(currentParticipants => {
+                return currentParticipants.map(participant => {
+                  const scoreData = leaderboardData.find(
+                    item => item.userId === participant.userId
+                  );
+                  if (scoreData) {
+                    return {
+                      ...participant,
+                      totalScore: scoreData.score
+                    };
+                  }
+                  return participant;
+                });
+              });
+            } catch (error) {
+              console.error('Error parsing leaderboard update:', error);
             }
           }
         );
       },
       onStompError: (frame) => {
-        console.error('WebSocket Error:', frame);
+        console.error('STOMP Error:', frame);
+        setError('Connection error: ' + frame.headers.message);
+      },
+      onWebSocketError: (event) => {
+        console.error('WebSocket Error:', event);
+        setError('WebSocket connection error. Please try again.');
       },
       onWebSocketClose: (event) => {
         console.log('WebSocket Closed:', event);
+        console.log('Close Code:', event.code);
+        console.log('Close Reason:', event.reason);
       },
-      reconnectDelay: 5000
+      debug: (str) => {
+        console.log('STOMP Debug:', str);
+      },
+      reconnectDelay: 5000,
+      heartbeatIncoming: 4000,
+      heartbeatOutgoing: 4000
     });
 
     client.activate();
@@ -157,16 +272,19 @@ const TeacherCreateRoom = () => {
 
   const createRoom = async () => {
     const teacherId = getTeacherId();
-    
+
     if (!teacherId) {
-      alert('Unable to identify teacher. Please login again.');
+      setError('Unable to identify teacher. Please login again.');
       return;
     }
 
     try {
+      setLoading(true);
+      console.log(`Creating room with gameId: ${selectedGame} and classId: ${selectedClass}`);
+
       const response = await axios.post(
-        `http://localhost:8080/api/sessions/create`, 
-        null, // No request body needed 
+        `http://localhost:8080/api/sessions/create`,
+        null,
         {
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -178,20 +296,25 @@ const TeacherCreateRoom = () => {
           }
         }
       );
-
       const data = response.data;
+      console.log("Room created successfully:", data);
       setSessionId(data.sessionId);
       setAccessCode(data.accessCode);
       setGameState('LOBBY');
+      localStorage.setItem('teacherSessionId', data.sessionId);
+      localStorage.setItem('teacherAccessCode', data.accessCode);
+      localStorage.setItem('teacherGameState', 'LOBBY');
     } catch (error) {
       console.error('Room creation failed:', error);
-      alert('Failed to create room');
+      setError('Failed to create room. Please try again.');
+    } finally {
+      setLoading(false);
     }
   };
 
   const startGame = async () => {
     const teacherId = getTeacherId();
-    
+
     try {
       await axios.post(`http://localhost:8080/api/sessions/start/${sessionId}`, null, {
         headers: {
@@ -199,15 +322,18 @@ const TeacherCreateRoom = () => {
           'X-Teacher-Id': teacherId
         },
       });
+
+      setGameState('ACTIVE');
+      localStorage.setItem('teacherGameState', 'ACTIVE');
     } catch (error) {
       console.error('Failed to start game:', error);
-      alert('Failed to start game');
+      setError('Failed to start game. Please try again.');
     }
   };
 
   const endGame = async () => {
     const teacherId = getTeacherId();
-    
+
     try {
       await axios.post(`http://localhost:8080/api/sessions/end/${sessionId}`, null, {
         headers: {
@@ -215,16 +341,24 @@ const TeacherCreateRoom = () => {
           'X-Teacher-Id': teacherId
         },
       });
+
+      setGameState('COMPLETED');
+      localStorage.setItem('teacherGameState', 'COMPLETED');
     } catch (error) {
       console.error('Failed to end game:', error);
-      alert('Failed to end game');
+      setError('Failed to end game. Please try again.');
     }
+  };
+
+  const createNewSession = () => {
+    resetSession();
+    setAutoCreateAttempted(false);
   };
 
   const renderSetupPhase = () => (
     <div className="setup-container">
       <h2>Create New Game Session</h2>
-      
+
       {loading ? (
         <div className="loading-container">
           <svg
@@ -272,10 +406,10 @@ const TeacherCreateRoom = () => {
 
           <button
             onClick={createRoom}
-            disabled={!selectedGame || !selectedClass}
+            disabled={!selectedGame || !selectedClass || loading}
             className="create-session-btn"
           >
-            Create Game Session
+            {loading ? 'Creating...' : 'Create Game Session'}
           </button>
         </>
       )}
@@ -360,13 +494,13 @@ const TeacherCreateRoom = () => {
             <li key={p.userId}>
               {p.avatarUrl && <img src={p.avatarUrl} alt="avatar" className="participant-avatar" />}
               <span className="participant-name">{p.displayName}</span>
-              <span className="participant-score">Final Score: {p.totalScore}</span>
+              <span className="participant-score">Score: {p.totalScore !== undefined ? p.totalScore : 0}</span>
             </li>
           ))}
         </ul>
       </div>
 
-      <button onClick={() => setGameState('SETUP')} className="new-game-btn">
+      <button onClick={createNewSession} className="new-game-btn">
         Create New Game
       </button>
     </div>

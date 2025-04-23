@@ -159,6 +159,7 @@ public class GameSession {
         private Date endTime;
         private ActivityStatus status;
         private List<ParticipantResponse> responses;
+        private int currentContentIndex = 0; 
     }
 
     public enum ActivityStatus {
@@ -273,6 +274,7 @@ public class GameSession {
     public static class ParticipantResponse {
         private String participantId;
         private String activityId;
+        private String contentId;
         private Object answer; // Will be deserialized to specific response type
         private boolean isCorrect;
         private int timeSpent; // In milliseconds

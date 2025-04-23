@@ -35,19 +35,16 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         String jwt = null;
         String userEmail = null;
         String path = request.getRequestURI();
-        if (
-            path.startsWith("/api/auth") || 
-            path.startsWith("/ws-sessions") // Matches /ws-sessions/**, /ws-sessions/info, etc.
-        ) {
-            filterChain.doFilter(request, response);
-            return;
-        }
         // Check if Authorization header contains Bearer token
         if (authHeader != null && authHeader.startsWith("Bearer ")) {
             jwt = authHeader.substring(7);
             userEmail = jwtUtils.extractUsername(jwt); // extract email from token
         }
 
+        if (path.startsWith("/api/auth") || path.startsWith("/ws-sessions")) {
+            filterChain.doFilter(request, response);
+            return;
+        }
         // If email is valid and user is not authenticated yet
         if (userEmail != null && SecurityContextHolder.getContext().getAuthentication() == null) {
             UserDetails userDetails = this.customUserDetailsService.loadUserByUsername(userEmail);
