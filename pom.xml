@@ -111,7 +111,6 @@
 			<version>1.5.1</version>
 		</dependency>
 
-		<!-- STOMP JS client -->
 		<dependency>
 			<groupId>org.webjars</groupId>
 			<artifactId>stomp-websocket</artifactId>
@@ -146,7 +145,12 @@
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-security</artifactId>
 		</dependency>
-
+		<dependency> 
+			<groupId>com.cloudinary</groupId>
+			<artifactId>cloudinary-http45</artifactId>
+			<version>1.39.0</version>
+		</dependency>
+		
 
 		<dependency>
             <groupId>org.springframework.boot</groupId>

@@ -19,7 +19,9 @@ import {
   Save,
   Share
 } from "lucide-react"
-import Sidebar from "../../layout/teacher/teacherHeader"
+import Sidebar from "../../layout/teacher/teacherSidebar"
+import Header from "../../layout/teacher/teacherHeader";
+import "../../style/teacher-create-game.css"
 
 const TeacherCreateGame = () => {
   const { token } = useAuth()
@@ -181,108 +183,108 @@ const TeacherCreateGame = () => {
 
   return (
     <>
-      <div className="app-container">
+      <Header />
+        <div className="game-management-app">
         <Sidebar />
-        <div className="main-content">
-          <div className="manage-games-container">
-            <div className="manage-games-header">
-              <Gamepad className="manage-games-header-icon text-purple-600" />
-              <h1 className="manage-games-title">Manage Your Games</h1>
+        
+        <div className="game-main-content">
+          <div className="game-card-grid">
+
+            <div className="card-header">
+              <button
+                onClick={() => setIsModalOpen(true)}
+                className="create-quiz-button"
+              >
+                Create Game <span className="plus-icon">+</span>
+              </button>
             </div>
 
-            <div className="grid md:grid-cols-2 gap-8">
-              {/* Create Game Button */}
-              <div className="card-header">
-                <button
-                  onClick={() => setIsModalOpen(true)}
-                  className="open-modal-button"
+            {/* Games List Content */}
+            {loading ? (
+              <div className="game-loading-container">
+                <svg
+                  className="game-spinner text-purple-600"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
                 >
-                  <Plus className="text-purple-600" />
-                </button>
-                <h2 className="card-title">Create New Game</h2>
+                  <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                  ></path>
+                </svg>
               </div>
-
-              {/* Your Games List */}
-              <div className="card-header">
-                <Gamepad className="text-purple-600" />
-                <h2 className="card-title">Your Games</h2>
+            ) : Array.isArray(games) && games.length === 0 ? (
+              <div className="game-empty-state">
+                <Gamepad className="game-empty-icon text-gray-300" />
+                <p>You haven't created any games yet.</p>
               </div>
+            ) : (
+              <div className="game-list-container">
+                <div className="game-card-grid">
+                  {games.map((game) => (
+                    <div key={game.id} className="game-item-card bg-white rounded-lg shadow p-4">
+                      {/* Title and Description - Top Left */}
+                      <div className="game-header-section mb-2">
+                        <h3 className="game-card-title font-semibold text-lg">{game.title}</h3>
+                        {game.description && (
+                          <p className="game-description text-gray-600 text-sm line-clamp-2">
+                            {game.description}
+                          </p>
+                        )}
+                      </div>
 
-              {loading ? (
-                <div className="loading-container">
-                  <svg
-                    className="spinner text-purple-600"
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                  >
-                    <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path
-                      fill="currentColor"
-                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                    ></path>
-                  </svg>
-                </div>
-              ) : Array.isArray(games) && games.length === 0 ? (
-                <div className="empty-state">
-                  <Gamepad className="empty-icon text-gray-300" />
-                  <p>You haven't created any games yet.</p>
-                </div>
-              ) : (
-                <div className="games-container">
-                  <div className="games-scrollable">
-                    <div className="grid gap-4">
-                      {games.map((game) => (
-                        <div key={game.id} className="game-card-horizontal">
-                          {/* Column 1: Game Info */}
-                          <div className="game-card-section">
-                            <h3 className="game-card-title">{game.title}</h3>
-                            {game.description && <p className="game-description">{game.description}</p>}
-                            <div className="game-card-meta">
-                              <Book className="h-4 w-4" />
-                              <span>{game.subject}</span>
-                              <Layers className="h-4 w-4 ml-3" />
-                              <span>{game.activities?.length || 0} activities</span>
-                            </div>
-                          </div>
+                      {/* Meta and Tags - Bottom Left */}
+                      <div className="game-meta-section mt-auto">
+                        <div className="game-meta flex items-center text-xs text-gray-500 mb-2">
+                          <Book className="h-4 w-4 mr-1" />
+                          <span>{game.subject}</span>
+                          <Layers className="h-4 w-4 ml-3 mr-1" />
+                          <span>{game.activities?.length || 0} activities</span>
+                        </div>
 
-                          {/* Tags and Topics */}
-                          <div className="game-card-tags">
-                            {game.tags && game.tags.length > 0 && (
-                              <div className="tags-container">
-                                {game.tags.slice(0, 3).map((tag, index) => (
-                                  <span key={index} className="tag">{tag}</span>
-                                ))}
-                                {game.tags.length > 3 && (
-                                  <span className="more-tag">+{game.tags.length - 3}</span>
-                                )}
-                              </div>
+                        {game.tags && game.tags.length > 0 && (
+                          <div className="game-tags-container flex flex-wrap  ">
+                            {game.tags.slice(0, 3).map((tag, index) => (
+                              <span
+                                key={index}
+                                className="game-tag bg-gray-100 text-gray-700 text-xs px-2 py-1 rounded mr-2 mb-2"
+                              >
+                                {tag}
+                              </span>
+                            ))}
+                            {game.tags.length > 3 && (
+                              <span className="game-more-tag bg-gray-200 text-gray-600 text-xs px-2 py-1 rounded italic">
+                                +{game.tags.length - 3}
+                              </span>
                             )}
                           </div>
+                        )}
+                      </div>
 
-                          {/* Column 2: Actions */}
-                          <div className="game-card-section flex items-center justify-end space-x-2">
-                            <button
-                              onClick={() => editGame(game.id)}
-                              className="edit-button"
-                            >
-                              <Settings className="button-icon" />
-                              <span>Edit</span>
-                            </button>
-                            <button
-                              onClick={() => viewGameDetails(game.id)}
-                              className="details-button"
-                            >
-                              <ChevronRight className="details-icon" />
-                            </button>
-                          </div>
-                        </div>
-                      ))}
+                      {/* Actions - Bottom Right */}
+                      <div className="game-actions-section flex justify-end items-center mt-3 pt-3 border-t border-gray-100">
+                        <button
+                          onClick={() => editGame(game.id)}
+                          className="game-edit-button flex items-center bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1 rounded text-sm"
+                        >
+                          <Settings className="h-4 w-4 mr-1" />
+                          <span>Edit</span>
+                        </button>
+                        <button
+                          onClick={() => viewGameDetails(game.id)}
+                          className="game-edit-button flex items-center bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1 rounded text-sm"
+                        >
+                          <span>Detail</span>
+                          <ChevronRight className="h-5 w-5" />
+                        </button>
+                      </div>
                     </div>
-                  </div>
+                  ))}
                 </div>
-              )}
-            </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -307,8 +309,8 @@ const TeacherCreateGame = () => {
             {/* Alert container */}
             <div className="modal-alerts-container">
               {error && (
-                <div className="compact-alert alert-error">
-                  <div className="flex items-start gap-2">
+                <div className="modal-overlay ">
+                  <div className="compact-alert">
                     <svg className="compact-alert-icon" fill="currentColor" viewBox="0 0 20 20">
                       <path
                         fillRule="evenodd"
@@ -466,7 +468,7 @@ const TeacherCreateGame = () => {
                       className="tag-input"
                       value={currentTag}
                       onChange={(e) => setCurrentTag(e.target.value)}
-                      placeholder="Add a tag and press Enter"
+                      placeholder="Add a tag and press +"
                       onKeyPress={(e) => {
                         if (e.key === 'Enter') {
                           e.preventDefault()
@@ -512,7 +514,7 @@ const TeacherCreateGame = () => {
                       className="tag-input"
                       value={currentTopic}
                       onChange={(e) => setCurrentTopic(e.target.value)}
-                      placeholder="Add a topic and press Enter"
+                      placeholder="Add a topic and +"
                       onKeyPress={(e) => {
                         if (e.key === 'Enter') {
                           e.preventDefault()
@@ -565,7 +567,7 @@ const TeacherCreateGame = () => {
                   className="modal-submit-button"
                   disabled={isSubmitting}
                 >
-                  {successMessage && createdGameId && (
+                  {successMessage && createdGameId ? (
                     <div className="mt-4 text-center">
                       <button
                         onClick={() => navigate(`/games/edit/${createdGameId}`)}
@@ -574,8 +576,9 @@ const TeacherCreateGame = () => {
                         Continue to Editor
                       </button>
                     </div>
+                  ) : (
+                    isSubmitting ? 'Creating...' : 'Create'
                   )}
-                  
                 </button>
               </div>
             </form>

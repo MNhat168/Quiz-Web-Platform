@@ -22,16 +22,17 @@ import ProfileStudent from './screens/student/ProfileStudent';
 import StudentLayout from './layout/student/StudentLayout';
 import SimpleSocketTest from './screens/teacher/Sockettest';
 import GameActivityEditor from './screens/teacher/GameEditor';
+import TeacherProfile from './screens/teacher/TeacherProfile';
+
 import StudentGamePlay from './screens/student/StudentGameplay';
 import GameCompletedLeaderboard from './screens/student/activities/Leaderboard';
 
 function App() {
-  const auth = useContext(AuthContext);
-  const role = localStorage.getItem("role");
+ 
 
   return (
-    <AuthProvider>
-      <Router>
+    <Router>
+      <AuthProvider>
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/login" element={<Login />} />
@@ -103,7 +104,16 @@ function App() {
             }
           />
 
-          {/* Student Routes */}
+          
+          <Route
+            path="/profile"
+            element={
+              <ProtectedRoute allowedRoles={["TEACHER", "ADMIN"]}>
+                <TeacherProfile />
+              </ProtectedRoute>
+            }
+          />
+
           <Route
             path="/student/join"
             element={
@@ -148,8 +158,9 @@ function App() {
           {/* Nếu không khớp route nào thì chuyển về Index */}
           <Route path="*" element={<Navigate to="/" />} />
         </Routes>
-      </Router>
-    </AuthProvider>
+      </AuthProvider>
+    </Router>
   );
 }
+
 export default App;

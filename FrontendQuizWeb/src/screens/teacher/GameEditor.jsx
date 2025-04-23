@@ -22,10 +22,12 @@ import {
     BookOpen,
     FilePlus
 } from "lucide-react"
-import Sidebar from "../../layout/teacher/teacherHeader"
 import MultipleChoiceForm from "./games/MultipleChoice"
 import SortingForm from "./games/Sorting"
 import MatchingForm from "./games/Matching"
+import Sidebar from "../../layout/teacher/teacherSidebar"
+import Header from "../../layout/teacher/teacherHeader";
+import "../../style/game-editor.css"
 
 const GameActivityEditor = () => {
     const { gameId } = useParams()
@@ -229,6 +231,7 @@ const GameActivityEditor = () => {
             // Add activity to activities list
             setActivities([...activities, response.data])
             setSuccessMessage(`Activity "${response.data.title}" created successfully!`)
+            setTimeout(() => setSuccessMessage(""), 5000);
 
             // Reset form
             resetActivityForm()
@@ -331,8 +334,10 @@ const GameActivityEditor = () => {
 
             if (successCount > 0) {
                 setSuccessMessage(`${successCount} activities added to game successfully!`);
+                setTimeout(() => setSuccessMessage(""), 5000);
             } else {
                 setError("Failed to add any activities to the game");
+                setTimeout(() => setError(""), 5000);
             }
 
             // Reset form
@@ -564,6 +569,7 @@ const GameActivityEditor = () => {
 
             setGame(response.data)
             setSuccessMessage("Game saved successfully!")
+            setTimeout(() => setSuccessMessage(""), 5000);
         } catch (err) {
             console.error("Failed to save game", err)
             setError(err.response?.data || "Failed to save game")
@@ -616,7 +622,9 @@ const GameActivityEditor = () => {
     }
 
     return (
-        <div className="game-editor-container">
+        <>
+        <Header />
+        <div className="game-manage-container">
             <Sidebar />
 
             <div className="game-editor-content">
@@ -631,43 +639,46 @@ const GameActivityEditor = () => {
                 </div>
 
                 <div className="game-details">
-                    <div className="game-form-group">
-                        <label>Game Title</label>
-                        <input
-                            type="text"
-                            value={game?.title || ""}
-                            onChange={(e) => setGame({ ...game, title: e.target.value })}
-                            className="game-input"
-                        />
-                    </div>
-
-                    <div className="game-form-group">
-                        <label>Description</label>
-                        <textarea
+                    <div className="game-form-grid">
+                        <div className="game-form-group full-width">
+                            <label>Game Title</label>
+                            <input
+                                type="text"
+                                value={game?.title || ""}
+                                onChange={(e) => setGame({ ...game, title: e.target.value })}
+                                className="game-input"
+                            />
+                        </div>
+                        {/* Description: chiếm 100% chiều ngang */}
+                        <div className="game-form-group full-width">
+                            <label>Description</label>
+                            <textarea
                             value={game?.description || ""}
                             onChange={(e) => setGame({ ...game, description: e.target.value })}
                             className="game-textarea"
-                        />
-                    </div>
+                            />
+                        </div>
 
-                    <div className="game-form-group">
-                        <label>Subject</label>
-                        <input
+                        {/* Các trường ngắn hơn: chia 2 cột */}
+                        <div className="game-form-group half-width">
+                            <label>Subject</label>
+                            <input
                             type="text"
                             value={game?.subject || ""}
                             onChange={(e) => setGame({ ...game, subject: e.target.value })}
                             className="game-input"
-                        />
-                    </div>
+                            />
+                        </div>
 
-                    <div className="game-form-group">
-                        <label>Grade Level</label>
-                        <input
+                        <div className="game-form-group half-width">
+                            <label>Grade Level</label>
+                            <input
                             type="text"
                             value={game?.gradeLevel || ""}
                             onChange={(e) => setGame({ ...game, gradeLevel: e.target.value })}
                             className="game-input"
-                        />
+                            />
+                        </div>
                     </div>
                 </div>
 
@@ -691,9 +702,9 @@ const GameActivityEditor = () => {
                                             <span>{index + 1}. {activity.title}</span>
                                             <div className="activity-badges">
                                                 <span className="activity-type-badge">
-                                                    {activity.type === "MULTIPLE_CHOICE" ? "Multiple Choice" :
-                                                        activity.type === "SORTING" ? "Sorting" :
-                                                            activity.type === "MATCHING" ? "Matching" : activity.type}
+                                                    {activity.activityType === "MULTIPLE_CHOICE" ? "Multiple Choice" :
+                                                        activity.activityType === "SORTING" ? "Sorting" :
+                                                            activity.activityType === "MATCHING" ? "Matching" : activity.activityType}
                                                 </span>
                                                 <span className="activity-points-badge">
                                                     <Award size={14} /> {activity.points || 10} pts
@@ -788,7 +799,7 @@ const GameActivityEditor = () => {
                                     backgroundColor: 'white',
                                     borderRadius: '8px',
                                     width: '100%',
-                                    maxWidth: '800px',
+                                    maxWidth: '1000px',
                                     maxHeight: '90vh',
                                     overflowY: 'auto',
                                     margin: '20px 0'
@@ -965,11 +976,6 @@ const GameActivityEditor = () => {
                                                     <div className="activity-select-info">
                                                         <div className="activity-select-title">
                                                             <span>{activity.title}</span>
-                                                            {isSelected && (
-                                                                <div className="selection-order">
-                                                                    {selectedActivities.find(a => a.id === activity.id).selectionOrder}
-                                                                </div>
-                                                            )}
                                                             <div className="activity-select-badges">
                                                                 <span className="activity-type-badge">
                                                                     {activity.type === "MULTIPLE_CHOICE" ? "Multiple Choice" :
@@ -998,7 +1004,14 @@ const GameActivityEditor = () => {
                                                         </div>
                                                     </div>
                                                     <div className="activity-select-checkbox">
-                                                        {isSelected && <CheckCircle size={20} />}
+                                                        {isSelected && (
+                                                            <>
+                                                                <div className="selection-order">
+                                                                    {selectedActivities.find(a => a.id === activity.id).selectionOrder}
+                                                                </div>
+                                                                <CheckCircle size={20} />
+                                                            </>
+                                                        )}
                                                     </div>
                                                 </div>
                                             );
@@ -1034,6 +1047,7 @@ const GameActivityEditor = () => {
                 </div>
             )}
         </div>
+    </>
     )
 }
 

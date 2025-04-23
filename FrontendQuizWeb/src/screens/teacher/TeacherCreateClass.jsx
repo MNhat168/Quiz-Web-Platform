@@ -5,7 +5,8 @@ import { useNavigate } from "react-router-dom"
 import { useAuth } from "../../context/AuthContext"
 import axios from "axios"
 import { BookOpen, Plus, Eye, EyeOff, RefreshCw, ChevronRight, Users, Calendar, Send, MapPin, X } from "lucide-react"
-import Sidebar from "../../layout/teacher/teacherHeader"
+import Sidebar from "../../layout/teacher/teacherSidebar"
+import Header from "../../layout/teacher/teacherHeader";
 import "../../style/teacher-create-class.css"
 
 
@@ -201,16 +202,11 @@ const TeacherCreateClass = () => {
 
   return (
     <>
-    
+    <Header />
     <div className="app-container">
     <Sidebar />
     <div className="main-content1">
       <div className="manage-classes-container">
-        <div className="manage-classes-header">
-          <BookOpen className="manage-classes-header-icon text-emerald-600" />
-          <h1 className="manage-classes-title">Manage Your Classes</h1>
-        </div>
-    
         <div className="grid md:grid-cols-2 gap-8">
           {/* Create Class Form */}
             <div className="card-header">
