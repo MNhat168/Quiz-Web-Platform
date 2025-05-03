@@ -12,6 +12,7 @@ import TextInputActivity from './activities/TextInput';
 import SortingActivity from './activities/Sorting';
 import MatchingActivity from './activities/Matching';
 import MathProblemActivity from './activities/MathProblem';
+import TeamChallengeActivity from './activities/Teamchallenge';
 
 const StudentGamePlay = () => {
     const [textAnswer, setTextAnswer] = useState('');
@@ -188,7 +189,6 @@ const StudentGamePlay = () => {
                             </div>
                         )}
                         
-                        {/* Find the current user's score and position */}
                         {(() => {
                             const studentId = getStudentId();
                             const userPosition = participantScores.findIndex(p => p.userId === studentId);
@@ -381,23 +381,6 @@ const StudentGamePlay = () => {
         }
     };
 
-    const fetchSpecificContent = async (activityId, contentIndex) => {
-        try {
-            const response = await axios.get(
-                `http://localhost:8080/api/sessions/${accessCode}/activity/${activityId}/content/${contentIndex}`,
-                {
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
-                }
-            );
-            return response.data;
-        } catch (error) {
-            console.error('Failed to fetch specific content:', error);
-            return null;
-        }
-    };
-
     const submitAnswer = async (answer) => {
         const studentId = getStudentId();
         if (!studentId || !currentActivity || !currentActivity.id) {
@@ -548,7 +531,8 @@ const StudentGamePlay = () => {
             submitAnswer: submitAnswer,
             textAnswer: textAnswer,
             setTextAnswer: setTextAnswer,
-            contentItem: currentContentItem
+            contentItem: currentContentItem,
+            accessCode: accessCode  // Add accessCode to props for team challenge
         };
 
         switch (currentActivity.type) {
@@ -570,6 +554,10 @@ const StudentGamePlay = () => {
 
             case 'MATH_PROBLEM':
                 return <MathProblemActivity {...commonProps} />;
+                
+            // Add the new Team Challenge activity type
+            case 'TEAM_CHALLENGE':
+                return <TeamChallengeActivity {...commonProps} />;
 
             default:
                 return (
@@ -580,7 +568,7 @@ const StudentGamePlay = () => {
                     </div>
                 );
         }
-    };
+    }
 
     if (loading) {
         return (

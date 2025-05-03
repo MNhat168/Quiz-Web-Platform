@@ -73,12 +73,18 @@ public class GameController {
         if (teacher.getRole() != User.UserRole.TEACHER) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Only teachers can create games");
         }
-        
+        if (game.getSettings() == null) {
+            game.setSettings(new Games.GameSettings());
+        }
+        if (game.getSettings().getTeamSettings() == null) {
+            game.getSettings().setTeamSettings(new Games.GameSettings.TeamGameSettings());
+        }
         // Set creator ID and timestamps
         game.setCreatorId(teacher.getId());
         Date now = new Date();
         game.setCreatedAt(now);
         game.setUpdatedAt(now);
+        game.getSettings().setTeamBased(true);
         
         // Save the game
         Games savedGame = gameService.createGame(game);

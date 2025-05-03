@@ -32,7 +32,7 @@ const StudentJoinRoom = () => {
       const queryParams = new URLSearchParams(location.search);
       const accessCodeParam = queryParams.get('accessCode');
       if (accessCodeParam) {
-        setAccessCode(accessCodeParam);
+        setAccessCode(accessCodeParam.toUpperCase());
       }
     }
   }, [location.search]);
@@ -40,13 +40,11 @@ const StudentJoinRoom = () => {
   // Get student ID from token
   const getStudentId = () => {
     try {
-      // Log the token and parsed value to debug
       const tokenPayload = JSON.parse(atob(token.split(".")[1]));
-      console.log("Token payload:", tokenPayload);
-      console.log("Extracted student ID:", tokenPayload.sub);
       return tokenPayload.sub;
     } catch (e) {
       console.error("Failed to extract student ID from token:", e);
+      setError("Authentication error. Please log in again.");
       return null;
     }
   };
@@ -54,6 +52,7 @@ const StudentJoinRoom = () => {
   // Fetch participants for an existing session
   const fetchParticipants = async (code) => {
     try {
+      console.log(`Fetching participants for session with code: ${code}`);
       const response = await axios.get(
         `http://localhost:8080/api/sessions/${code}/participants`,
         {
@@ -62,17 +61,20 @@ const StudentJoinRoom = () => {
           }
         }
       );
+      console.log("Participants received:", response.data);
       setParticipants(response.data);
     } catch (err) {
       console.error('Failed to fetch participants:', err);
+      const errorMessage = err.response?.data?.message || 
+        err.response?.data?.error || 
+        'Failed to fetch participants, session may have ended';
+      setError(errorMessage);
       // If we can't fetch, session might have ended
       setJoined(false);
       localStorage.removeItem('studentSessionAccessCode');
       localStorage.removeItem('studentJoinedStatus');
     }
   };
-
-  // Update the setupWebSocket function in StudentJoinRoom.jsx
 
   const setupWebSocket = (sessionAccessCode) => {
     console.log('Setting up WebSocket with access code:', sessionAccessCode);
@@ -98,6 +100,7 @@ const StudentJoinRoom = () => {
           (message) => {
             const newStatus = message.body;
             setSessionStatus(newStatus);
+            console.log(`Session status changed to: ${newStatus}`);
             if (newStatus === 'COMPLETED') {
               setJoined(false);
               localStorage.removeItem('studentSessionAccessCode');
@@ -107,21 +110,25 @@ const StudentJoinRoom = () => {
               }
               setParticipants([]);
               setAccessCode('');
+              setError('This session has ended.');
             }
           }
         );
 
         const studentId = getStudentId();
-        const heartbeatInterval = setInterval(() => {
-          if (client.connected) {
-            client.publish({
-              destination: `/app/heartbeat/${sessionAccessCode}`,
-              body: studentId
-            });
-          }
-        }, 30000);
+        if (studentId) {
+          const heartbeatInterval = setInterval(() => {
+            if (client.connected) {
+              console.log('Sending heartbeat...');
+              client.publish({
+                destination: `/app/heartbeat/${sessionAccessCode}`,
+                body: studentId
+              });
+            }
+          }, 30000);
 
-        return () => clearInterval(heartbeatInterval);
+          return () => clearInterval(heartbeatInterval);
+        }
       },
       onStompError: (frame) => {
         console.error('STOMP Error:', frame);
@@ -156,9 +163,13 @@ const StudentJoinRoom = () => {
         throw new Error("Unable to identify student. Please login again.");
       }
 
+      // Normalize access code to uppercase
+      const normalizedAccessCode = accessCode.toUpperCase();
+      console.log(`Attempting to join session with code: ${normalizedAccessCode}, student ID: ${studentId}`);
+
       // Join the session
       const response = await axios.post(
-        `http://localhost:8080/api/sessions/join/${accessCode}`,
+        `http://localhost:8080/api/sessions/join/${normalizedAccessCode}`,
         null,
         {
           headers: {
@@ -168,20 +179,28 @@ const StudentJoinRoom = () => {
         }
       );
 
+      console.log("Join response:", response.data);
+
       if (response.data.success) {
         setJoined(true);
-        setupWebSocket(accessCode);
-        fetchParticipants(accessCode);
+        setupWebSocket(normalizedAccessCode);
+        fetchParticipants(normalizedAccessCode);
 
         // Save session info to localStorage
-        localStorage.setItem('studentSessionAccessCode', accessCode);
+        localStorage.setItem('studentSessionAccessCode', normalizedAccessCode);
         localStorage.setItem('studentJoinedStatus', 'true');
+        
+        // Update access code in state to normalized version
+        setAccessCode(normalizedAccessCode);
+      } else {
+        setError(response.data.message || "Failed to join session.");
       }
     } catch (err) {
       console.error('Join session failed:', err);
-      setError(err.response?.data?.message ||
-        err.message ||
-        'Failed to join session. Check access code and try again.');
+      const errorMessage = err.response?.data?.message || 
+        err.response?.data?.error || 
+        'Failed to join session. Check access code and try again.';
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -190,6 +209,7 @@ const StudentJoinRoom = () => {
   const handleLeaveSession = async () => {
     const studentId = getStudentId();
     try {
+      console.log(`Leaving session with code: ${accessCode}, student ID: ${studentId}`);
       await axios.post(
         `http://localhost:8080/api/sessions/leave/${accessCode}`,
         null,
@@ -207,12 +227,19 @@ const StudentJoinRoom = () => {
       setJoined(false);
       setParticipants([]);
       setAccessCode('');
+      setError(null);
 
       // Remove session info from localStorage
       localStorage.removeItem('studentSessionAccessCode');
       localStorage.removeItem('studentJoinedStatus');
+      
+      console.log('Successfully left session');
     } catch (err) {
       console.error('Leave session failed:', err);
+      const errorMessage = err.response?.data?.message || 
+        err.response?.data?.error || 
+        'Failed to leave session.';
+      setError(errorMessage);
     }
   };
 
@@ -241,6 +268,7 @@ const StudentJoinRoom = () => {
               maxLength="6"
               pattern="[A-Z0-9]{6}"
               required
+              className="access-code-input"
             />
           </div>
 
@@ -252,6 +280,10 @@ const StudentJoinRoom = () => {
         </form>
       ) : (
         <div className="session-lobby">
+          <div className="session-info">
+            <h2>Session Code: {accessCode}</h2>
+          </div>
+          
           <div className="session-status">
             <h2>Session Status: {sessionStatus}</h2>
             {sessionStatus === 'LOBBY' && <p>Waiting for teacher to start the game...</p>}
@@ -276,6 +308,8 @@ const StudentJoinRoom = () => {
               </ul>
             )}
           </div>
+
+          {error && <div className="error-message">{error}</div>}
 
           <button onClick={handleLeaveSession} className="leave-button">
             Leave Session
