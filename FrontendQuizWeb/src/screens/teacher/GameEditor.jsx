@@ -7,6 +7,7 @@ import MultipleChoiceForm from "./games/MultipleChoice"
 import SortingForm from "./games/Sorting"
 import MatchingForm from "./games/Matching"
 import TeamChallengeForm from "./games/TeamChallenge"
+import FillInBlankForm from "./games/FillInBlank"
 import Sidebar from "../../layout/teacher/teacherSidebar"
 import Header from "../../layout/teacher/teacherHeader";
 import "../../style/game-editor.css"
@@ -20,7 +21,12 @@ const GameActivityEditor = () => {
     const [gameActivities, setGameActivities] = useState([])
     const [isAddingActivity, setIsAddingActivity] = useState(false)
     const [isCreatingActivity, setIsCreatingActivity] = useState(false)
-    const [activityTypes, setActivityTypes] = useState([]);
+    const [activityTypes, setActivityTypes] = useState([
+        "MULTIPLE_CHOICE",
+        "SORTING",
+        "MATCHING",
+        "FILL_IN_BLANK"
+    ]);
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState("")
     const [successMessage, setSuccessMessage] = useState("")
@@ -93,6 +99,12 @@ const GameActivityEditor = () => {
         shuffleOptions: true,
         hints: []
     })
+
+    // Add initial state for fill in blank content
+    const [fillInBlankContent, setFillInBlankContent] = useState({
+        questions: [],
+        hints: []
+    });
 
     const [selectedActivities, setSelectedActivities] = useState([]);
     const [currentHint, setCurrentHint] = useState("")
@@ -169,8 +181,10 @@ const GameActivityEditor = () => {
             setNewActivity({ ...newActivity, content: matchingContent })
         } else if (newActivity.type === "TEAM_CHALLENGE") {
             setNewActivity({ ...newActivity, content: teamChallengeContent })
+        } else if (newActivity.type === "FILL_IN_BLANK") {
+            setNewActivity({ ...newActivity, content: fillInBlankContent })
         }
-    }, [multipleChoiceContent, sortingContent, matchingContent, teamChallengeContent, newActivity.type])
+    }, [multipleChoiceContent, sortingContent, matchingContent, teamChallengeContent, fillInBlankContent, newActivity.type])
 
     const createActivity = async () => {
         try {
@@ -405,6 +419,11 @@ const GameActivityEditor = () => {
                 ...teamChallengeContent,
                 hints: [...teamChallengeContent.hints, currentHint]
             })
+        } else if (newActivity.type === "FILL_IN_BLANK") {
+            setFillInBlankContent({
+                ...fillInBlankContent,
+                hints: [...fillInBlankContent.hints, currentHint]
+            })
         }
         setCurrentHint("")
     }
@@ -436,6 +455,13 @@ const GameActivityEditor = () => {
             updatedHints.splice(index, 1)
             setTeamChallengeContent({
                 ...teamChallengeContent,
+                hints: updatedHints
+            })
+        } else if (newActivity.type === "FILL_IN_BLANK") {
+            const updatedHints = [...fillInBlankContent.hints]
+            updatedHints.splice(index, 1)
+            setFillInBlankContent({
+                ...fillInBlankContent,
                 hints: updatedHints
             })
         }
@@ -502,6 +528,11 @@ const GameActivityEditor = () => {
             hints: []
         })
 
+        setFillInBlankContent({
+            questions: [],
+            hints: []
+        })
+
         setCurrentHint("")
     }
 
@@ -565,6 +596,17 @@ const GameActivityEditor = () => {
                     <TeamChallengeForm
                         content={teamChallengeContent}
                         setContent={setTeamChallengeContent}
+                        currentHint={currentHint}
+                        setCurrentHint={setCurrentHint}
+                        addHint={addHint}
+                        removeHint={removeHint}
+                    />
+                )
+            case "FILL_IN_BLANK":
+                return (
+                    <FillInBlankForm
+                        content={fillInBlankContent}
+                        setContent={setFillInBlankContent}
                         currentHint={currentHint}
                         setCurrentHint={setCurrentHint}
                         addHint={addHint}
@@ -841,7 +883,8 @@ const GameActivityEditor = () => {
                                                             <option key={type} value={type}>
                                                                 {type === "MULTIPLE_CHOICE" ? "Multiple Choice" :
                                                                     type === "SORTING" ? "Sorting" :
-                                                                        type === "MATCHING" ? "Matching" : type}
+                                                                        type === "MATCHING" ? "Matching" :
+                                                                        type === "FILL_IN_BLANK" ? "Fill In Blank" : type}
                                                             </option>
                                                         ))}
                                                     </select>
@@ -992,7 +1035,8 @@ const GameActivityEditor = () => {
                                                                     <span className="activity-type-badge">
                                                                         {activity.type === "MULTIPLE_CHOICE" ? "Multiple Choice" :
                                                                             activity.type === "SORTING" ? "Sorting" :
-                                                                                activity.type === "MATCHING" ? "Matching" : activity.type}
+                                                                                activity.type === "MATCHING" ? "Matching" :
+                                                                                activity.type === "FILL_IN_BLANK" ? "Fill In Blank" : activity.type}
                                                                     </span>
                                                                     <span className="activity-points-badge">
                                                                         <Award size={14} /> {activity.points || 10} pts

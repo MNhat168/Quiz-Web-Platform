@@ -880,6 +880,48 @@ public class GameSessionService {
         }
     }
 
+    private boolean evaluateFillInBlank(Object content, Object answer) {
+        if (!(answer instanceof Map)) {
+            return false;
+        }
+        Map<String, Object> answerMap = (Map<String, Object>) answer;
+
+        // Get question index and blank index
+        Object qIdxObj = answerMap.get("questionIndex");
+        Object bIdxObj = answerMap.get("blankIndex");
+        if (qIdxObj == null || bIdxObj == null)
+            return false;
+
+        int questionIndex = Integer.parseInt(String.valueOf(qIdxObj));
+        int blankIndex = Integer.parseInt(String.valueOf(bIdxObj));
+
+        // Get user's answer
+        final String answerStr = answerMap.get("answer") != null
+                ? answerMap.get("answer").toString().trim().toLowerCase()
+                : "";
+
+        // Get acceptable answers from the answer data
+        Map<String, Map<String, List<String>>> acceptableAnswers = null;
+        if (answerMap.get("acceptableAnswers") instanceof Map) {
+            acceptableAnswers = (Map<String, Map<String, List<String>>>) answerMap.get("acceptableAnswers");
+        }
+
+        if (acceptableAnswers != null &&
+                acceptableAnswers.containsKey(String.valueOf(questionIndex)) &&
+                acceptableAnswers.get(String.valueOf(questionIndex)).containsKey(String.valueOf(blankIndex))) {
+
+            List<String> answersForThisBlank = acceptableAnswers.get(String.valueOf(questionIndex))
+                    .get(String.valueOf(blankIndex));
+            if (answersForThisBlank != null) {
+                return answersForThisBlank.stream()
+                        .map(String::toLowerCase)
+                        .map(String::trim)
+                        .anyMatch(correctAns -> correctAns.equals(answerStr));
+            }
+        }
+        return false;
+    }
+
     private Activity.TeamChallengeContent convertMapToTeamChallengeContent(Map<String, Object> contentMap) {
         Activity.TeamChallengeContent teamChallengeContent = new Activity.TeamChallengeContent();
         List<Activity.TeamChallengeContent.DrawingPrompt> prompts = new ArrayList<>();
@@ -1236,14 +1278,14 @@ public class GameSessionService {
                 "/topic/session/" + accessCode + "/teamchallenge/drawing/" + teamId,
                 paths);
     }
-    
+
     // Modified saveTeamDrawing method in GameSessionService.java
     public void saveTeamDrawing(String accessCode, String teamId, Object paths) {
         Optional<GameSession> optionalSession = gameSessionRepository.findByAccessCode(accessCode);
-        
+
         GameSession session = optionalSession
                 .orElseThrow(() -> new RuntimeException("Session not found"));
-        
+
         session.getTeams().stream()
                 .filter(t -> t.getTeamId().equals(teamId))
                 .findFirst()
