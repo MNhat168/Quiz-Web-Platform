@@ -19,7 +19,9 @@ import org.springframework.messaging.handler.annotation.DestinationVariable;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.web.bind.annotation.*;
-
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -44,6 +46,7 @@ public class GameSessionController {
 
     @Autowired
     private SimpMessagingTemplate messagingTemplate;
+    private static final Logger logger = LoggerFactory.getLogger(GameSessionController.class);
 
     @PostMapping("/create")
     public ResponseEntity<Map<String, String>> createSession(
@@ -254,12 +257,10 @@ public class GameSessionController {
             String guess;
 
             if (rawRequestBody instanceof Map) {
-                // Case 1: Proper JSON object
                 Map<String, Object> guessData = (Map<String, Object>) rawRequestBody;
                 teamId = (String) guessData.get("teamId");
                 guess = (String) guessData.get("guess");
             } else if (rawRequestBody instanceof String) {
-                // Case 2: JSON string that needs parsing
                 String jsonStr = (String) rawRequestBody;
                 ObjectMapper mapper = new ObjectMapper();
                 Map<String, Object> guessData = mapper.readValue(jsonStr, new TypeReference<Map<String, Object>>() {
@@ -278,13 +279,10 @@ public class GameSessionController {
                         "success", false,
                         "error", "Missing teamId or guess"));
             }
-
-            // Process the guess
             Map<String, Object> result = gameSessionService.submitTeamGuess(accessCode, teamId, guess);
             return ResponseEntity.ok(result);
 
         } catch (Exception e) {
-            // Log and return error
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of(
                     "success", false,
                     "error", e.getMessage()));
@@ -295,14 +293,12 @@ public class GameSessionController {
         String searchKey = "\"" + key + "\":\"";
         int startIndex = jsonStr.indexOf(searchKey);
         if (startIndex < 0) {
-            // Try without quotes around value
             searchKey = "\"" + key + "\":";
             startIndex = jsonStr.indexOf(searchKey);
             if (startIndex < 0) {
                 return null;
             }
         }
-
         startIndex += searchKey.length();
         int endIndex;
         if (jsonStr.charAt(startIndex - 1) == '"') {
@@ -319,34 +315,130 @@ public class GameSessionController {
         return jsonStr.substring(startIndex, endIndex);
     }
 
-    @PostMapping("/{accessCode}/teamchallenge/drawing")
-    public ResponseEntity<Map<String, Object>> submitDrawing(
-            @PathVariable String accessCode,
-            @RequestHeader("X-Student-Id") String studentId,
-            @RequestBody Map<String, String> drawingData) {
+    @MessageMapping("/session/{accessCode}/teamchallenge/drawing/{teamId}")
+    public void handleDrawingUpdates(
+            @DestinationVariable String accessCode,
+            @DestinationVariable String teamId,
+            String updateJson) {
         try {
-            String teamId = drawingData.get("teamId");
-
-            if (teamId == null) {
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of(
-                        "success", false,
-                        "error", "Team ID is required"));
+            // Parse the drawing update
+            ObjectMapper mapper = new ObjectMapper();
+            Map<String, Object> update = mapper.readValue(updateJson, new TypeReference<Map<String, Object>>() {});
+            String updateType = (String) update.get("type");
+            Object data = update.get("data");
+            
+            if ("stroke".equals(updateType)) {
+                // For individual strokes, just broadcast them immediately for low latency
+                // Don't save to database for each stroke to reduce overhead
+                messagingTemplate.convertAndSend(
+                        "/topic/session/" + accessCode + "/teamchallenge/drawing/" + teamId,
+                        updateJson);
+                
+                logger.debug("Stroke update broadcasted for team {} in session {}", teamId, accessCode);
+            } else if ("full".equals(updateType)) {
+                // For full path updates, save to database and broadcast
+                gameSessionService.saveTeamDrawing(accessCode, teamId, data);
+                
+                // In this case, we want to broadcast the full paths
+                messagingTemplate.convertAndSend(
+                        "/topic/session/" + accessCode + "/teamchallenge/drawing/" + teamId,
+                        updateJson);
+                
+                logger.info("Full drawing update processed for team {} in session {}", teamId, accessCode);
+            } else {
+                // Legacy support for old format (full paths directly)
+                gameSessionService.saveTeamDrawing(accessCode, teamId, update);
+                
+                // Broadcast in the new format
+                messagingTemplate.convertAndSend(
+                        "/topic/session/" + accessCode + "/teamchallenge/drawing/" + teamId,
+                        mapper.writeValueAsString(Map.of("type", "full", "data", update)));
+                
+                logger.info("Legacy drawing update processed for team {} in session {}", teamId, accessCode);
             }
-            Map<String, Object> result = new HashMap<>();
-            result.put("status", "DRAWING_SUBMITTED");
-            result.put("drawerId", studentId);
-            result.put("teamId", teamId);
-
-            // Publish the event to WebSocket subscribers
-            messagingTemplate.convertAndSend(
-                    "/topic/session/" + accessCode + "/teamchallenge/drawing",
-                    result);
-
-            return ResponseEntity.ok(result);
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of(
-                    "success", false,
-                    "error", e.getMessage()));
+            logger.error("Error processing drawing update", e);
+        }
+    }
+
+    @MessageMapping("/session/{accessCode}/teamchallenge/request-drawing/{teamId}")
+    public void handleDrawingRequest(
+            @DestinationVariable String accessCode,
+            @DestinationVariable String teamId,
+            String userId) {
+        try {
+            Object paths = gameSessionService.getTeamDrawing(accessCode, teamId);
+
+            // Send directly to the user who requested it
+            messagingTemplate.convertAndSendToUser(
+                    userId,
+                    "/queue/drawing-init",
+                    paths != null ? paths : new ArrayList<>());
+
+            // Also broadcast to everyone (helps ensure drawer sees it too)
+            messagingTemplate.convertAndSend(
+                    "/topic/session/" + accessCode + "/teamchallenge/drawing/" + teamId,
+                    paths != null ? paths : new ArrayList<>());
+
+            logger.info("Drawing data sent to user {} for team {} in session {}",
+                    userId, teamId, accessCode);
+        } catch (Exception e) {
+            logger.error("Error handling drawing request", e);
+        }
+    }
+
+    @GetMapping("/{accessCode}/teamchallenge/drawing/{teamId}")
+    public ResponseEntity<Object> getTeamDrawingREST(
+            @PathVariable String accessCode,
+            @PathVariable String teamId,
+            Authentication authentication) {
+        try {
+            User user = userService.getCurrentUser(authentication);
+            GameSession session = gameSessionService.getSessionByAccessCode(accessCode);
+
+            if (session == null || !gameSessionService.isUserParticipant(session, user.getEmail())) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", "Not authorized"));
+            }
+
+            Object drawing = gameSessionService.getTeamDrawing(accessCode, teamId);
+            if (drawing == null) {
+                // Return empty array instead of null for better client handling
+                return ResponseEntity.ok(new ArrayList<>());
+            }
+
+            // Also broadcast to everyone to keep things in sync
+            messagingTemplate.convertAndSend(
+                    "/topic/session/" + accessCode + "/teamchallenge/drawing/" + teamId,
+                    drawing);
+
+            return ResponseEntity.ok(drawing);
+        } catch (Exception e) {
+            logger.error("Error getting team drawing via REST", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @PostMapping("/{accessCode}/teamchallenge/save-drawing")
+    public ResponseEntity<?> saveFinalDrawing(
+            @PathVariable String accessCode,
+            @RequestBody Map<String, Object> drawingData) {
+        try {
+            String teamId = drawingData.get("teamId").toString();
+            Object paths = drawingData.get("paths");
+
+            // Save and broadcast
+            gameSessionService.saveTeamDrawing(accessCode, teamId, paths);
+
+            return ResponseEntity.ok(Map.of(
+                    "success", true,
+                    "message", "Drawing saved successfully"));
+        } catch (Exception e) {
+            logger.error("Error saving drawing", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of(
+                            "success", false,
+                            "error", e.getMessage()));
         }
     }
 

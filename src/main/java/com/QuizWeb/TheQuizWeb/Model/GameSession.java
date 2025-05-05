@@ -30,6 +30,40 @@ public class GameSession {
 
     // Keep all the existing getters and setters
 
+    @Data
+    public static class Team {
+        private String teamId;
+        private String teamName;
+        private List<String> teamMembers; // User IDs
+        private int teamScore;
+        private String currentDrawerId; // Current drawer (updated each round)
+        private int nextDrawerIndex; // Tracks rotation order
+        private Object currentDrawing; // Store serialized paths
+        private Date lastDrawingUpdate;
+
+        public void initializeDrawingRotation() {
+            if (this.teamMembers == null || this.teamMembers.isEmpty()) {
+                return;
+            }
+            this.currentDrawerId = this.teamMembers.get(0);
+        }
+
+        public String getNextDrawer() {
+            if (this.teamMembers == null || this.teamMembers.isEmpty()) {
+                return null;
+            }
+            if (this.currentDrawerId == null) {
+                return this.teamMembers.get(0);
+            }
+            int currentIndex = this.teamMembers.indexOf(this.currentDrawerId);
+            if (currentIndex == -1) {
+                return this.teamMembers.get(0);
+            }
+            int nextIndex = (currentIndex + 1) % this.teamMembers.size();
+            return this.teamMembers.get(nextIndex);
+        }
+    }
+
     public enum SessionStatus {
         LOBBY, ACTIVE, PAUSED, COMPLETED
     }
@@ -46,23 +80,23 @@ public class GameSession {
         public String getCurrentDrawer(GameSession session, String teamId) {
             if (session.getTeams() == null)
                 return null;
-    
+
             Team team = session.getTeams().stream()
                     .filter(t -> t.getTeamId().equals(teamId))
                     .findFirst()
                     .orElse(null);
-    
+
             if (team == null)
                 return null;
-    
+
             return team.getCurrentDrawerId();
         }
-    
+
         public void rotateDrawer(GameSession session, String teamId) {
             if (session == null || session.getTeams() == null) {
                 return;
             }
-    
+
             for (GameSession.Team team : session.getTeams()) {
                 if (team.getTeamId().equals(teamId)) {
                     String nextDrawer = team.getNextDrawer();
@@ -93,38 +127,7 @@ public class GameSession {
         private Map<String, Integer> activityScores;
     }
 
-    @Data
-    public static class Team {
-        private String teamId;
-        private String teamName;
-        private List<String> teamMembers; // User IDs
-        private int teamScore;
-        private String currentDrawerId; // Current drawer (updated each round)
-        private int nextDrawerIndex; // Tracks rotation order
-
-        public void initializeDrawingRotation() {
-            if (this.teamMembers == null || this.teamMembers.isEmpty()) {
-                return;
-            }
-            this.currentDrawerId = this.teamMembers.get(0);
-        }
-
-        public String getNextDrawer() {
-            if (this.teamMembers == null || this.teamMembers.isEmpty()) {
-                return null;
-            }
-            if (this.currentDrawerId == null) {
-                return this.teamMembers.get(0);
-            }
-            int currentIndex = this.teamMembers.indexOf(this.currentDrawerId);
-            if (currentIndex == -1) {
-                return this.teamMembers.get(0);
-            }
-            int nextIndex = (currentIndex + 1) % this.teamMembers.size();
-            return this.teamMembers.get(nextIndex);
-        }
-    }
-
+    
     @Data
     public static class ParticipantResponse {
         private String participantId;
@@ -136,8 +139,8 @@ public class GameSession {
         private int pointsEarned;
         private Date submittedAt;
         private List<String> hintsUsed;
-        private int attempts; 
-        private String teamId; 
+        private int attempts;
+        private String teamId;
         private String drawerId;
     }
 
