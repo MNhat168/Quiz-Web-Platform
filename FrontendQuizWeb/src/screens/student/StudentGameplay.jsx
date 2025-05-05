@@ -12,6 +12,8 @@ import TextInputActivity from './activities/TextInput';
 import SortingActivity from './activities/Sorting';
 import MatchingActivity from './activities/Matching';
 import MathProblemActivity from './activities/MathProblem';
+import FillInBlankGame from './activities/FillInBlank';
+
 
 const StudentGamePlay = () => {
     const [textAnswer, setTextAnswer] = useState('');
@@ -437,6 +439,7 @@ const StudentGamePlay = () => {
             console.log('Submission response:', response.data);
             setSubmissionResult(response.data);
             resetContentTimer();
+            
             if (answer.questionIndex !== undefined) {
                 const mcContent = currentContentItem ? currentContentItem.data : currentActivity.content;
                 let mcQuestions = [];
@@ -447,7 +450,7 @@ const StudentGamePlay = () => {
                 } else if (typeof mcContent === 'object') {
                     mcQuestions = [mcContent];
                 }
-                if (answer.questionIndex === mcQuestions.length - 1) {
+                if (answer.questionIndex === mcQuestions.length - 1 && currentActivity.type !== 'FILL_IN_BLANK') {
                     setTimeout(() => {
                         requestContentAdvancement(); // Use the new function to request server advancement
                     }, 3000); // Wait 3s to show feedback before advancing
@@ -540,6 +543,7 @@ const StudentGamePlay = () => {
         if (!currentActivity) {
             return <div>No active activity</div>;
         }
+
         const content = getCurrentContent();
         const commonProps = {
             activity: currentActivity,
@@ -554,23 +558,18 @@ const StudentGamePlay = () => {
         switch (currentActivity.type) {
             case 'MULTIPLE_CHOICE':
                 return <MultipleChoiceActivity {...commonProps} />;
-
             case 'TRUE_FALSE':
                 return <TrueFalseActivity {...commonProps} />;
-
             case 'OPEN_ENDED':
-            case 'FILL_IN_BLANK':
                 return <TextInputActivity {...commonProps} />;
-
+            case 'FILL_IN_BLANK':
+                return <FillInBlankGame {...commonProps} onComplete={handleActivityComplete} />;
             case 'SORTING':
                 return <SortingActivity {...commonProps} />;
-
             case 'MATCHING':
                 return <MatchingActivity {...commonProps} />;
-
             case 'MATH_PROBLEM':
                 return <MathProblemActivity {...commonProps} />;
-
             default:
                 return (
                     <div className="unsupported-activity">
@@ -579,6 +578,19 @@ const StudentGamePlay = () => {
                         <p>Activity type '{currentActivity.type}' is not fully supported yet.</p>
                     </div>
                 );
+        }
+    };
+
+    const handleActivityComplete = () => {
+        console.log('Activity completed, requesting advancement');
+        if (currentActivity.type === 'FILL_IN_BLANK') {
+            // For FillInBlank, advance immediately when completed
+            requestContentAdvancement();
+        } else {
+            // For other activities, wait for timer
+            setTimeout(() => {
+                requestContentAdvancement();
+            }, 3000);
         }
     };
 

@@ -630,38 +630,42 @@ public class GameSessionService {
     }
 
     private boolean evaluateFillInBlank(Object content, Object answer) {
-        if (!(answer instanceof String)) {
+        if (!(answer instanceof Map)) {
             return false;
         }
-        String answerStr = ((String) answer).trim().toLowerCase();
-        if (content instanceof Activity.FillInBlankContent) {
-            Activity.FillInBlankContent fbContent = (Activity.FillInBlankContent) content;
-            for (List<String> acceptableAnswers : fbContent.getAcceptableAnswers().values()) {
-                if (acceptableAnswers.stream()
-                        .map(String::toLowerCase)
-                        .map(String::trim)
-                        .anyMatch(correctAns -> correctAns.equals(answerStr))) {
-                    return true;
-                }
-            }
-        } else if (content instanceof Map) {
-            Map<String, Object> contentMap = (Map<String, Object>) content;
+        Map<String, Object> answerMap = (Map<String, Object>) answer;
+        
+        // Get question index and blank index
+        Object qIdxObj = answerMap.get("questionIndex");
+        Object bIdxObj = answerMap.get("blankIndex");
+        if (qIdxObj == null || bIdxObj == null) return false;
+        
+        int questionIndex = Integer.parseInt(String.valueOf(qIdxObj));
+        int blankIndex = Integer.parseInt(String.valueOf(bIdxObj));
+        
+        // Get user's answer
+        final String answerStr = answerMap.get("answer") != null
+            ? answerMap.get("answer").toString().trim().toLowerCase()
+            : "";
 
-            if (contentMap.containsKey("acceptableAnswers")) {
-                Map<String, List<String>> acceptableAnswers = (Map<String, List<String>>) contentMap
-                        .get("acceptableAnswers");
-
-                for (List<String> answers : acceptableAnswers.values()) {
-                    if (answers.stream()
-                            .map(String::toLowerCase)
-                            .map(String::trim)
-                            .anyMatch(correctAns -> correctAns.equals(answerStr))) {
-                        return true;
-                    }
-                }
-            }
+        // Get acceptable answers from the answer data
+        Map<String, Map<String, List<String>>> acceptableAnswers = null;
+        if (answerMap.get("acceptableAnswers") instanceof Map) {
+            acceptableAnswers = (Map<String, Map<String, List<String>>>) answerMap.get("acceptableAnswers");
         }
 
+        if (acceptableAnswers != null && 
+            acceptableAnswers.containsKey(String.valueOf(questionIndex)) && 
+            acceptableAnswers.get(String.valueOf(questionIndex)).containsKey(String.valueOf(blankIndex))) {
+            
+            List<String> answersForThisBlank = acceptableAnswers.get(String.valueOf(questionIndex)).get(String.valueOf(blankIndex));
+            if (answersForThisBlank != null) {
+                return answersForThisBlank.stream()
+                    .map(String::toLowerCase)
+                    .map(String::trim)
+                    .anyMatch(correctAns -> correctAns.equals(answerStr));
+            }
+        }
         return false;
     }
 
