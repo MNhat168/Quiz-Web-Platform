@@ -727,6 +727,7 @@ public class GameSessionService {
                 team.setTeamMembers(new ArrayList<>());
                 team.setTeamScore(0);
                 team.setNextDrawerIndex(0); // Initialize drawer index
+                team.setCurrentPromptIndex(0); // 🚨 Move initialization HERE
                 session.getTeams().add(team);
             }
 
@@ -744,7 +745,6 @@ public class GameSessionService {
                 }
             }
         }
-
         gameSessionRepository.save(session);
         messagingTemplate.convertAndSend(
                 "/topic/session/" + session.getAccessCode() + "/teams",
@@ -813,22 +813,20 @@ public class GameSessionService {
         }
     }
 
-    private boolean advanceToNextPrompt(GameSession session, Activity activity) {
+    private boolean advanceToNextPrompt(GameSession session, Activity activity, Team team) {
         GameSession.SessionActivity currentActivity = session.getCurrentActivity();
-        if (currentActivity == null) {
+        if (currentActivity == null)
             return false;
-        }
 
         Activity.TeamChallengeContent teamChallengeContent = getTeamChallengeContent(activity);
-        if (teamChallengeContent == null || teamChallengeContent.getPrompts() == null) {
+        if (teamChallengeContent == null || teamChallengeContent.getPrompts() == null)
             return false;
-        }
 
-        int currentIndex = currentActivity.getCurrentContentIndex();
+        int currentIndex = team.getCurrentPromptIndex();
         int totalPrompts = teamChallengeContent.getPrompts().size();
 
         if (currentIndex >= totalPrompts - 1) {
-            // End of prompts - notify clients
+            // Notify completion
             Map<String, Object> completionMessage = new HashMap<>();
             completionMessage.put("status", "COMPLETED");
             completionMessage.put("totalPrompts", totalPrompts);
@@ -840,28 +838,25 @@ public class GameSessionService {
 
         // Advance to next prompt
         int newIndex = currentIndex + 1;
-        currentActivity.setCurrentContentIndex(newIndex);
-
-        // Get the new prompt
         Activity.TeamChallengeContent.DrawingPrompt newPrompt = teamChallengeContent.getPrompts().get(newIndex);
 
-        // Prepare update with prompt details
+        // Update ONLY the team's progress
+        team.setCurrentPromptIndex(newIndex);
+
+        // Prepare and broadcast update
         Map<String, Object> update = new HashMap<>();
         update.put("currentPromptIndex", newIndex);
         update.put("currentWord", newPrompt.getPrompt());
         update.put("status", "ACTIVE");
 
-        // Add synonyms if available
         if (newPrompt.getSynonyms() != null && !newPrompt.getSynonyms().isEmpty()) {
             update.put("synonyms", newPrompt.getSynonyms());
         }
 
-        // Add time limit if configured
         if (newPrompt.getTimeLimit() > 0) {
             update.put("timeLimit", newPrompt.getTimeLimit());
         }
 
-        // Broadcast update to all clients
         messagingTemplate.convertAndSend(
                 "/topic/session/" + session.getAccessCode() + "/teamchallenge/status",
                 update);
@@ -1146,7 +1141,7 @@ public class GameSessionService {
             throw new RuntimeException("No prompts available for this team challenge");
         }
 
-        int currentContentIndex = currentActivity.getCurrentContentIndex();
+        int currentContentIndex = team.getCurrentPromptIndex();
         if (currentContentIndex >= teamChallengeContent.getPrompts().size()) {
             throw new RuntimeException("Invalid prompt index: " + currentContentIndex);
         }
@@ -1203,7 +1198,7 @@ public class GameSessionService {
                                     Integer::sum);
                         });
             }
-            boolean advancedToNextPrompt = advanceToNextPrompt(session, activity);
+            boolean advancedToNextPrompt = advanceToNextPrompt(session, activity, team);
             result.put("pointsEarned", pointsEarned);
             result.put("totalTeamScore", team.getTeamScore());
             result.put("advancedToNextPrompt", advancedToNextPrompt);
@@ -1240,7 +1235,7 @@ public class GameSessionService {
                     result.put("correctAnswer", currentPrompt.getPrompt());
 
                     if (teamChallengeContent.getPictionarySettings().isRevealAnswerOnFail()) {
-                        boolean advancedToNextPrompt = advanceToNextPrompt(session, activity);
+                        boolean advancedToNextPrompt = advanceToNextPrompt(session, activity, team);
                         result.put("advancedToNextPrompt", advancedToNextPrompt);
                     }
                 }

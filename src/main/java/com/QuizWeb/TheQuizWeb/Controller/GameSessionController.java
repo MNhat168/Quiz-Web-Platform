@@ -26,6 +26,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/sessions")
@@ -323,37 +324,38 @@ public class GameSessionController {
         try {
             // Parse the drawing update
             ObjectMapper mapper = new ObjectMapper();
-            Map<String, Object> update = mapper.readValue(updateJson, new TypeReference<Map<String, Object>>() {});
+            Map<String, Object> update = mapper.readValue(updateJson, new TypeReference<Map<String, Object>>() {
+            });
             String updateType = (String) update.get("type");
             Object data = update.get("data");
-            
+
             if ("stroke".equals(updateType)) {
                 // For individual strokes, just broadcast them immediately for low latency
                 // Don't save to database for each stroke to reduce overhead
                 messagingTemplate.convertAndSend(
                         "/topic/session/" + accessCode + "/teamchallenge/drawing/" + teamId,
                         updateJson);
-                
+
                 logger.debug("Stroke update broadcasted for team {} in session {}", teamId, accessCode);
             } else if ("full".equals(updateType)) {
                 // For full path updates, save to database and broadcast
                 gameSessionService.saveTeamDrawing(accessCode, teamId, data);
-                
+
                 // In this case, we want to broadcast the full paths
                 messagingTemplate.convertAndSend(
                         "/topic/session/" + accessCode + "/teamchallenge/drawing/" + teamId,
                         updateJson);
-                
+
                 logger.info("Full drawing update processed for team {} in session {}", teamId, accessCode);
             } else {
                 // Legacy support for old format (full paths directly)
                 gameSessionService.saveTeamDrawing(accessCode, teamId, update);
-                
+
                 // Broadcast in the new format
                 messagingTemplate.convertAndSend(
                         "/topic/session/" + accessCode + "/teamchallenge/drawing/" + teamId,
                         mapper.writeValueAsString(Map.of("type", "full", "data", update)));
-                
+
                 logger.info("Legacy drawing update processed for team {} in session {}", teamId, accessCode);
             }
         } catch (Exception e) {
@@ -477,6 +479,11 @@ public class GameSessionController {
                         "error", "Not authorized to access this session"));
             }
             Map<String, Object> status = gameSessionService.getTeamChallengeStatus(accessCode);
+            status.put("teams", session.getTeams().stream()
+                    .map(team -> Map.of(
+                            "teamId", team.getTeamId(),
+                            "currentPromptIndex", team.getCurrentPromptIndex()))
+                    .collect(Collectors.toList()));
             return ResponseEntity.ok(status);
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of(

@@ -90,7 +90,10 @@ const TeamChallengeActivity = ({ activity, content, accessCode, contentItem }) =
             const newStatus = response.data;
             if (!isEqual(newStatus, lastStatusRef.current)) {
                 lastStatusRef.current = newStatus;
-                setChallengeStatus(newStatus);
+                setChallengeStatus({
+                    ...newStatus,
+                    currentPromptIndex: userTeam?.currentPromptIndex || 0
+                });
                 if (!userTeam) {
                     if (newStatus.teams && newStatus.teams.length > 0) {
                         const currentUserTeam = newStatus.teams.find(team =>
@@ -308,7 +311,7 @@ const TeamChallengeActivity = ({ activity, content, accessCode, contentItem }) =
 
             await axios.post(
                 `http://localhost:8080/api/sessions/${accessCode}/teamchallenge/guess`,
-                guessData,  
+                guessData,
                 {
                     headers: {
                         'Authorization': `Bearer ${token}`,
@@ -362,7 +365,7 @@ const TeamChallengeActivity = ({ activity, content, accessCode, contentItem }) =
                     destination: `/app/session/${accessCode}/teamchallenge/drawing/${userTeam.teamId}`,
                     body: JSON.stringify({
                         type: 'stroke',
-                        data: stroke 
+                        data: stroke
                     })
                 });
             }
@@ -389,7 +392,7 @@ const TeamChallengeActivity = ({ activity, content, accessCode, contentItem }) =
                         });
                     }
                 }).catch(console.error);
-            }, 1000); 
+            }, 1000);
         }
     }, [userRole, accessCode, userTeam?.teamId, token]);
 
@@ -468,11 +471,23 @@ const TeamChallengeActivity = ({ activity, content, accessCode, contentItem }) =
                     const teamGuessTopic = `/topic/session/${accessCode}/teamchallenge/guess/${userTeam.teamId}`;
                     client.subscribe(teamGuessTopic, (message) => {
                         const guessResult = JSON.parse(message.body);
+
+                        // Check if the guess was correct and team advanced to next prompt
+                        if (guessResult.correct && guessResult.advancedToNextPrompt) {
+                            // Update the team's prompt index in state
+                            setUserTeam(prevTeam => ({
+                                ...prevTeam,
+                                currentPromptIndex: (prevTeam.currentPromptIndex || 0) + 1
+                            }));
+                        }
+
+                        // Fetch updated challenge status
                         fetchChallengeStatus();
+                        fetchTeams();
                     });
                     setTimeout(() => {
                         requestInitialCanvas();
-                    }, 500); 
+                    }, 500);
                 }
             },
             onDisconnect: () => {
@@ -503,11 +518,8 @@ const TeamChallengeActivity = ({ activity, content, accessCode, contentItem }) =
         if (!userTeam) {
             return <p>You need to be assigned to a team to participate.</p>;
         }
-        const currentPromptIndex = challengeStatus.currentPromptIndex || 0;
-        const currentWord = challengeStatus.currentWord ||
-            getPromptFromContentStructure(currentPromptIndex) ||
-            getLegacyPrompt(currentPromptIndex);
-
+        const currentPromptIndex = userTeam.currentPromptIndex || 0;
+        const currentWord = getPromptFromContentStructure(currentPromptIndex) || getLegacyPrompt(currentPromptIndex);
         if (!currentWord) {
             console.error("No prompt found in:", {
                 challengeStatus,
@@ -585,7 +597,7 @@ const TeamChallengeActivity = ({ activity, content, accessCode, contentItem }) =
             <div className="guessing-interface">
                 <div className="current-drawing" style={{ marginBottom: '10px' }}>
                     <ReactSketchCanvas
-                        key={`guess-${userTeam?.teamId}`} 
+                        key={`guess-${userTeam?.teamId}`}
                         ref={canvasRef}
                         style={{ border: '1px solid #000', boxShadow: '0 0 5px rgba(0, 0, 0, 0.2)', borderRadius: '5px' }}
                         width="500px"

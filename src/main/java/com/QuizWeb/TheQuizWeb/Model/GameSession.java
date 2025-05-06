@@ -38,6 +38,7 @@ public class GameSession {
         private int teamScore;
         private String currentDrawerId; // Current drawer (updated each round)
         private int nextDrawerIndex; // Tracks rotation order
+        private int currentPromptIndex = 0;
         private Object currentDrawing; // Store serialized paths
         private Date lastDrawingUpdate;
 
