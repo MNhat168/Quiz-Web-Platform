@@ -297,6 +297,32 @@ public class GameSessionService {
         return updatedSession;
     }
 
+    private boolean evaluateMatching(Object content, Object answer) {
+        try {
+            Map<String, Object> contentMap = (Map<String, Object>) content;
+            Map<String, Object> answerMap = (Map<String, Object>) answer;
+            Map<String, Object> studentAnswer = (Map<String, Object>) answerMap.get("answer");
+
+            List<Map<String, Object>> pairs = (List<Map<String, Object>>) contentMap.get("pairs");
+            List<Map<String, String>> studentConnections = (List<Map<String, String>>) studentAnswer.get("connections");
+
+            Set<String> correctConnections = new HashSet<>();
+            for (int i = 0; i < pairs.size(); i++) {
+                correctConnections.add("left-" + i + "-right-" + i);
+            }
+
+            Set<String> userConnections = studentConnections.stream()
+                    .map(conn -> conn.get("leftId") + "-" + conn.get("rightId"))
+                    .collect(Collectors.toSet());
+
+            // So sánh
+            return correctConnections.equals(userConnections);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
     private boolean evaluateMultipleChoice(Object content, Object answer) {
         int questionIndex = 0;
         Object selectedOption = answer;
@@ -427,6 +453,7 @@ public class GameSessionService {
             advanceActivity(sessionId);
             return Map.of("status", "advanced_activity");
         }
+        
 
         session.getCurrentActivity().setCurrentContentIndex(nextIndex);
         gameSessionRepository.save(session);
@@ -588,6 +615,7 @@ public class GameSessionService {
                 case FILL_IN_BLANK:
                     return evaluateFillInBlank(contentToEvaluate, answer);
                 case MATCHING:
+                    return evaluateMatching(contentToEvaluate, answer);
                 default:
                     // For other activity types (including polls/surveys)
                     return true;
