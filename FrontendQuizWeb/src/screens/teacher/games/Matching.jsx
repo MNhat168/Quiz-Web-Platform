@@ -157,17 +157,15 @@ const MatchingForm = ({
                       alt="item2" 
                       className="thumbnail-image"
                     />
-                    <button
-                      type="button"
-                      className="remove-thumbnail-btn"
-                      onClick={() => {
+                    <Trash2 
+                      className="trash-icon"
+                      onClick={(e) => {
+                        e.stopPropagation();
                         const updatedPairs = [...content.pairs];
                         updatedPairs[index].item2ImageUrl = "";
                         setContent({ ...content, pairs: updatedPairs });
                       }}
-                    >
-                      <X className="remove-thumbnail-icon" />
-                    </button>
+                    />
                   </div>
                 )}
               </div>

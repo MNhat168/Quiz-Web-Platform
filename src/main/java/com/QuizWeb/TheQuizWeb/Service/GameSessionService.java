@@ -320,6 +320,35 @@ public class GameSessionService {
         return isCorrectOption(options, selectedOption);
     }
 
+    // Đảm bảo backend xử lý đúng format dữ liệu
+    private boolean evaluateMatching(Object content, Object answer) {
+        try {
+            Map<String, Object> contentMap = (Map<String, Object>) content;
+            Map<String, Object> answerMap = (Map<String, Object>) answer;
+            Map<String, Object> studentAnswer = (Map<String, Object>) answerMap.get("answer");
+    
+            List<Map<String, Object>> pairs = (List<Map<String, Object>>) contentMap.get("pairs");
+            List<Map<String, String>> studentConnections = (List<Map<String, String>>) studentAnswer.get("connections");
+    
+            // Tạo connections đúng từ danh sách pairs
+            Set<String> correctConnections = new HashSet<>();
+            for (int i = 0; i < pairs.size(); i++) {
+                correctConnections.add("left-" + i + "-right-" + i);
+            }
+    
+            // Tạo connections từ câu trả lời của học sinh
+            Set<String> userConnections = studentConnections.stream()
+                .map(conn -> conn.get("leftId") + "-" + conn.get("rightId"))
+                .collect(Collectors.toSet());
+    
+            // So sánh
+            return correctConnections.equals(userConnections);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
+        }
+    } 
+    
     private List<?> getOptionsForQuestion(Object content, int questionIndex) {
         if (content instanceof Activity.MultipleChoiceContent) {
             Activity.MultipleChoiceContent mcContent = (Activity.MultipleChoiceContent) content;
@@ -585,6 +614,7 @@ public class GameSessionService {
                     return true;
                 case SORTING:
                 case MATCHING:
+                    return evaluateMatching(contentToEvaluate, answer);
                 default:
                     // For other activity types (including polls/surveys)
                     return true;
