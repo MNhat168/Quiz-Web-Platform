@@ -585,6 +585,8 @@ public class GameSessionService {
                     // For open-ended questions, always return true
                     return true;
                 case SORTING:
+                case FILL_IN_BLANK:
+                    return evaluateFillInBlank(contentToEvaluate, answer);
                 case MATCHING:
                 default:
                     // For other activity types (including polls/surveys)
