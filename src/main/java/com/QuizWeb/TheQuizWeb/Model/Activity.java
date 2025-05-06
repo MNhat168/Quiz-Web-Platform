@@ -33,7 +33,7 @@ public class Activity {
     private List<PowerUpRule> powerUpRules;
     private ActivitySettings settings;
     private Date createdAt;
-    private boolean isPublic; // Whether other teachers can use this activity
+    private boolean isPublic; 
 
     public enum ActivityType {
         MULTIPLE_CHOICE, TRUE_FALSE, OPEN_ENDED, PUZZLE, SORTING, MATCHING,

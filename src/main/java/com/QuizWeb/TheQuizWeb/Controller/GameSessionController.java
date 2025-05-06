@@ -122,100 +122,44 @@ public class GameSessionController {
             @PathVariable String activityId,
             @PathVariable int contentIndex,
             Authentication authentication) {
-
+        
         User user = userService.getCurrentUser(authentication);
-
-        // Get the activity
-        Activity activity = activityService.getActivityById(activityId);
-        if (activity == null) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "Activity not found"));
-        }
-
+        
         // Verify the session exists and user is a participant
         GameSession session = gameSessionService.getSessionByAccessCode(accessCode);
         if (session == null || !gameSessionService.isUserParticipant(session, user.getEmail())) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", "Not authorized"));
         }
-
-        // Check if the activity has multiple content items
-        if (activity.getContentItems() == null || activity.getContentItems().isEmpty()) {
-            // Return the legacy content
-            return ResponseEntity.ok(Map.of("content", activity.getContent(), "isLegacy", true));
+        
+        try {
+            // Use the updated method to get content with duration information
+            Map<String, Object> response = gameSessionService.getActivityContent(accessCode, activityId, contentIndex);
+            return ResponseEntity.ok(response);
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("error", e.getMessage()));
         }
-
-        // Check if contentIndex is valid
-        if (contentIndex < 0 || contentIndex >= activity.getContentItems().size()) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("error", "Invalid content index"));
-        }
-
-        // Get the specific content item
-        ActivityContent contentItem = activity.getContentItems().get(contentIndex);
-
-        Map<String, Object> response = new HashMap<>();
-        response.put("contentItem", contentItem);
-        response.put("totalItems", activity.getContentItems().size());
-        response.put("currentIndex", contentIndex);
-
-        return ResponseEntity.ok(response);
     }
-
-    // // Add to advance a specific activity's content
-    // @PostMapping("/{accessCode}/activity/{activityId}/advance-content")
-    // public ResponseEntity<Map<String, Object>> advanceActivityContent(
-    //         @PathVariable String accessCode,
-    //         @PathVariable String activityId,
-    //         @RequestBody Map<String, Object> request,
-    //         Authentication authentication) {
-
-    //     User user = userService.getCurrentUser(authentication);
-    //     Integer currentIndex = (Integer) request.get("currentContentIndex");
-
-    //     // Get the activity and validate
-    //     Activity activity = activityService.getActivityById(activityId);
-    //     GameSession session = gameSessionService.getSessionByAccessCode(accessCode);
-
-    //     if (activity == null || session == null || !gameSessionService.isUserParticipant(session, user.getEmail())) {
-    //         return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", "Not authorized"));
-    //     }
-
-    //     // If activity doesn't have multiple content items or we're at the last one
-    //     if (activity.getContentItems() == null ||
-    //             activity.getContentItems().isEmpty() ||
-    //             currentIndex >= activity.getContentItems().size() - 1) {
-
-    //         // We're done with this activity, time to advance to the next one
-    //         gameSessionService.advanceActivity(session.getId());
-    //         return ResponseEntity.ok(Map.of("status", "advanced_activity"));
-    //     }
-
-    //     // Otherwise, advance to the next content item
-    //     int nextIndex = currentIndex + 1;
-    //     ActivityContent nextContent = activity.getContentItems().get(nextIndex);
-
-    //     Map<String, Object> response = new HashMap<>();
-    //     response.put("contentItem", nextContent);
-    //     response.put("totalItems", activity.getContentItems().size());
-    //     response.put("currentIndex", nextIndex);
-    //     response.put("status", "advanced_content");
-
-    //     return ResponseEntity.ok(response);
-    // }
-
+    
     @PostMapping("/{accessCode}/activity/{activityId}/advance-content")
     public ResponseEntity<Map<String, Object>> advanceActivityContent(
             @PathVariable String accessCode,
             @PathVariable String activityId,
+            @RequestBody Map<String, Object> requestBody,
             Authentication authentication) {
-
+        
         User user = userService.getCurrentUser(authentication);
         GameSession session = gameSessionService.getSessionByAccessCode(accessCode);
-
+        
         if (session == null || !gameSessionService.isUserParticipant(session, user.getEmail())) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", "Not authorized"));
         }
-
-        Map<String, Object> result = gameSessionService.advanceContentForActivity(session.getId(), activityId);
-        return ResponseEntity.ok(result);
+        
+        try {
+            Map<String, Object> result = gameSessionService.advanceContentForActivity(session.getId(), activityId);
+            return ResponseEntity.ok(result);
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("error", e.getMessage()));
+        }
     }
 
     @GetMapping("/{accessCode}")

@@ -245,6 +245,8 @@ public class GameSessionService {
             sessionActivity.setStartTime(new Date());
             sessionActivity.setStatus(GameSession.ActivityStatus.ACTIVE);
             sessionActivity.setResponses(new ArrayList<>());
+            // Reset content index when moving to a new activity
+            sessionActivity.setCurrentContentIndex(0);
             session.setCurrentActivity(sessionActivity);
 
             GameSession updatedSession = gameSessionRepository.save(session);
@@ -276,6 +278,8 @@ public class GameSessionService {
             sessionActivity.setStartTime(new Date());
             sessionActivity.setStatus(GameSession.ActivityStatus.ACTIVE);
             sessionActivity.setResponses(new ArrayList<>());
+            // Ensure content index starts at 0
+            sessionActivity.setCurrentContentIndex(0);
             session.setCurrentActivity(sessionActivity);
             session.setCurrentActivityIndex(0);
         }
@@ -317,27 +321,34 @@ public class GameSessionService {
         return gameContent;
     }
 
+
     public Map<String, Object> advanceContentForActivity(String sessionId, String activityId) {
         GameSession session = gameSessionRepository.findById(sessionId)
                 .orElseThrow(() -> new RuntimeException("Session not found"));
+        
         if (session.getCurrentActivity() == null || !session.getCurrentActivity().getActivityId().equals(activityId)) {
             throw new RuntimeException("Activity is not the current active activity");
         }
 
         Activity activity = activityRepository.findById(activityId)
                 .orElseThrow(() -> new RuntimeException("Activity not found"));
+        
         int currentIndex = session.getCurrentActivity().getCurrentContentIndex();
         int nextIndex = currentIndex + 1;
 
+        // If we're out of content items or there are none, move to the next activity
         if (activity.getContentItems() == null ||
                 activity.getContentItems().isEmpty() ||
                 nextIndex >= activity.getContentItems().size()) {
+            
             advanceActivity(sessionId);
             return Map.of("status", "advanced_activity");
         }
 
+        // Otherwise, move to the next content item within this activity
         session.getCurrentActivity().setCurrentContentIndex(nextIndex);
         gameSessionRepository.save(session);
+        
         Activity.ActivityContent nextContent = activity.getContentItems().get(nextIndex);
 
         Map<String, Object> contentUpdate = new HashMap<>();
@@ -350,6 +361,92 @@ public class GameSessionService {
                 contentUpdate);
 
         return contentUpdate;
+    }
+
+    /**
+     * Gets content for a specific activity and content index, respecting the duration property
+     */
+    public Map<String, Object> getActivityContent(String accessCode, String activityId, int contentIndex) {
+        GameSession session = gameSessionRepository.findByAccessCode(accessCode)
+                .orElseThrow(() -> new RuntimeException("Session not found"));
+                
+        Activity activity = activityRepository.findById(activityId)
+                .orElseThrow(() -> new RuntimeException("Activity not found"));
+                
+        // Check if the activity has multiple content items
+        if (activity.getContentItems() == null || activity.getContentItems().isEmpty()) {
+            // Return the legacy content with the activity's timeLimit as duration
+            Map<String, Object> response = new HashMap<>();
+            response.put("content", activity.getContent());
+            response.put("isLegacy", true);
+            response.put("duration", activity.getTimeLimit()); // Use timeLimit as fallback
+            return response;
+        }
+        
+        // Check if contentIndex is valid
+        if (contentIndex < 0 || contentIndex >= activity.getContentItems().size()) {
+            throw new RuntimeException("Invalid content index");
+        }
+        
+        // Get the specific content item
+        Activity.ActivityContent contentItem = activity.getContentItems().get(contentIndex);
+        
+        Map<String, Object> response = new HashMap<>();
+        response.put("contentItem", contentItem);
+        response.put("totalItems", activity.getContentItems().size());
+        response.put("currentIndex", contentIndex);
+        response.put("duration", contentItem.getDuration()); // Use the duration from the content item
+        
+        return response;
+    }
+
+    private void updateActivityStatistics(GameSession session, String activityId, boolean isCorrect) {
+        if (session == null || session.getStatistics() == null) {
+            return;
+        }
+        GameSession.SessionStatistics stats = session.getStatistics();
+        if (stats.getActivityPerformance() == null) {
+            stats.setActivityPerformance(new HashMap<>());
+        }
+        GameSession.PerformanceMetric metric = stats.getActivityPerformance()
+                .getOrDefault(activityId, new GameSession.PerformanceMetric());
+        metric.setTotalAttempts(metric.getTotalAttempts() + 1);
+
+        if (isCorrect) {
+            metric.setCorrectAttempts(metric.getCorrectAttempts() + 1);
+        }
+        double totalScore = (metric.getAverageScore() * (metric.getTotalAttempts() - 1));
+        double newAverage = (totalScore + (isCorrect ? 1 : 0)) / metric.getTotalAttempts();
+        metric.setAverageScore(newAverage);
+        stats.getActivityPerformance().put(activityId, metric);
+        updateOverallStatistics(session);
+    }
+
+    private void updateOverallStatistics(GameSession session) {
+        if (session == null || session.getStatistics() == null) {
+            return;
+        }
+        GameSession.SessionStatistics stats = session.getStatistics();
+        int totalResponses = 0;
+        int totalPossibleResponses = 0;
+        int totalCorrectResponses = 0;
+
+        for (GameSession.PerformanceMetric metric : stats.getActivityPerformance().values()) {
+            totalResponses += metric.getTotalAttempts();
+            totalCorrectResponses += metric.getCorrectAttempts();
+        }
+        Games game = gamesRepository.findById(session.getGameId()).orElse(null);
+        if (game != null && game.getActivities() != null) {
+            totalPossibleResponses = session.getParticipants().size() * game.getActivities().size();
+        }
+        double completionPercentage = totalPossibleResponses > 0
+                ? (double) totalResponses / totalPossibleResponses * 100
+                : 0;
+        double correctAnswerPercentage = totalResponses > 0
+                ? (double) totalCorrectResponses / totalResponses * 100
+                : 0;
+        stats.setOverallCompletionPercentage(completionPercentage);
+        stats.setOverallCorrectAnswerPercentage(correctAnswerPercentage);
     }
 
     public Map<String, Object> processStudentAnswer(
@@ -547,8 +644,7 @@ public class GameSessionService {
             if (mcContent.getQuestions() != null && mcContent.getQuestions().size() > questionIndex) {
                 return mcContent.getQuestions().get(questionIndex).getOptions();
             }
-        }
-        else if (content instanceof Map) {
+        } else if (content instanceof Map) {
             Map<String, Object> contentMap = (Map<String, Object>) content;
             if (contentMap.containsKey("questions")) {
                 List<Map<String, Object>> questions = (List<Map<String, Object>>) contentMap.get("questions");
@@ -572,8 +668,7 @@ public class GameSessionService {
 
             Object option = options.get(selectedIndex);
             return isOptionCorrect(option);
-        }
-        else {
+        } else {
             String answerText = selectedAnswer.toString().trim();
             return options.stream()
                     .filter(opt -> getOptionText(opt).equalsIgnoreCase(answerText) && isOptionCorrect(opt))
@@ -747,55 +842,6 @@ public class GameSessionService {
             }
         }
         return basePoints;
-    }
-
-    private void updateActivityStatistics(GameSession session, String activityId, boolean isCorrect) {
-        if (session == null || session.getStatistics() == null) {
-            return;
-        }
-        GameSession.SessionStatistics stats = session.getStatistics();
-        if (stats.getActivityPerformance() == null) {
-            stats.setActivityPerformance(new HashMap<>());
-        }
-        GameSession.PerformanceMetric metric = stats.getActivityPerformance()
-                .getOrDefault(activityId, new GameSession.PerformanceMetric());
-        metric.setTotalAttempts(metric.getTotalAttempts() + 1);
-
-        if (isCorrect) {
-            metric.setCorrectAttempts(metric.getCorrectAttempts() + 1);
-        }
-        double totalScore = (metric.getAverageScore() * (metric.getTotalAttempts() - 1));
-        double newAverage = (totalScore + (isCorrect ? 1 : 0)) / metric.getTotalAttempts();
-        metric.setAverageScore(newAverage);
-        stats.getActivityPerformance().put(activityId, metric);
-        updateOverallStatistics(session);
-    }
-
-    private void updateOverallStatistics(GameSession session) {
-        if (session == null || session.getStatistics() == null) {
-            return;
-        }
-        GameSession.SessionStatistics stats = session.getStatistics();
-        int totalResponses = 0;
-        int totalPossibleResponses = 0;
-        int totalCorrectResponses = 0;
-
-        for (GameSession.PerformanceMetric metric : stats.getActivityPerformance().values()) {
-            totalResponses += metric.getTotalAttempts();
-            totalCorrectResponses += metric.getCorrectAttempts();
-        }
-        Games game = gamesRepository.findById(session.getGameId()).orElse(null);
-        if (game != null && game.getActivities() != null) {
-            totalPossibleResponses = session.getParticipants().size() * game.getActivities().size();
-        }
-        double completionPercentage = totalPossibleResponses > 0
-                ? (double) totalResponses / totalPossibleResponses * 100
-                : 0;
-        double correctAnswerPercentage = totalResponses > 0
-                ? (double) totalCorrectResponses / totalResponses * 100
-                : 0;
-        stats.setOverallCompletionPercentage(completionPercentage);
-        stats.setOverallCorrectAnswerPercentage(correctAnswerPercentage);
     }
 
     private void sendLeaderboardUpdate(GameSession session) {

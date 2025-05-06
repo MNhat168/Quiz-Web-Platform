@@ -4,24 +4,7 @@ import { useState, useEffect } from "react"
 import { useParams, useNavigate } from "react-router-dom"
 import { useAuth } from "../../context/AuthContext"
 import axios from "axios"
-import {
-    Gamepad,
-    Plus,
-    ChevronRight,
-    X,
-    Edit,
-    Clock,
-    Award,
-    Book,
-    Save,
-    CheckCircle,
-    ArrowUp,
-    ArrowDown,
-    Trash2,
-    ListOrdered,
-    BookOpen,
-    FilePlus
-} from "lucide-react"
+import {Gamepad, Plus,ChevronRight, X,Edit,Clock,Award,Book, Save,CheckCircle,ArrowUp,ArrowDown,Trash2,ListOrdered,BookOpen,FilePlus} from "lucide-react"
 import Sidebar from "../../layout/teacher/teacherHeader"
 import MultipleChoiceForm from "./games/MultipleChoice"
 import SortingForm from "./games/Sorting"
@@ -31,8 +14,6 @@ const GameActivityEditor = () => {
     const { gameId } = useParams()
     const { token } = useAuth()
     const navigate = useNavigate()
-
-    // Game and activity states
     const [game, setGame] = useState(null)
     const [activities, setActivities] = useState([])
     const [gameActivities, setGameActivities] = useState([])
@@ -42,8 +23,6 @@ const GameActivityEditor = () => {
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState("")
     const [successMessage, setSuccessMessage] = useState("")
-
-    // New activity form state
     const [newActivity, setNewActivity] = useState({
         title: "",
         type: "MULTIPLE_CHOICE",
@@ -60,7 +39,6 @@ const GameActivityEditor = () => {
         content: {}
     })
 
-    // Game Activity state (for when adding to game)
     const [gameActivity, setGameActivity] = useState({
         activityId: "",
         order: 1,
@@ -73,8 +51,6 @@ const GameActivityEditor = () => {
         }
     })
 
-    // Content states for different activity types
-    // Update multipleChoiceContent initial state
     const [multipleChoiceContent, setMultipleChoiceContent] = useState({
         questions: [
             {
@@ -83,7 +59,8 @@ const GameActivityEditor = () => {
                     { text: "", isCorrect: false, explanation: "" },
                     { text: "", isCorrect: false, explanation: "" }
                 ],
-                explanation: ""
+                explanation: "",
+                duration: 60 // Added duration field with default of 60 seconds
             }
         ],
         allowMultipleAnswers: false,
@@ -204,36 +181,74 @@ const GameActivityEditor = () => {
         }
     }, [multipleChoiceContent, sortingContent, matchingContent, newActivity.type])
 
-    // Create new activity
     const createActivity = async () => {
         try {
             setError("")
-
+    
             if (!newActivity.title) {
                 setError("Activity title is required")
                 return
             }
-
+    
+            // Prepare content items based on activity type
+            let contentItems = [];
+            
+            if (newActivity.type === "MULTIPLE_CHOICE") {
+                contentItems = multipleChoiceContent.questions.map((question, index) => ({
+                    contentId: `q_${index}`,
+                    title: `Question ${index + 1}`,
+                    instructions: question.question,
+                    data: {
+                        options: question.options,
+                        explanation: question.explanation
+                    },
+                    duration: question.duration || 60 // Use question-specific duration
+                }));
+            } else if (newActivity.type === "SORTING") {
+                contentItems = [{
+                    contentId: "sorting_items",
+                    title: "Sorting Activity",
+                    instructions: sortingContent.instructions,
+                    data: sortingContent.items,
+                    duration: sortingContent.items.reduce((total, item) => total + (item.duration || 30), 0) // Sum of all item durations
+                }];
+            } else if (newActivity.type === "MATCHING") {
+                contentItems = [{
+                    contentId: "matching_pairs",
+                    title: "Matching Activity",
+                    instructions: "Match the following items",
+                    data: matchingContent.pairs,
+                    duration: matchingContent.pairs.reduce((total, pair) => total + (pair.duration || 30), 0) // Sum of all pair durations
+                }];
+            }
+    
+            // Create activity with contentItems
+            const activityToCreate = {
+                ...newActivity,
+                contentItems: contentItems
+            };
+    
             // Create activity
             const response = await axios.post(
                 "http://localhost:8080/api/activities",
-                newActivity,
+                activityToCreate,
                 { headers: { Authorization: `Bearer ${token}` } }
             )
-
+    
             const { data: activitiesData } = await axios.get(
                 "http://localhost:8080/api/activities/teacher",
                 { headers: { Authorization: `Bearer ${token}` } }
             );
             setActivities(activitiesData);
+            
             // Add activity to activities list
             setActivities([...activities, response.data])
             setSuccessMessage(`Activity "${response.data.title}" created successfully!`)
-
+    
             // Reset form
             resetActivityForm()
             setIsCreatingActivity(false)
-
+    
             // Set as selected activity for adding to game
             setGameActivity({
                 ...gameActivity,
@@ -241,9 +256,9 @@ const GameActivityEditor = () => {
                 duration: response.data.timeLimit,
                 points: response.data.points
             })
-
+    
             setSelectedActivities([response.data])
-
+    
         } catch (err) {
             console.error("Failed to create activity", err)
             setError(err.response?.data || "Failed to create activity")
@@ -522,7 +537,6 @@ const GameActivityEditor = () => {
             content: {}
         })
 
-        // Reset all content states
         setMultipleChoiceContent({
             question: "",
             options: [
@@ -574,7 +588,6 @@ const GameActivityEditor = () => {
         return <div className="loading">Loading game editor...</div>
     }
 
-    // Extract a separate component for the hints section since it's reused
     const renderActivityForm = () => {
         switch (newActivity.type) {
             case "MULTIPLE_CHOICE":

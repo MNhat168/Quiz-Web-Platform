@@ -173,7 +173,7 @@ const StudentGamePlay = () => {
                     <div className="final-leaderboard">
                         <h2>Game Complete!</h2>
                         <h3>Final Results</h3>
-                        
+
                         {participantScores.length === 0 ? (
                             <p>Loading final scores...</p>
                         ) : (
@@ -187,7 +187,7 @@ const StudentGamePlay = () => {
                                 ))}
                             </div>
                         )}
-                        
+
                         {/* Find the current user's score and position */}
                         {(() => {
                             const studentId = getStudentId();
@@ -204,8 +204,8 @@ const StudentGamePlay = () => {
                             }
                             return null;
                         })()}
-                        
-                        <button 
+
+                        <button
                             className="return-to-lobby-button"
                             onClick={handleReturnToLobby}>
                             Return to Lobby
@@ -256,9 +256,8 @@ const StudentGamePlay = () => {
         if (!contentOrActivity) return;
         clearContentTimer();
 
-        const duration = contentOrActivity.duration ||
-            contentOrActivity.timeLimit ||
-            60;
+        // Use content duration only (remove timeLimit fallback)
+        const duration = contentOrActivity.duration || 60; // Default to 60s if undefined
 
         console.log(`Setting timer for ${duration} seconds for ${contentOrActivity.title || 'content'}`);
         let timeLeft = duration;
@@ -608,12 +607,12 @@ const StudentGamePlay = () => {
                             </div>
                         )}
                     </div>
-    
+
                     <div className="activity-container">
                         {renderActivity()}
                         {renderSubmissionResult()}
                     </div>
-    
+
                     <div className="game-footer">
                         {renderLeaderboard()}
                     </div>
