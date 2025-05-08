@@ -1,0 +1,227 @@
+/* Team Challenge Component Styles */
+.team-challenge-container {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 1rem;
+}
+
+.team-members {
+  margin-bottom: 1rem;
+  padding: 0.75rem;
+  background-color: #f5f5f5;
+  border-radius: 8px;
+}
+
+.team-members ul {
+  display: flex;
+  flex-wrap: wrap;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  gap: 10px;
+}
+
+.team-members li {
+  padding: 5px 10px;
+  border-radius: 20px;
+  background-color: #e0e0e0;
+  font-size: 0.9rem;
+}
+
+.team-members li.current-drawer {
+  background-color: #4CAF50;
+  color: white;
+  font-weight: bold;
+}
+
+.challenge-area {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.drawing-area {
+  position: relative;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.drawing-canvas {
+  width: 100%;
+  height: 400px;
+  border: 2px solid #ccc;
+  border-radius: 5px;
+  background-color: white;
+  cursor: crosshair;
+  touch-action: none; /* Prevents scrolling while drawing on mobile */
+}
+
+.drawer-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 10px;
+  width: 100%;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem;
+  background-color: #f0f0f0;
+  border-radius: 5px;
+}
+
+.prompt-display {
+  width: 100%;
+  text-align: center;
+  padding: 10px;
+  margin: 0;
+  font-size: 1.2rem;
+  background-color: #f8f9fa;
+  border-radius: 5px;
+  border-left: 4px solid #4CAF50;
+}
+
+.clear-canvas, .switch-drawer {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: background-color 0.2s;
+}
+
+.clear-canvas {
+  background-color: #f44336;
+  color: white;
+}
+
+.clear-canvas:hover {
+  background-color: #d32f2f;
+}
+
+.switch-drawer {
+  background-color: #2196F3;
+  color: white;
+}
+
+.switch-drawer:hover {
+  background-color: #1976D2;
+}
+
+.guessing-area {
+  margin-top: 1rem;
+  padding: 1rem;
+  background-color: #f5f5f5;
+  border-radius: 8px;
+}
+
+.guess-form {
+  display: flex;
+  gap: 10px;
+}
+
+.guess-input {
+  flex-grow: 1;
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 1rem;
+}
+
+.submit-guess {
+  padding: 10px 20px;
+  background-color: #4CAF50;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: background-color 0.2s;
+}
+
+.submit-guess:hover {
+  background-color: #388E3C;
+}
+
+.submit-guess:disabled {
+  background-color: #9E9E9E;
+  cursor: not-allowed;
+}
+
+.guess-history {
+  margin-top: 1rem;
+  padding: 1rem;
+  background-color: #f5f5f5;
+  border-radius: 8px;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.guess-history ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.guess-history li {
+  padding: 8px;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.guess-history li:last-child {
+  border-bottom: none;
+}
+
+.correct-guess {
+  background-color: #E8F5E9;
+}
+
+.correct-badge {
+  margin-left: 10px;
+  font-size: 0.85rem;
+  color: #4CAF50;
+  background-color: #E8F5E9;
+  padding: 2px 6px;
+  border-radius: 10px;
+}
+
+.round-complete {
+  margin-top: 1rem;
+  padding: 1rem;
+  background-color: #FFF9C4;
+  border-radius: 8px;
+  text-align: center;
+}
+
+.winners {
+  margin-top: 1rem;
+}
+
+.winners ul {
+  list-style: none;
+  padding: 0;
+}
+
+.winners li {
+  padding: 5px;
+  font-size: 1.1rem;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .drawing-canvas {
+      height: 300px;
+  }
+  
+  .guess-form {
+      flex-direction: column;
+  }
+  
+  .drawer-controls {
+      flex-direction: column;
+  }
+}

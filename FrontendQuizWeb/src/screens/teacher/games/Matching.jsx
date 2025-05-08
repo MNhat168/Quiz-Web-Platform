@@ -1,4 +1,7 @@
-import { Plus, Trash2, X } from "lucide-react"
+import { useAuth } from "../../../context/AuthContext"
+import "../../../style/game-matching.css"
+import { Plus, Trash2, X, ImageIcon } from "lucide-react"
+import axios from "axios";
 
 const MatchingForm = ({ 
   content, 
@@ -8,7 +11,7 @@ const MatchingForm = ({
   addHint, 
   removeHint 
 }) => {
-  // Add pair for matching
+  const { token } = useAuth();
   const addMatchPair = () => {
     setContent({
       ...content,
@@ -28,6 +31,31 @@ const MatchingForm = ({
       pairs: updatedPairs
     })
   }
+
+  const handleImageUpload = async (file, pairIndex, field) => {
+    if (!file) return;
+  
+    const formData = new FormData();
+    formData.append("file", file);
+  
+    try {
+      const res = await axios.post("http://localhost:8080/api/upload/image", formData, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "multipart/form-data"
+        }
+      });
+  
+      const imageUrl = res.data.imageUrl;
+      const updatedPairs = [...content.pairs];
+      updatedPairs[pairIndex][field] = imageUrl;
+      setContent({ ...content, pairs: updatedPairs });
+  
+    } catch (err) {
+      console.error("Upload error:", err);
+      alert("Upload image failed!");
+    }
+  };
 
   return (
     <div className="matching-content">
@@ -52,80 +80,108 @@ const MatchingForm = ({
             <div className="match-pair-content">
               <div className="match-pair-item">
                 <label>Item 1</label>
-                <input
-                  type="text"
-                  placeholder="First item"
-                  className="form-input"
-                  value={pair.item1}
-                  onChange={(e) => {
-                    const updatedPairs = [...content.pairs]
-                    updatedPairs[index].item1 = e.target.value
-                    setContent({
-                      ...content,
-                      pairs: updatedPairs
-                    })
-                  }}
-                />
-
-                <input
-                  type="text"
-                  placeholder="Image URL (optional)"
-                  className="form-input"
-                  value={pair.item1ImageUrl}
-                  onChange={(e) => {
-                    const updatedPairs = [...content.pairs]
-                    updatedPairs[index].item1ImageUrl = e.target.value
-                    setContent({
-                      ...content,
-                      pairs: updatedPairs
-                    })
-                  }}
-                />
+                <div className="input-with-icon">
+                  <input
+                    type="text"
+                    placeholder="First item"
+                    className="form-input pr-10"
+                    value={pair.item1}
+                    onChange={(e) => {
+                      const updatedPairs = [...content.pairs];
+                      updatedPairs[index].item1 = e.target.value;
+                      setContent({ ...content, pairs: updatedPairs });
+                    }}
+                  />
+                  
+                  <label className="upload-icon-container">
+                    <input
+                      type="file"
+                      className="hidden-file-input"
+                      accept="image/*"
+                      onChange={(e) => handleImageUpload(e.target.files[0], index, "item1ImageUrl")}
+                    />
+                    <ImageIcon className="upload-icon" />
+                  </label>
+                </div>
+                
+                {pair.item1ImageUrl && (
+                  <div className="thumbnail-container">
+                    <img 
+                      src={pair.item1ImageUrl} 
+                      alt="item1" 
+                      className="thumbnail-image"
+                    />
+                    <Trash2 
+                      className="trash-icon"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        const updatedPairs = [...content.pairs];
+                        updatedPairs[index].item1ImageUrl = "";
+                        setContent({ ...content, pairs: updatedPairs });
+                      }}
+                    />
+                  </div>
+                )}
               </div>
 
               <div className="match-pair-item">
                 <label>Item 2</label>
-                <input
-                  type="text"
-                  placeholder="Matching item"
-                  className="form-input"
-                  value={pair.item2}
-                  onChange={(e) => {
-                    const updatedPairs = [...content.pairs]
-                    updatedPairs[index].item2 = e.target.value
-                    setContent({
-                      ...content,
-                      pairs: updatedPairs
-                    })
-                  }}
-                />
-
-                <input
-                  type="text"
-                  placeholder="Image URL (optional)"
-                  className="form-input"
-                  value={pair.item2ImageUrl}
-                  onChange={(e) => {
-                    const updatedPairs = [...content.pairs]
-                    updatedPairs[index].item2ImageUrl = e.target.value
-                    setContent({
-                      ...content,
-                      pairs: updatedPairs
-                    })
-                  }}
-                />
+                <div className="input-with-icon">
+                  <input
+                    type="text"
+                    placeholder="Matching item"
+                    className="form-input pr-10"
+                    value={pair.item2}
+                    onChange={(e) => {
+                      const updatedPairs = [...content.pairs];
+                      updatedPairs[index].item2 = e.target.value;
+                      setContent({ ...content, pairs: updatedPairs });
+                    }}
+                  />
+                  
+                  <label className="upload-icon-container">
+                    <input
+                      type="file"
+                      className="hidden-file-input"
+                      accept="image/*"
+                      onChange={(e) => handleImageUpload(e.target.files[0], index, "item2ImageUrl")}
+                    />
+                    <ImageIcon className="upload-icon" />
+                  </label>
+                </div>
+                
+                {pair.item2ImageUrl && (
+                  <div className="thumbnail-container">
+                    <img 
+                      src={pair.item2ImageUrl} 
+                      alt="item2" 
+                      className="thumbnail-image"
+                    />
+                    <Trash2 
+                      className="trash-icon"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        const updatedPairs = [...content.pairs];
+                        updatedPairs[index].item2ImageUrl = "";
+                        setContent({ ...content, pairs: updatedPairs });
+                      }}
+                    />
+                  </div>
+                )}
               </div>
             </div>
 
-            <button
-              type="button"
-              className="remove-pair-button"
-              onClick={() => removeMatchPair(index)}
-              disabled={content.pairs.length <= 1}
-            >
-              <Trash2 className="w-4 h-4" />
-            </button>
-          </div>
+            <div className="center-trash-wrapper">
+              <button
+                type="button"
+                className="remove-pair-button"
+                onClick={() => removeMatchPair(index)}
+                disabled={content.pairs.length <= 1}
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+            </div>
+        </div>
         ))}
 
         <button

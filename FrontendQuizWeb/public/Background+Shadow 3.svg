@@ -1,0 +1,36 @@
+<svg width="163" height="165" viewBox="0 0 163 165" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g filter="url(#filter0_d_233_2063)">
+<rect x="3.38086" y="33.4099" width="128" height="128" rx="32" transform="rotate(-15 3.38086 33.4099)" fill="#94D483" shape-rendering="crispEdges"/>
+<g clip-path="url(#clip0_233_2063)">
+<g clip-path="url(#clip1_233_2063)">
+<g clip-path="url(#clip2_233_2063)">
+<path d="M111.558 101.899L101.985 66.1738L57.1914 78.1763L66.764 113.902L111.558 101.899Z" fill="#990066"/>
+<path d="M62.2459 77.016L53.2325 79.4311L61.1177 115.414L74.137 111.926L62.2459 77.016ZM84.9161 70.9415L75.9026 73.3567L83.7878 109.34L96.8072 105.851L84.9161 70.9415ZM107.04 65.0135L97.9354 67.453L105.821 103.436L118.749 99.972L107.04 65.0135Z" fill="#F5DF4D"/>
+<path d="M121.446 107.121L118.118 94.6989L59.3027 110.458L62.6313 122.881L121.446 107.121Z" fill="#00CCBE"/>
+<path d="M74.222 45.2348L49.1352 80.5288L110.954 63.9644L74.222 45.2348Z" fill="#FF3399"/>
+</g>
+</g>
+</g>
+</g>
+<defs>
+<filter id="filter0_d_233_2063" x="-6.61914" y="-4.71887" width="176.768" height="176.767" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+<feFlood flood-opacity="0" result="BackgroundImageFix"/>
+<feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/>
+<feOffset dy="5"/>
+<feGaussianBlur stdDeviation="5"/>
+<feComposite in2="hardAlpha" operator="out"/>
+<feColorMatrix type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.2 0"/>
+<feBlend mode="normal" in2="BackgroundImageFix" result="effect1_dropShadow_233_2063"/>
+<feBlend mode="normal" in="SourceGraphic" in2="effect1_dropShadow_233_2063" result="shape"/>
+</filter>
+<clipPath id="clip0_233_2063">
+<rect width="79.9946" height="81.0208" fill="white" transform="translate(32.6406 49.8799) rotate(-15)"/>
+</clipPath>
+<clipPath id="clip1_233_2063">
+<rect width="79.9946" height="81.0208" fill="white" transform="translate(32.6406 49.8799) rotate(-15)"/>
+</clipPath>
+<clipPath id="clip2_233_2063">
+<rect width="80" height="81.0127" fill="white" transform="translate(32.6406 49.8785) rotate(-15)"/>
+</clipPath>
+</defs>
+</svg>

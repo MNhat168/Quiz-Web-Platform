@@ -2,7 +2,12 @@ package com.QuizWeb.TheQuizWeb.Model;
 
 import lombok.Data;
 import org.springframework.data.annotation.Id;
+import org.springframework.data.annotation.TypeAlias;
 import org.springframework.data.mongodb.core.mapping.Document;
+
+import com.QuizWeb.TheQuizWeb.Model.Activity.TeamChallengeContent;
+import com.fasterxml.jackson.annotation.JsonSubTypes;
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
 
 import java.util.Comparator;
 import java.util.Date;
@@ -69,7 +74,6 @@ public class Activity {
         private int maxQuantity;
     }
 
-    // Activity Content Models (polymorphic design)
     @Data
     public static class MultipleChoiceContent {
         private List<QuestionItem> questions;
@@ -139,14 +143,38 @@ public class Activity {
 
     @Data
     public static class TeamChallengeContent {
-        private List<String> prompts; // List of drawing prompts
-        private int roundTime; // Seconds per round
-        private int maxRounds;
-        private boolean allowGuessing; // Team members can guess
-        private int pointsPerCorrect;
-        private List<String> allowedWords; // Optional restricted word list
+        private List<DrawingPrompt> prompts;
+        private PictionarySettings pictionarySettings;
+        
+        @Data
+        public static class DrawingPrompt {
+            private String prompt;       
+            private String category;      
+            private String difficulty;    
+            private int timeLimit;       
+            private int points;           
+            private List<String> hints;  
+            private List<String> synonyms; 
+        }
+        
+        @Data
+        public static class PictionarySettings {
+            private boolean rotateDrawers;      
+            private int roundsPerPlayer;        
+            private boolean allowPartialPoints; 
+            private boolean revealAnswerOnFail;  
+            private int maxGuessesPerTeam;       
+            private GuessValidation guessValidation; 
+        }
+        
+        public enum GuessValidation {
+            EXACT_MATCH,        
+            CONTAINS_KEYWORD,   
+            SYNONYM_MATCH,     
+            MANUAL_TEACHER     
+        }
     }
-    
+
     public String getCorrectAnswer() {
         if (this.content == null) {
             return null;
@@ -208,6 +236,23 @@ public class Activity {
                             .collect(Collectors.joining(", "));
                 }
                 break;
+                
+            case TEAM_CHALLENGE:
+                if (this.content instanceof TeamChallengeContent) {
+                    TeamChallengeContent tcContent = (TeamChallengeContent) this.content;
+                    if (tcContent.getPrompts() != null && !tcContent.getPrompts().isEmpty()) {
+                        return tcContent.getPrompts().stream()
+                                .map(prompt -> {
+                                    StringBuilder sb = new StringBuilder(prompt.getPrompt());
+                                    if (prompt.getSynonyms() != null && !prompt.getSynonyms().isEmpty()) {
+                                        sb.append(" (or ").append(String.join(", ", prompt.getSynonyms())).append(")");
+                                    }
+                                    return sb.toString();
+                                })
+                                .collect(Collectors.joining(" | "));
+                    }
+                }
+                break;
 
             default:
                 return "No single correct answer for this activity type";
@@ -215,6 +260,7 @@ public class Activity {
 
         return null;
     }
+
     public String getExplanation() {
         if (this.content == null) {
             return null;
@@ -247,3 +293,5 @@ public class Activity {
         return null;
     }
 }
+
+

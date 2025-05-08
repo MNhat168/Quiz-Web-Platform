@@ -1,0 +1,121 @@
+.matching-activity {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 20px;
+    position: relative;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.matching-container {
+    display: flex;
+    justify-content: space-between;
+    position: relative;
+    min-height: 500px; /* Tăng chiều cao tối thiểu */
+    margin: 30px 0;
+    gap: 20px; /* Thêm khoảng cách giữa hai cột */
+}
+
+.column {
+    width: 48%; /* Giảm width để có không gian cho đường nối */
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.card {
+    border: 2px solid #e1e5eb;
+    border-radius: 8px;
+    padding: 15px;
+    min-height: 100px; /* Chiều cao tối thiểu cố định */
+    min-width: 150px; /* Chiều rộng tối thiểu cố định */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: white;
+    position: relative;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    box-sizing: border-box;
+    /* Thêm flex-shrink để ngăn co nhỏ */
+    flex-shrink: 0;
+}
+
+.card.selected {
+    border-color: #4a90e2 !important;
+    background-color: #f0f7ff !important;
+}
+
+.card.connected {
+    border-color: #4a90e2;
+}
+
+/* Đảm bảo hình ảnh và text có kích thước phù hợp */
+.matching-image {
+    max-width: 100%;
+    max-height: 65px;
+    display: block;
+    margin: 0 auto;
+}
+
+.card span {
+    text-align: center;
+    word-break: break-word;
+    padding: 5px;
+}
+
+.connection-line {
+    position: absolute;
+    height: 2px;
+    background-color: #4a90e2;
+    transform-origin: left center;
+    z-index: 0;
+    pointer-events: none;
+}
+
+.connection-line.curved {
+    height: 1px;
+    background-color: transparent;
+    border-top: 2px dashed #4a90e2;
+    border-radius: 50%;
+}
+
+.submit-btn {
+    background-color: #5cb85c;
+    color: white;
+    padding: 12px 25px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: 600;
+    transition: all 0.3s;
+    display: block;
+    margin: 30px auto 0;
+}
+
+.submit-btn:hover:not(:disabled) {
+    background-color: #4cae4c;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+}
+
+.submit-btn:disabled {
+    background-color: #cccccc;
+    cursor: not-allowed;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .matching-container {
+        flex-direction: column;
+        min-height: auto;
+    }
+    
+    .column {
+        width: 100%;
+        margin-bottom: 20px;
+    }
+    
+    .connection-line {
+        display: none;
+    }
+}

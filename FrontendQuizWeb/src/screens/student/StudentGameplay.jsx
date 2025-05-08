@@ -12,6 +12,9 @@ import TextInputActivity from './activities/TextInput';
 import SortingActivity from './activities/Sorting';
 import MatchingActivity from './activities/Matching';
 import MathProblemActivity from './activities/MathProblem';
+import TeamChallengeActivity from './activities/Teamchallenge';
+import FillInBlankGame from './activities/FillInBlank';
+
 
 const StudentGamePlay = () => {
     const [textAnswer, setTextAnswer] = useState('');
@@ -187,8 +190,7 @@ const StudentGamePlay = () => {
                                 ))}
                             </div>
                         )}
-
-                        {/* Find the current user's score and position */}
+                        
                         {(() => {
                             const studentId = getStudentId();
                             const userPosition = participantScores.findIndex(p => p.userId === studentId);
@@ -380,23 +382,6 @@ const StudentGamePlay = () => {
         }
     };
 
-    const fetchSpecificContent = async (activityId, contentIndex) => {
-        try {
-            const response = await axios.get(
-                `http://localhost:8080/api/sessions/${accessCode}/activity/${activityId}/content/${contentIndex}`,
-                {
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
-                }
-            );
-            return response.data;
-        } catch (error) {
-            console.error('Failed to fetch specific content:', error);
-            return null;
-        }
-    };
-
     const submitAnswer = async (answer) => {
         const studentId = getStudentId();
         if (!studentId || !currentActivity || !currentActivity.id) {
@@ -436,6 +421,7 @@ const StudentGamePlay = () => {
             console.log('Submission response:', response.data);
             setSubmissionResult(response.data);
             resetContentTimer();
+            
             if (answer.questionIndex !== undefined) {
                 const mcContent = currentContentItem ? currentContentItem.data : currentActivity.content;
                 let mcQuestions = [];
@@ -446,7 +432,7 @@ const StudentGamePlay = () => {
                 } else if (typeof mcContent === 'object') {
                     mcQuestions = [mcContent];
                 }
-                if (answer.questionIndex === mcQuestions.length - 1) {
+                if (answer.questionIndex === mcQuestions.length - 1 && currentActivity.type !== 'FILL_IN_BLANK') {
                     setTimeout(() => {
                         requestContentAdvancement(); // Use the new function to request server advancement
                     }, 3000); // Wait 3s to show feedback before advancing
@@ -539,6 +525,7 @@ const StudentGamePlay = () => {
         if (!currentActivity) {
             return <div>No active activity</div>;
         }
+
         const content = getCurrentContent();
         const commonProps = {
             activity: currentActivity,
@@ -547,28 +534,29 @@ const StudentGamePlay = () => {
             submitAnswer: submitAnswer,
             textAnswer: textAnswer,
             setTextAnswer: setTextAnswer,
-            contentItem: currentContentItem
+            contentItem: currentContentItem,
+            accessCode: accessCode  // Add accessCode to props for team challenge
         };
 
         switch (currentActivity.type) {
             case 'MULTIPLE_CHOICE':
                 return <MultipleChoiceActivity {...commonProps} />;
-
             case 'TRUE_FALSE':
                 return <TrueFalseActivity {...commonProps} />;
-
             case 'OPEN_ENDED':
-            case 'FILL_IN_BLANK':
                 return <TextInputActivity {...commonProps} />;
-
+            case 'FILL_IN_BLANK':
+                return <FillInBlankGame {...commonProps} onComplete={handleActivityComplete} />;
             case 'SORTING':
                 return <SortingActivity {...commonProps} />;
-
             case 'MATCHING':
                 return <MatchingActivity {...commonProps} />;
-
             case 'MATH_PROBLEM':
                 return <MathProblemActivity {...commonProps} />;
+                
+            // Add the new Team Challenge activity type
+            case 'TEAM_CHALLENGE':
+                return <TeamChallengeActivity {...commonProps} />;
 
             default:
                 return (
@@ -578,6 +566,19 @@ const StudentGamePlay = () => {
                         <p>Activity type '{currentActivity.type}' is not fully supported yet.</p>
                     </div>
                 );
+        }
+    };
+
+    const handleActivityComplete = () => {
+        console.log('Activity completed, requesting advancement');
+        if (currentActivity.type === 'FILL_IN_BLANK') {
+            // For FillInBlank, advance immediately when completed
+            requestContentAdvancement();
+        } else {
+            // For other activities, wait for timer
+            setTimeout(() => {
+                requestContentAdvancement();
+            }, 3000);
         }
     };
 

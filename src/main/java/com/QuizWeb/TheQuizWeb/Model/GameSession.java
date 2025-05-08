@@ -28,6 +28,43 @@ public class GameSession {
     private SessionSettings settings;
     private SessionStatistics statistics; // Real-time statistics for teacher dashboard
 
+    // Keep all the existing getters and setters
+
+    @Data
+    public static class Team {
+        private String teamId;
+        private String teamName;
+        private List<String> teamMembers; // User IDs
+        private int teamScore;
+        private String currentDrawerId; // Current drawer (updated each round)
+        private int nextDrawerIndex; // Tracks rotation order
+        private int currentPromptIndex = 0;
+        private Object currentDrawing; // Store serialized paths
+        private Date lastDrawingUpdate;
+
+        public void initializeDrawingRotation() {
+            if (this.teamMembers == null || this.teamMembers.isEmpty()) {
+                return;
+            }
+            this.currentDrawerId = this.teamMembers.get(0);
+        }
+
+        public String getNextDrawer() {
+            if (this.teamMembers == null || this.teamMembers.isEmpty()) {
+                return null;
+            }
+            if (this.currentDrawerId == null) {
+                return this.teamMembers.get(0);
+            }
+            int currentIndex = this.teamMembers.indexOf(this.currentDrawerId);
+            if (currentIndex == -1) {
+                return this.teamMembers.get(0);
+            }
+            int nextIndex = (currentIndex + 1) % this.teamMembers.size();
+            return this.teamMembers.get(nextIndex);
+        }
+    }
+
     public enum SessionStatus {
         LOBBY, ACTIVE, PAUSED, COMPLETED
     }
@@ -39,7 +76,38 @@ public class GameSession {
         private Date endTime;
         private ActivityStatus status;
         private List<ParticipantResponse> responses;
-        private int currentContentIndex = 0; 
+        private int currentContentIndex = 0; // For tracking current prompt in TeamChallenge
+
+        public String getCurrentDrawer(GameSession session, String teamId) {
+            if (session.getTeams() == null)
+                return null;
+
+            Team team = session.getTeams().stream()
+                    .filter(t -> t.getTeamId().equals(teamId))
+                    .findFirst()
+                    .orElse(null);
+
+            if (team == null)
+                return null;
+
+            return team.getCurrentDrawerId();
+        }
+
+        public void rotateDrawer(GameSession session, String teamId) {
+            if (session == null || session.getTeams() == null) {
+                return;
+            }
+
+            for (GameSession.Team team : session.getTeams()) {
+                if (team.getTeamId().equals(teamId)) {
+                    String nextDrawer = team.getNextDrawer();
+                    if (nextDrawer != null) {
+                        team.setCurrentDrawerId(nextDrawer);
+                    }
+                    break;
+                }
+            }
+        }
     }
 
     public enum ActivityStatus {
@@ -48,7 +116,7 @@ public class GameSession {
 
     @Data
     public static class Participant {
-        private String userId; 
+        private String userId;
         private String displayName;
         private String avatarUrl;
         private String teamId;
@@ -57,19 +125,10 @@ public class GameSession {
         private boolean isActive;
         private Date joinedAt;
         private Date lastActiveAt;
-        private Map<String, Integer> activityScores; // Activity ID to score mapping
+        private Map<String, Integer> activityScores;
     }
 
-    @Data
-    public static class Team {
-        private String id;
-        private String name;
-        private String color;
-        private List<String> participantIds;
-        private int totalScore;
-        private Map<String, Integer> activityScores; // Activity ID to score mapping
-    }
-
+    
     @Data
     public static class ParticipantResponse {
         private String participantId;
@@ -81,7 +140,9 @@ public class GameSession {
         private int pointsEarned;
         private Date submittedAt;
         private List<String> hintsUsed;
-        private int attempts; // Number of attempts if retries are allowed
+        private int attempts;
+        private String teamId;
+        private String drawerId;
     }
 
     @Data
@@ -128,4 +189,3 @@ public class GameSession {
         private Date lastUsedAt;
     }
 }
-
