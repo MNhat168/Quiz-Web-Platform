@@ -13,9 +13,9 @@ import java.util.Map;
 public class GameSession {
     @Id
     private String id;
-    private String gameId; // Reference to Game
-    private String classId; // Reference to Class
-    private String teacherId; // Teacher hosting the session
+    private String gameId;
+    private String classId;
+    private String teacherId;
     private String accessCode;
     private SessionStatus status;
     private Date startTime;
@@ -26,27 +26,25 @@ public class GameSession {
     private SessionActivity currentActivity;
     private List<PowerUpEvent> powerUpEvents;
     private SessionSettings settings;
-    private SessionStatistics statistics; // Real-time statistics for teacher dashboard
+    private SessionStatistics statistics;
 
-    // Keep all the existing getters and setters
-
+    // Team class now tracks content item index for team-based activities
     @Data
     public static class Team {
         private String teamId;
         private String teamName;
-        private List<String> teamMembers; // User IDs
+        private List<String> teamMembers;
         private int teamScore;
-        private String currentDrawerId; // Current drawer (updated each round)
-        private int nextDrawerIndex; // Tracks rotation order
-        private int currentPromptIndex = 0;
-        private Object currentDrawing; // Store serialized paths
+        private String currentDrawerId;
+        private int nextDrawerIndex;
+        private int currentContentIndex = 0; // Tracks progress through activity's contentItems
+        private Object currentDrawing;
         private Date lastDrawingUpdate;
 
         public void initializeDrawingRotation() {
-            if (this.teamMembers == null || this.teamMembers.isEmpty()) {
-                return;
+            if (this.teamMembers != null && !this.teamMembers.isEmpty()) {
+                this.currentDrawerId = this.teamMembers.get(0);
             }
-            this.currentDrawerId = this.teamMembers.get(0);
         }
 
         public String getNextDrawer() {
@@ -69,6 +67,7 @@ public class GameSession {
         LOBBY, ACTIVE, PAUSED, COMPLETED
     }
 
+    // SessionActivity tracks the current content item index for non-team activities
     @Data
     public static class SessionActivity {
         private String activityId;
@@ -76,37 +75,28 @@ public class GameSession {
         private Date endTime;
         private ActivityStatus status;
         private List<ParticipantResponse> responses;
-        private int currentContentIndex = 0; // For tracking current prompt in TeamChallenge
+        private int currentContentIndex = 0; // Tracks current content item in the activity
 
         public String getCurrentDrawer(GameSession session, String teamId) {
-            if (session.getTeams() == null)
-                return null;
-
-            Team team = session.getTeams().stream()
+            if (session.getTeams() == null) return null;
+            return session.getTeams().stream()
                     .filter(t -> t.getTeamId().equals(teamId))
                     .findFirst()
+                    .map(Team::getCurrentDrawerId)
                     .orElse(null);
-
-            if (team == null)
-                return null;
-
-            return team.getCurrentDrawerId();
         }
 
         public void rotateDrawer(GameSession session, String teamId) {
-            if (session == null || session.getTeams() == null) {
-                return;
-            }
-
-            for (GameSession.Team team : session.getTeams()) {
-                if (team.getTeamId().equals(teamId)) {
-                    String nextDrawer = team.getNextDrawer();
-                    if (nextDrawer != null) {
-                        team.setCurrentDrawerId(nextDrawer);
-                    }
-                    break;
-                }
-            }
+            if (session.getTeams() == null) return;
+            session.getTeams().stream()
+                    .filter(t -> t.getTeamId().equals(teamId))
+                    .findFirst()
+                    .ifPresent(team -> {
+                        String nextDrawer = team.getNextDrawer();
+                        if (nextDrawer != null) {
+                            team.setCurrentDrawerId(nextDrawer);
+                        }
+                    });
         }
     }
 
@@ -125,18 +115,17 @@ public class GameSession {
         private boolean isActive;
         private Date joinedAt;
         private Date lastActiveAt;
-        private Map<String, Integer> activityScores;
+        private Map<String, Integer> activityScores; // Tracks scores per activity:contentItem
     }
 
-    
     @Data
     public static class ParticipantResponse {
         private String participantId;
         private String activityId;
-        private String contentId;
-        private Object answer; // Will be deserialized to specific response type
+        private String contentId; // Now tracks which contentItem was answered
+        private Object answer;
         private boolean isCorrect;
-        private int timeSpent; // In milliseconds
+        private int timeSpent;
         private int pointsEarned;
         private Date submittedAt;
         private List<String> hintsUsed;
@@ -149,11 +138,11 @@ public class GameSession {
     public static class SessionStatistics {
         private int totalParticipants;
         private int activeParticipants;
-        private Map<String, Integer> participantScores; // Real-time scores
-        private Map<String, PerformanceMetric> activityPerformance; // Activity ID to performance metrics
+        private Map<String, Integer> participantScores;
+        private Map<String, PerformanceMetric> activityPerformance;
         private double overallCompletionPercentage;
         private double overallCorrectAnswerPercentage;
-        private Map<String, List<String>> strugglingStudents; // Activity ID to list of struggling student IDs
+        private Map<String, List<String>> strugglingStudents;
     }
 
     @Data
@@ -170,8 +159,8 @@ public class GameSession {
     public static class PowerUpEvent {
         private String id;
         private String powerUpId;
-        private String userId; // Student who used the power-up
-        private String targetId; // Target user ID or team ID
+        private String userId;
+        private String targetId;
         private PowerUpEventType eventType;
         private Date timestamp;
         private Map<String, Object> effectDetails;

@@ -1,56 +1,61 @@
-import { useAuth } from "../../../context/AuthContext"
-import "../../../style/game-matching.css"
-import { Plus, Trash2, X, ImageIcon } from "lucide-react"
+import { useAuth } from "../../../context/AuthContext";
+import "../../../style/game-matching.css";
+import { Plus, Trash2, X, ImageIcon } from "lucide-react";
 import axios from "axios";
+import { v4 as uuidv4 } from 'uuid';
 
-const MatchingForm = ({ 
-  content, 
-  setContent, 
-  currentHint, 
-  setCurrentHint, 
-  addHint, 
-  removeHint 
+const MatchingForm = ({
+  contentItems,
+  setContentItems,
+  shuffleOptions,
+  setShuffleOptions,
+  hints,
+  setHints,
+  currentHint,
+  setCurrentHint,
+  addHint,
+  removeHint,
 }) => {
   const { token } = useAuth();
-  const addMatchPair = () => {
-    setContent({
-      ...content,
-      pairs: [
-        ...content.pairs,
-        { item1: "", item2: "", item1ImageUrl: "", item2ImageUrl: "" }
-      ]
-    })
-  }
 
-  // Remove pair for matching
+  const addMatchPair = () => {
+    setContentItems([
+      ...contentItems,
+      {
+        contentId: uuidv4(),
+        data: {
+          item1: "",
+          item2: "",
+          item1ImageUrl: "",
+          item2ImageUrl: "",
+        },
+        duration: 60, 
+      },
+    ]);
+  };
+
   const removeMatchPair = (index) => {
-    const updatedPairs = [...content.pairs]
-    updatedPairs.splice(index, 1)
-    setContent({
-      ...content,
-      pairs: updatedPairs
-    })
-  }
+    const updatedItems = contentItems.filter((_, i) => i !== index);
+    setContentItems(updatedItems);
+  };
 
   const handleImageUpload = async (file, pairIndex, field) => {
     if (!file) return;
-  
+
     const formData = new FormData();
     formData.append("file", file);
-  
+
     try {
       const res = await axios.post("http://localhost:8080/api/upload/image", formData, {
         headers: {
           Authorization: `Bearer ${token}`,
-          "Content-Type": "multipart/form-data"
-        }
+          "Content-Type": "multipart/form-data",
+        },
       });
-  
-      const imageUrl = res.data.imageUrl;
-      const updatedPairs = [...content.pairs];
-      updatedPairs[pairIndex][field] = imageUrl;
-      setContent({ ...content, pairs: updatedPairs });
-  
+
+      const updatedItems = [...contentItems];
+      updatedItems[pairIndex].data[field] = res.data.imageUrl;
+      setContentItems(updatedItems);
     } catch (err) {
       console.error("Upload error:", err);
       alert("Upload image failed!");
@@ -66,16 +71,13 @@ const MatchingForm = ({
           <input
             type="checkbox"
             id="shuffleOptions"
-            checked={content.shuffleOptions}
-            onChange={(e) => setContent({
-              ...content,
-              shuffleOptions: e.target.checked
-            })}
+            checked={shuffleOptions}
+            onChange={(e) => setShuffleOptions(e.target.checked)}
           />
           <label htmlFor="shuffleOptions">Shuffle Options</label>
         </div>
 
-        {content.pairs.map((pair, index) => (
+        {contentItems.map((contentItem, index) => (
           <div key={index} className="match-pair-row">
             <div className="match-pair-content">
               <div className="match-pair-item">
@@ -85,39 +87,38 @@ const MatchingForm = ({
                     type="text"
                     placeholder="First item"
                     className="form-input pr-10"
-                    value={pair.item1}
+                    value={contentItem.data.item1}
                     onChange={(e) => {
-                      const updatedPairs = [...content.pairs];
-                      updatedPairs[index].item1 = e.target.value;
-                      setContent({ ...content, pairs: updatedPairs });
+                      const updatedItems = [...contentItems];
+                      updatedItems[index].data.item1 = e.target.value;
+                      setContentItems(updatedItems);
                     }}
                   />
-                  
                   <label className="upload-icon-container">
                     <input
                       type="file"
                       className="hidden-file-input"
                       accept="image/*"
-                      onChange={(e) => handleImageUpload(e.target.files[0], index, "item1ImageUrl")}
+                      onChange={(e) =>
+                        handleImageUpload(e.target.files[0], index, "item1ImageUrl")
+                      }
                     />
                     <ImageIcon className="upload-icon" />
                   </label>
                 </div>
-                
-                {pair.item1ImageUrl && (
+                {contentItem.data.item1ImageUrl && (
                   <div className="thumbnail-container">
-                    <img 
-                      src={pair.item1ImageUrl} 
-                      alt="item1" 
+                    <img
+                      src={contentItem.data.item1ImageUrl}
+                      alt="item1"
                       className="thumbnail-image"
                     />
-                    <Trash2 
+                    <Trash2
                       className="trash-icon"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        const updatedPairs = [...content.pairs];
-                        updatedPairs[index].item1ImageUrl = "";
-                        setContent({ ...content, pairs: updatedPairs });
+                      onClick={() => {
+                        const updatedItems = [...contentItems];
+                        updatedItems[index].data.item1ImageUrl = "";
+                        setContentItems(updatedItems);
                       }}
                     />
                   </div>
@@ -131,39 +132,38 @@ const MatchingForm = ({
                     type="text"
                     placeholder="Matching item"
                     className="form-input pr-10"
-                    value={pair.item2}
+                    value={contentItem.data.item2}
                     onChange={(e) => {
-                      const updatedPairs = [...content.pairs];
-                      updatedPairs[index].item2 = e.target.value;
-                      setContent({ ...content, pairs: updatedPairs });
+                      const updatedItems = [...contentItems];
+                      updatedItems[index].data.item2 = e.target.value;
+                      setContentItems(updatedItems);
                     }}
                   />
-                  
                   <label className="upload-icon-container">
                     <input
                       type="file"
                       className="hidden-file-input"
                       accept="image/*"
-                      onChange={(e) => handleImageUpload(e.target.files[0], index, "item2ImageUrl")}
+                      onChange={(e) =>
+                        handleImageUpload(e.target.files[0], index, "item2ImageUrl")
+                      }
                     />
                     <ImageIcon className="upload-icon" />
                   </label>
                 </div>
-                
-                {pair.item2ImageUrl && (
+                {contentItem.data.item2ImageUrl && (
                   <div className="thumbnail-container">
-                    <img 
-                      src={pair.item2ImageUrl} 
-                      alt="item2" 
+                    <img
+                      src={contentItem.data.item2ImageUrl}
+                      alt="item2"
                       className="thumbnail-image"
                     />
-                    <Trash2 
+                    <Trash2
                       className="trash-icon"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        const updatedPairs = [...content.pairs];
-                        updatedPairs[index].item2ImageUrl = "";
-                        setContent({ ...content, pairs: updatedPairs });
+                      onClick={() => {
+                        const updatedItems = [...contentItems];
+                        updatedItems[index].data.item2ImageUrl = "";
+                        setContentItems(updatedItems);
                       }}
                     />
                   </div>
@@ -176,19 +176,15 @@ const MatchingForm = ({
                 type="button"
                 className="remove-pair-button"
                 onClick={() => removeMatchPair(index)}
-                disabled={content.pairs.length <= 1}
+                disabled={contentItems.length <= 1}
               >
                 <Trash2 className="w-4 h-4" />
               </button>
             </div>
-        </div>
+          </div>
         ))}
 
-        <button
-          type="button"
-          className="add-pair-button"
-          onClick={addMatchPair}
-        >
+        <button type="button" className="add-pair-button" onClick={addMatchPair}>
           <Plus className="w-4 h-4" /> Add Pair
         </button>
       </div>
@@ -204,24 +200,15 @@ const MatchingForm = ({
               className="form-input"
               value={currentHint}
               onChange={(e) => setCurrentHint(e.target.value)}
-              onKeyPress={(e) => {
-                if (e.key === 'Enter') {
-                  e.preventDefault()
-                  addHint()
-                }
-              }}
+              onKeyPress={(e) => e.key === "Enter" && addHint()}
             />
-            <button
-              type="button"
-              className="add-hint-button"
-              onClick={addHint}
-            >
+            <button type="button" className="add-hint-button" onClick={addHint}>
               <Plus className="w-4 h-4" />
             </button>
           </div>
 
           <div className="hints-list">
-            {content.hints.map((hint, index) => (
+            {hints.map((hint, index) => (
               <div key={index} className="hint-item">
                 <span>{hint}</span>
                 <button
@@ -237,7 +224,7 @@ const MatchingForm = ({
         </div>
       </div>
     </div>
-  )
-}
+  );
+};
 
-export default MatchingForm
+export default MatchingForm;

@@ -2,7 +2,6 @@ import { useState, useEffect } from "react"
 import { useParams, useNavigate } from "react-router-dom"
 import { useAuth } from "../../context/AuthContext"
 import axios from "axios"
-import Sidebar from "../../layout/teacher/teacherHeader"
 import { Gamepad, Plus, ChevronRight, X, Edit, Clock, Award, Book, Save, CheckCircle, ArrowUp, ArrowDown, Trash2, ListOrdered, BookOpen, FilePlus } from "lucide-react"
 import MultipleChoiceForm from "./games/MultipleChoice"
 import SortingForm from "./games/Sorting"
@@ -29,19 +28,16 @@ const GameActivityEditor = () => {
         "MATCHING",
         "FILL_IN_BLANK"
     ]);
+    const [shuffleOptions, setShuffleOptions] = useState(false);
+    const [hints, setHints] = useState([]);
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState("")
     const [successMessage, setSuccessMessage] = useState("")
     const [currentPage, setCurrentPage] = useState(1);
     const [activitiesPerPage] = useState(10);
     const [searchQuery, setSearchQuery] = useState('');
-
-    // Add these computed values before the return statement
     const filteredActivities = activities.filter(activity => {
-        // Filter by type
         const typeMatch = activeTypeFilter === "ALL" || activity.type === activeTypeFilter;
-
-        // Filter by search query
         const searchMatch = searchQuery === '' ||
             activity.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
             (activity.subject && activity.subject.toLowerCase().includes(searchQuery.toLowerCase()));
@@ -50,8 +46,6 @@ const GameActivityEditor = () => {
     });
 
     const totalPages = Math.ceil(filteredActivities.length / activitiesPerPage);
-
-    // Get current activities for pagination
     const indexOfLastActivity = currentPage * activitiesPerPage;
     const indexOfFirstActivity = indexOfLastActivity - activitiesPerPage;
     const paginatedActivities = filteredActivities.slice(indexOfFirstActivity, indexOfLastActivity);
@@ -68,8 +62,8 @@ const GameActivityEditor = () => {
         gradeLevel: "",
         tags: [],
         isPublic: false,
-        content: {}
-    })
+        contentItems: []  // Changed from content to contentItems
+    });
     const [gameActivity, setGameActivity] = useState({
         activityId: "",
         order: 1,
@@ -81,21 +75,6 @@ const GameActivityEditor = () => {
             type: "COMPLETION"
         }
     })
-    const [multipleChoiceContent, setMultipleChoiceContent] = useState({
-        questions: [
-            {
-                question: "",
-                options: [
-                    { text: "", isCorrect: false, explanation: "" },
-                    { text: "", isCorrect: false, explanation: "" }
-                ],
-                explanation: "",
-                duration: 60 // Added duration field with default of 60 seconds
-            }
-        ],
-        allowMultipleAnswers: false,
-        hints: []
-    });
 
     const [teamChallengeContent, setTeamChallengeContent] = useState({
         prompts: [""],
@@ -117,20 +96,6 @@ const GameActivityEditor = () => {
         ],
         hints: []
     })
-
-    const [matchingContent, setMatchingContent] = useState({
-        pairs: [
-            { item1: "", item2: "", item1ImageUrl: "", item2ImageUrl: "" }
-        ],
-        shuffleOptions: true,
-        hints: []
-    })
-
-    // Add initial state for fill in blank content
-    const [fillInBlankContent, setFillInBlankContent] = useState({
-        questions: [],
-        hints: []
-    });
 
     const [selectedActivities, setSelectedActivities] = useState([]);
     const [currentHint, setCurrentHint] = useState("")
@@ -197,34 +162,73 @@ const GameActivityEditor = () => {
         fetchData();
     }, [gameId, token]);
 
-
     useEffect(() => {
-        if (newActivity.type === "MULTIPLE_CHOICE") {
-            setNewActivity({ ...newActivity, content: multipleChoiceContent })
-        } else if (newActivity.type === "SORTING") {
-            setNewActivity({ ...newActivity, content: sortingContent })
-        } else if (newActivity.type === "MATCHING") {
-            setNewActivity({ ...newActivity, content: matchingContent })
-        } else if (newActivity.type === "TEAM_CHALLENGE") {
-            setNewActivity({ ...newActivity, content: teamChallengeContent })
-        } else if (newActivity.type === "FILL_IN_BLANK") {
-            setNewActivity({ ...newActivity, content: fillInBlankContent })
-        }
-    }, [multipleChoiceContent, sortingContent, matchingContent, teamChallengeContent, fillInBlankContent, newActivity.type])
+        // Clear contentItems when switching types
+        setNewActivity(prev => ({
+            ...prev,
+            contentItems: []
+        }));
+    }, [newActivity.type]);
 
     const createActivity = async () => {
         try {
             setError("")
-    
+
             if (!newActivity.title) {
                 setError("Activity title is required")
                 return
             }
+            const activityToCreate = {
+                ...newActivity,
+                content: null,
+                contentItems: newActivity.contentItems.map(item => {
+                    const baseItem = {
+                        contentId: item.contentId,
+                        data: item.data,
+                        instructions: ""
+                    };
+
+                    // Type-specific configurations
+                    switch (newActivity.type) {
+                        case "TEAM_CHALLENGE":
+                            return {
+                                ...baseItem,
+                                title: `Team Challenge - ${item.data.prompts[0]?.substring(0, 20) || 'Untitled'}`, // Truncate long prompts
+                                duration: item.data.roundTime
+                            }
+                        case "FILL_IN_BLANK":
+                            return {
+                                ...baseItem,
+                                title: `Fill-in-Blank - ${item.data.questionText?.substring(0, 30) || 'Untitled'}`,
+                                duration: item.duration  // Correct reference
+                            };
+                        case "MULTIPLE_CHOICE":
+                            return {
+                                ...baseItem,
+                                title: `MCQ - ${item.data.question?.substring(0, 30) || 'Untitled'}`,
+                                duration: item.data.duration
+                            }
+                        case "MATCHING":
+                            return {
+                                ...baseItem,
+                                title: `Matching - ${item.data.item1 || 'Pair'}`,
+                                duration: item.duration  // Correct reference
+                            };
+                        default:
+                            return {
+                                ...baseItem,
+                                title: "Activity",
+                                duration: 60
+                            }
+                    }
+                })
+            };
+
             const response = await axios.post(
                 "http://localhost:8080/api/activities",
                 activityToCreate,
                 { headers: { Authorization: `Bearer ${token}` } }
-            )
+            );
             const { data: activitiesData } = await axios.get(
                 "http://localhost:8080/api/activities/teacher",
                 { headers: { Authorization: `Bearer ${token}` } }
@@ -507,60 +511,14 @@ const GameActivityEditor = () => {
             gradeLevel: "",
             tags: [],
             isPublic: false,
-            content: {}
-        })
+            contentItems: [] // Reset to empty array instead of using content
+        });
 
-        setMultipleChoiceContent({
-            questions: [
-                {
-                    question: "",
-                    options: [
-                        { text: "", isCorrect: false, explanation: "" },
-                        { text: "", isCorrect: false, explanation: "" }
-                    ],
-                    explanation: ""
-                }
-            ],
-            allowMultipleAnswers: false,
-            hints: []
-        })
+        // We don't need to reset these state variables anymore since we're using contentItems
+        // setMultipleChoiceContent, setSortingContent, etc. are not needed
 
-        setSortingContent({
-            instructions: "",
-            items: [
-                { text: "", imageUrl: "", correctPosition: 1 },
-                { text: "", imageUrl: "", correctPosition: 2 }
-            ],
-            hints: []
-        })
-
-        setMatchingContent({
-            pairs: [
-                { item1: "", item2: "", item1ImageUrl: "", item2ImageUrl: "" }
-            ],
-            shuffleOptions: true,
-            hints: []
-        })
-
-        setTeamChallengeContent({
-            prompts: [""],
-            roundTime: 60,
-            maxRounds: 5,
-            allowGuessing: true,
-            pointsPerCorrect: 10,
-            allowedWords: [],
-            teamParticipants: [],
-            rounds: [],
-            hints: []
-        })
-
-        setFillInBlankContent({
-            questions: [],
-            hints: []
-        })
-
-        setCurrentHint("")
-    }
+        setCurrentHint("");
+    };
 
     const saveGame = async () => {
         try {
@@ -587,8 +545,8 @@ const GameActivityEditor = () => {
             case "MULTIPLE_CHOICE":
                 return (
                     <MultipleChoiceForm
-                        content={multipleChoiceContent}
-                        setContent={setMultipleChoiceContent}
+                        contentItems={newActivity.contentItems}
+                        setContentItems={(items) => setNewActivity({ ...newActivity, contentItems: items })}
                         currentHint={currentHint}
                         setCurrentHint={setCurrentHint}
                         addHint={addHint}
@@ -609,8 +567,12 @@ const GameActivityEditor = () => {
             case "MATCHING":
                 return (
                     <MatchingForm
-                        content={matchingContent}
-                        setContent={setMatchingContent}
+                        contentItems={newActivity.contentItems}
+                        setContentItems={(items) => setNewActivity({ ...newActivity, contentItems: items })}
+                        shuffleOptions={shuffleOptions}
+                        setShuffleOptions={setShuffleOptions}
+                        hints={hints}
+                        setHints={setHints}
                         currentHint={currentHint}
                         setCurrentHint={setCurrentHint}
                         addHint={addHint}
@@ -620,8 +582,8 @@ const GameActivityEditor = () => {
             case "TEAM_CHALLENGE":
                 return (
                     <TeamChallengeForm
-                        content={teamChallengeContent}
-                        setContent={setTeamChallengeContent}
+                        contentItems={newActivity.contentItems}
+                        setContentItems={(items) => setNewActivity({ ...newActivity, contentItems: items })}
                         currentHint={currentHint}
                         setCurrentHint={setCurrentHint}
                         addHint={addHint}
@@ -631,8 +593,8 @@ const GameActivityEditor = () => {
             case "FILL_IN_BLANK":
                 return (
                     <FillInBlankForm
-                        content={fillInBlankContent}
-                        setContent={setFillInBlankContent}
+                        contentItems={newActivity.contentItems}
+                        setContentItems={(items) => setNewActivity({ ...newActivity, contentItems: items })}
                         currentHint={currentHint}
                         setCurrentHint={setCurrentHint}
                         addHint={addHint}

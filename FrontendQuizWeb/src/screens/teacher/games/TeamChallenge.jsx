@@ -1,68 +1,87 @@
 import { Plus, Trash2, HelpCircle } from "lucide-react"
+import { v4 as uuidv4 } from 'uuid';
 
-const TeamChallengeForm = ({ 
-    content, 
-    setContent, 
-    currentHint, 
-    setCurrentHint, 
-    addHint, 
-    removeHint 
+const TeamChallengeForm = ({
+    contentItems,
+    setContentItems,
+    currentHint,
+    setCurrentHint,
+    addHint,
+    removeHint
 }) => {
-    
-    const addPrompt = () => {
-        setContent({
-            ...content,
-            prompts: [...content.prompts, ""]
+    const contentItem = contentItems[0] || {
+        contentId: uuidv4(), // ✅ Now at contentItem level
+        data: { // All game data goes here
+            prompts: [""],
+            roundTime: 60,
+            maxRounds: 5,
+            allowGuessing: true,
+            pointsPerCorrect: 10,
+            allowedWords: [],
+            hints: [],
+            pictionarySettings: {
+                rotateDrawers: false,
+                allowPartialPoints: false,
+                revealAnswerOnFail: false,
+                guessValidation: "EXACT_MATCH"
+            }
+        }
+    };
+
+    // Get the actual content data
+    const content = contentItem.data;
+
+    const updateContent = (updatedData) => {
+        const newContentItems = [{
+            ...contentItem,
+            data: {
+                ...content, // Existing data
+                ...updatedData // New updates
+            },
+            duration: updatedData.roundTime || content.roundTime // Keep duration in sync
+        }];
+        setContentItems(newContentItems);
+    };
+
+    const updateSettings = (settings) => {
+        updateContent({
+            pictionarySettings: {
+                ...content.pictionarySettings,
+                ...settings
+            }
         });
     };
 
+    // Prompts handlers
+    const addPrompt = () => updateContent({ prompts: [...content.prompts, ""] });
     const updatePrompt = (index, value) => {
         const updatedPrompts = [...content.prompts];
         updatedPrompts[index] = value;
-        setContent({
-            ...content,
-            prompts: updatedPrompts
-        });
+        updateContent({ prompts: updatedPrompts });
     };
-
     const removePrompt = (index) => {
         const updatedPrompts = [...content.prompts];
         updatedPrompts.splice(index, 1);
-        setContent({
-            ...content,
-            prompts: updatedPrompts
-        });
+        updateContent({ prompts: updatedPrompts });
     };
 
-    const addAllowedWord = () => {
-        setContent({
-            ...content,
-            allowedWords: [...(content.allowedWords || []), ""]
-        });
-    };
-
+    // Allowed words handlers
+    const addAllowedWord = () => updateContent({ allowedWords: [...content.allowedWords, ""] });
     const updateAllowedWord = (index, value) => {
-        const updatedWords = [...(content.allowedWords || [])];
+        const updatedWords = [...content.allowedWords];
         updatedWords[index] = value;
-        setContent({
-            ...content,
-            allowedWords: updatedWords
-        });
+        updateContent({ allowedWords: updatedWords });
     };
-
     const removeAllowedWord = (index) => {
-        const updatedWords = [...(content.allowedWords || [])];
+        const updatedWords = [...content.allowedWords];
         updatedWords.splice(index, 1);
-        setContent({
-            ...content,
-            allowedWords: updatedWords
-        });
+        updateContent({ allowedWords: updatedWords });
     };
 
     return (
         <div className="activity-content-form team-challenge-form">
             <h3>Drawing/Pictionary Challenge Setup</h3>
-            
+
             <div className="form-section">
                 <h4>Game Settings</h4>
                 <div className="form-row">
@@ -73,10 +92,7 @@ const TeamChallengeForm = ({
                             type="number"
                             min="10"
                             value={content.roundTime}
-                            onChange={(e) => setContent({
-                                ...content,
-                                roundTime: parseInt(e.target.value)
-                            })}
+                            onChange={(e) => updateContent({ roundTime: parseInt(e.target.value) })}
                             className="form-input"
                         />
                     </div>
@@ -87,10 +103,7 @@ const TeamChallengeForm = ({
                             type="number"
                             min="1"
                             value={content.maxRounds}
-                            onChange={(e) => setContent({
-                                ...content,
-                                maxRounds: parseInt(e.target.value)
-                            })}
+                            onChange={(e) => updateContent({ maxRounds: parseInt(e.target.value) })}
                             className="form-input"
                         />
                     </div>
@@ -101,10 +114,7 @@ const TeamChallengeForm = ({
                             type="number"
                             min="1"
                             value={content.pointsPerCorrect}
-                            onChange={(e) => setContent({
-                                ...content,
-                                pointsPerCorrect: parseInt(e.target.value)
-                            })}
+                            onChange={(e) => updateContent({ pointsPerCorrect: parseInt(e.target.value) })}
                             className="form-input"
                         />
                     </div>
@@ -115,10 +125,7 @@ const TeamChallengeForm = ({
                         type="checkbox"
                         id="allowGuessing"
                         checked={content.allowGuessing}
-                        onChange={(e) => setContent({
-                            ...content,
-                            allowGuessing: e.target.checked
-                        })}
+                        onChange={(e) => updateContent({ allowGuessing: e.target.checked })}
                     />
                     <label htmlFor="allowGuessing">Allow Guessing During Drawing</label>
                 </div>
@@ -127,7 +134,7 @@ const TeamChallengeForm = ({
             <div className="form-section">
                 <h4>Drawing Prompts</h4>
                 <p className="form-help-text">Add prompts that students will draw for their teammates to guess</p>
-                
+
                 {content.prompts.map((prompt, index) => (
                     <div key={index} className="form-row prompt-row">
                         <div className="form-group flex-grow">
@@ -141,9 +148,9 @@ const TeamChallengeForm = ({
                                 placeholder="Enter a word or phrase to draw"
                             />
                         </div>
-                        <button 
-                            type="button" 
-                            className="remove-item-button" 
+                        <button
+                            type="button"
+                            className="remove-item-button"
                             onClick={() => removePrompt(index)}
                             disabled={content.prompts.length <= 1}
                         >
@@ -151,7 +158,7 @@ const TeamChallengeForm = ({
                         </button>
                     </div>
                 ))}
-                
+
                 <button type="button" className="add-item-button" onClick={addPrompt}>
                     <Plus size={16} /> Add Prompt
                 </button>
@@ -160,8 +167,8 @@ const TeamChallengeForm = ({
             <div className="form-section">
                 <h4>Allowed Words List (Optional)</h4>
                 <p className="form-help-text">Words that are allowed to be spoken/written during the game</p>
-                
-                {(content.allowedWords || []).map((word, index) => (
+
+                {content.allowedWords.map((word, index) => (
                     <div key={index} className="form-row allowed-word-row">
                         <div className="form-group flex-grow">
                             <label htmlFor={`allowed-word-${index}`}>Allowed Word {index + 1}</label>
@@ -174,20 +181,20 @@ const TeamChallengeForm = ({
                                 placeholder="Enter an allowed word"
                             />
                         </div>
-                        <button 
-                            type="button" 
-                            className="remove-item-button" 
+                        <button
+                            type="button"
+                            className="remove-item-button"
                             onClick={() => removeAllowedWord(index)}
                         >
                             <Trash2 size={16} />
                         </button>
                     </div>
                 ))}
-                
-                {(content.allowedWords || []).length === 0 && (
+
+                {content.allowedWords.length === 0 && (
                     <p className="no-items-message">No allowed words added. All words are prohibited by default.</p>
                 )}
-                
+
                 <button type="button" className="add-item-button" onClick={addAllowedWord}>
                     <Plus size={16} /> Add Allowed Word
                 </button>
@@ -196,7 +203,7 @@ const TeamChallengeForm = ({
             <div className="form-section">
                 <h4>Hints</h4>
                 <p className="form-help-text">Add optional hints that can be revealed during the activity</p>
-                
+
                 <div className="form-row">
                     <div className="form-group flex-grow">
                         <input
@@ -207,16 +214,16 @@ const TeamChallengeForm = ({
                             placeholder="Enter a hint"
                         />
                     </div>
-                    <button 
-                        type="button" 
-                        className="add-hint-button" 
+                    <button
+                        type="button"
+                        className="add-hint-button"
                         onClick={addHint}
                         disabled={!currentHint.trim()}
                     >
                         <Plus size={16} /> Add
                     </button>
                 </div>
-                
+
                 {content.hints.length > 0 ? (
                     <div className="hints-list">
                         {content.hints.map((hint, index) => (
@@ -225,9 +232,9 @@ const TeamChallengeForm = ({
                                     <HelpCircle size={16} />
                                     <span>{hint}</span>
                                 </div>
-                                <button 
-                                    type="button" 
-                                    className="remove-hint-button" 
+                                <button
+                                    type="button"
+                                    className="remove-hint-button"
                                     onClick={() => removeHint(index)}
                                 >
                                     <Trash2 size={16} />
@@ -242,16 +249,13 @@ const TeamChallengeForm = ({
 
             <div className="advanced-settings-section">
                 <h4>Advanced Settings</h4>
-                
+
                 <div className="form-group">
                     <label htmlFor="guessValidation">Guess Validation</label>
                     <select
                         id="guessValidation"
-                        value={content.guessValidation || "EXACT_MATCH"}
-                        onChange={(e) => setContent({
-                            ...content,
-                            guessValidation: e.target.value
-                        })}
+                        value={content.pictionarySettings.guessValidation}
+                        onChange={(e) => updateSettings({ guessValidation: e.target.value })}
                         className="form-select"
                     >
                         <option value="EXACT_MATCH">Exact Match</option>
@@ -265,11 +269,8 @@ const TeamChallengeForm = ({
                     <input
                         type="checkbox"
                         id="rotateDrawers"
-                        checked={content.rotateDrawers || false}
-                        onChange={(e) => setContent({
-                            ...content,
-                            rotateDrawers: e.target.checked
-                        })}
+                        checked={content.pictionarySettings.rotateDrawers}
+                        onChange={(e) => updateSettings({ rotateDrawers: e.target.checked })}
                     />
                     <label htmlFor="rotateDrawers">Rotate Drawers Within Team</label>
                 </div>
@@ -278,11 +279,8 @@ const TeamChallengeForm = ({
                     <input
                         type="checkbox"
                         id="allowPartialPoints"
-                        checked={content.allowPartialPoints || false}
-                        onChange={(e) => setContent({
-                            ...content,
-                            allowPartialPoints: e.target.checked
-                        })}
+                        checked={content.pictionarySettings.allowPartialPoints}
+                        onChange={(e) => updateSettings({ allowPartialPoints: e.target.checked })}
                     />
                     <label htmlFor="allowPartialPoints">Allow Partial Points</label>
                 </div>
@@ -291,11 +289,8 @@ const TeamChallengeForm = ({
                     <input
                         type="checkbox"
                         id="revealAnswerOnFail"
-                        checked={content.revealAnswerOnFail || false}
-                        onChange={(e) => setContent({
-                            ...content,
-                            revealAnswerOnFail: e.target.checked
-                        })}
+                        checked={content.pictionarySettings.revealAnswerOnFail}
+                        onChange={(e) => updateSettings({ revealAnswerOnFail: e.target.checked })}
                     />
                     <label htmlFor="revealAnswerOnFail">Reveal Answer on Failed Guess</label>
                 </div>
