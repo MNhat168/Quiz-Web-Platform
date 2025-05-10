@@ -86,6 +86,15 @@ public class GameSessionService {
         GameSession session = gameSessionRepository.findById(sessionId)
                 .orElseThrow(() -> new RuntimeException("Session not found"));
 
+        if (session.getCurrentActivity() != null) {
+            session.getCurrentActivity().setEndTime(new Date());
+            session.getCurrentActivity().setStatus(GameSession.ActivityStatus.COMPLETED);
+            if (session.getCompletedActivities() == null) {
+                session.setCompletedActivities(new ArrayList<>());
+            }
+            session.getCompletedActivities().add(session.getCurrentActivity());
+            session.setCurrentActivity(null);
+        }
         session.setStatus(GameSession.SessionStatus.COMPLETED);
         session.setEndTime(new Date());
 
@@ -239,25 +248,38 @@ public class GameSessionService {
     public GameSession advanceActivity(String sessionId) {
         GameSession session = gameSessionRepository.findById(sessionId)
                 .orElseThrow(() -> new RuntimeException("Session not found"));
+
+        // Move current activity to completed list
+        if (session.getCurrentActivity() != null) {
+            session.getCurrentActivity().setEndTime(new Date());
+            session.getCurrentActivity().setStatus(GameSession.ActivityStatus.COMPLETED);
+            if (session.getCompletedActivities() == null) {
+                session.setCompletedActivities(new ArrayList<>());
+            }
+            session.getCompletedActivities().add(session.getCurrentActivity());
+        }
+
         Games game = gamesRepository.findById(session.getGameId())
                 .orElseThrow(() -> new RuntimeException("Game not found"));
 
-        int currentIndex = session.getCurrentActivityIndex();
-        int nextIndex = currentIndex + 1;
+        int nextIndex = session.getCurrentActivityIndex() + 1;
 
-        if (game.getActivities() != null && nextIndex < game.getActivities().size()) {
+        if (nextIndex < game.getActivities().size()) {
+            // Create new activity
+            GameSession.SessionActivity newActivity = new GameSession.SessionActivity();
+            newActivity.setActivityId(game.getActivities().get(nextIndex).getActivityId());
+            newActivity.setStartTime(new Date());
+            newActivity.setStatus(GameSession.ActivityStatus.ACTIVE);
+            newActivity.setResponses(new ArrayList<>());
+            newActivity.setCurrentContentIndex(0);
+
+            session.setCurrentActivity(newActivity);
             session.setCurrentActivityIndex(nextIndex);
-            GameSession.SessionActivity sessionActivity = new GameSession.SessionActivity();
-            sessionActivity.setActivityId(game.getActivities().get(nextIndex).getActivityId());
-            sessionActivity.setStartTime(new Date());
-            sessionActivity.setStatus(GameSession.ActivityStatus.ACTIVE);
-            sessionActivity.setResponses(new ArrayList<>());
-            // Reset content index when moving to a new activity
-            sessionActivity.setCurrentContentIndex(0);
-            session.setCurrentActivity(sessionActivity);
 
+            // Save and return
             GameSession updatedSession = gameSessionRepository.save(session);
-            Activity nextActivity = getActivityById(game.getActivities().get(nextIndex).getActivityId());
+            Activity nextActivity = getActivityById(newActivity.getActivityId());
+
             messagingTemplate.convertAndSend(
                     "/topic/session/" + session.getAccessCode() + "/activity",
                     nextActivity);
@@ -333,7 +355,7 @@ public class GameSessionService {
         try {
             int questionIndex = 0;
             int selectedOptionIndex = -1;
-    
+
             if (answer instanceof Map) {
                 Map<String, Object> answerMap = (Map<String, Object>) answer;
                 questionIndex = (int) answerMap.getOrDefault("questionIndex", 0);
@@ -341,18 +363,18 @@ public class GameSessionService {
             } else if (answer instanceof Integer) {
                 selectedOptionIndex = (Integer) answer;
             }
-    
+
             List<?> options = getOptionsForQuestion(content, questionIndex);
-            
+
             if (options == null || options.isEmpty()) {
                 System.err.println("No options found for question index: " + questionIndex);
                 return false;
             }
-    
+
             if (selectedOptionIndex < 0 || selectedOptionIndex >= options.size()) {
                 return false;
             }
-    
+
             return isOptionCorrect(options.get(selectedOptionIndex));
         } catch (Exception e) {
             System.err.println("Error evaluating multiple choice: " + e.getMessage());
@@ -368,7 +390,7 @@ public class GameSessionService {
             }
         } else if (content instanceof Map) {
             Map<String, Object> contentMap = (Map<String, Object>) content;
-            
+
             // Handle content item format (single question per content item)
             if (contentMap.containsKey("options")) {
                 return (List<?>) contentMap.get("options");
@@ -568,10 +590,11 @@ public class GameSessionService {
 
         Object contentToEvaluate = null;
         String explanation = null;
+        Optional<Activity.ActivityContent> contentItem = Optional.empty();
 
         if (contentId != null && !contentId.equals("legacy")) {
             if (activity.getContentItems() != null) {
-                Optional<Activity.ActivityContent> contentItem = activity.getContentItems().stream()
+                contentItem = activity.getContentItems().stream()
                         .filter(c -> c.getContentId().equals(contentId))
                         .findFirst();
 
@@ -584,30 +607,41 @@ public class GameSessionService {
                         }
                     }
                 } else {
-                    System.out.println("Content item not found with ID: " + contentId);
-                    contentToEvaluate = activity.getContent(); // Fallback to legacy content
+                    contentToEvaluate = activity.getContent();
                 }
             } else {
-                System.out.println("Activity has no content items, using legacy content");
                 contentToEvaluate = activity.getContent();
             }
         } else {
-            System.out.println("Using legacy content for activity: " + activity.getId());
             contentToEvaluate = activity.getContent();
         }
+
+        // Cast answer to Map to extract timeRemaining
+        Map<String, Object> answerData = (Map<String, Object>) answer;
+        int remainingTime = (int) answerData.getOrDefault("timeRemaining", 0);
+
+        // Calculate total duration
+        int totalDuration = contentItem.isPresent()
+                ? contentItem.get().getDuration()
+                : activity.getTimeLimit();
+        int timeSpent = Math.max(0, totalDuration - remainingTime);
 
         boolean isCorrect = evaluateAnswer(activity.getType().toString(), contentToEvaluate, answer);
         int pointsEarned = isCorrect ? calculatePoints(activity) : 0;
         participant.setTotalScore(participant.getTotalScore() + pointsEarned);
+
         if (participant.getActivityScores() == null) {
             participant.setActivityScores(new HashMap<>());
         }
 
-        String scoreKey = contentId != null && !contentId.equals("legacy") ? activityId + ":" + contentId : activityId;
+        String scoreKey = contentId != null && !contentId.equals("legacy")
+                ? activityId + ":" + contentId
+                : activityId;
         participant.getActivityScores().put(scoreKey, pointsEarned);
 
-        if (session.getCurrentActivity() != null &&
-                session.getCurrentActivity().getActivityId().equals(activityId)) {
+        // Validate content index if needed
+        if (session.getCurrentActivity() != null
+                && session.getCurrentActivity().getActivityId().equals(activityId)) {
             if (activity.getContentItems() != null && !activity.getContentItems().isEmpty()) {
                 int currentContentIndex = session.getCurrentActivity().getCurrentContentIndex();
                 if (currentContentIndex < activity.getContentItems().size()) {
@@ -621,17 +655,18 @@ public class GameSessionService {
             }
         }
 
-        if (session.getCurrentActivity() != null &&
-                activityId.equals(session.getCurrentActivity().getActivityId())) {
-
+        // Create and populate the response
+        if (session.getCurrentActivity() != null
+                && activityId.equals(session.getCurrentActivity().getActivityId())) {
             GameSession.ParticipantResponse response = new GameSession.ParticipantResponse();
             response.setParticipantId(studentId);
             response.setActivityId(activityId);
-            response.setContentId(contentId); // Store contentId with the response
+            response.setContentId(contentId);
             response.setAnswer(answer);
             response.setCorrect(isCorrect);
             response.setPointsEarned(pointsEarned);
             response.setSubmittedAt(new Date());
+            response.setTimeSpent(timeSpent); // Set calculated timeSpent
 
             if (session.getCurrentActivity().getResponses() == null) {
                 session.getCurrentActivity().setResponses(new ArrayList<>());
@@ -641,25 +676,16 @@ public class GameSessionService {
 
         updateActivityStatistics(session, activityId, isCorrect);
         gameSessionRepository.save(session);
-        // After saving the session
-        // Check if all participants have answered THIS content item
-        if (session.getCurrentActivity() != null &&
-                activity.getContentItems() != null &&
-                !activity.getContentItems().isEmpty()) {
 
-            // Get current content index and ID
+        if (session.getCurrentActivity() != null
+                && activity.getContentItems() != null
+                && !activity.getContentItems().isEmpty()) {
             int currentContentIndex = session.getCurrentActivity().getCurrentContentIndex();
             String currentContentId = activity.getContentItems().get(currentContentIndex).getContentId();
-
-            // Create the score key format used in activityScores
             String expectedScoreKey = activityId + ":" + currentContentId;
-
-            // Check if all participants have this score key
             boolean allAnswered = session.getParticipants().stream()
                     .allMatch(p -> p.getActivityScores().containsKey(expectedScoreKey));
-
             if (allAnswered) {
-                // Automatically advance content for everyone
                 advanceContentForActivity(session.getId(), activityId);
             }
         }
@@ -668,21 +694,18 @@ public class GameSessionService {
         result.put("pointsEarned", pointsEarned);
         result.put("totalScore", participant.getTotalScore());
 
+        // Include explanation and correct answer if enabled
         if (session.getSettings() != null && session.getSettings().isShowCorrectAnswers()) {
-            if (explanation != null) {
-                result.put("explanation", explanation);
-            } else {
-                result.put("explanation", activity.getExplanation());
-            }
+            result.put("explanation", explanation != null ? explanation : activity.getExplanation());
             if (contentToEvaluate instanceof Map) {
                 Map<String, Object> contentMap = (Map<String, Object>) contentToEvaluate;
-                if (contentMap.containsKey("correctAnswer")) {
-                    result.put("correctAnswer", contentMap.get("correctAnswer"));
-                }
+                result.put("correctAnswer", contentMap.getOrDefault("correctAnswer", activity.getCorrectAnswer()));
             } else {
                 result.put("correctAnswer", activity.getCorrectAnswer());
             }
         }
+
+        // Update leaderboard
         if (session.getSettings() != null && session.getSettings().isShowLeaderboard()) {
             sendLeaderboardUpdate(session);
         }
@@ -710,7 +733,6 @@ public class GameSessionService {
                 case MULTIPLE_CHOICE:
                     return evaluateMultipleChoice(contentToEvaluate, answer);
                 case OPEN_ENDED:
-                    // For open-ended questions, always return true
                     return true;
                 case SORTING:
                 case FILL_IN_BLANK:
@@ -718,7 +740,6 @@ public class GameSessionService {
                 case MATCHING:
                     return evaluateMatching(contentToEvaluate, answer);
                 default:
-                    // For other activity types (including polls/surveys)
                     return true;
             }
         } catch (Exception e) {
@@ -734,7 +755,7 @@ public class GameSessionService {
         System.out.println("Difficulty: " + activity.getDifficulty());
         if (activity == null) {
             System.out.println("Activity is null, returning default points");
-            return 10; // Default points
+            return 10;
         }
         int basePoints = activity.getPoints() > 0 ? activity.getPoints() : 10; // Default to 10
         System.out.println("Base points: " + basePoints);
@@ -788,13 +809,26 @@ public class GameSessionService {
         if (!game.getSettings().isTeamBased()) {
             throw new RuntimeException("This game is not configured for team-based play");
         }
+
         Games.GameSettings.TeamGameSettings teamSettings = game.getSettings().getTeamSettings();
         if (teamSettings == null) {
             throw new RuntimeException("Team settings not configured for this game");
         }
-        int numberOfTeams = teamSettings.getMinTeamSize();
-        if (numberOfTeams <= 0) {
-            numberOfTeams = 2; // Default to 2 teams if not set
+        int numberOfTeams;
+        if (autoAssign) {
+            List<GameSession.Participant> participants = session.getParticipants();
+            if (participants.isEmpty()) {
+                throw new RuntimeException("No participants to assign to teams");
+            }
+            int participantCount = participants.size();
+            int maxTeamSize = teamSettings.getMaxTeamSize();
+            int minTeamSize = teamSettings.getMinTeamSize();
+            numberOfTeams = Math.max(2, participantCount / maxTeamSize);
+            if (participantCount / numberOfTeams < minTeamSize) {
+                numberOfTeams = Math.max(1, participantCount / minTeamSize);
+            }
+        } else {
+            numberOfTeams = 2;
         }
         session.setTeams(new ArrayList<>());
 

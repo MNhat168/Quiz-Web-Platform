@@ -352,8 +352,11 @@ const StudentGamePlay = () => {
                 {
                     activityId: currentActivity.id,
                     contentId: contentId,
-                    answer: answer,
-                    contentIndex: currentContentIndex  
+                    answer: {
+                        ...answer, 
+                        timeRemaining: timeRemaining
+                    },
+                    contentIndex: currentContentIndex
                 },
                 {
                     headers: {

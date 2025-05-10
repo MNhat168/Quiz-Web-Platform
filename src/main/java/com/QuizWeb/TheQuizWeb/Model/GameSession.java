@@ -27,6 +27,7 @@ public class GameSession {
     private List<PowerUpEvent> powerUpEvents;
     private SessionSettings settings;
     private SessionStatistics statistics;
+    private List<SessionActivity> completedActivities;
 
     // Team class now tracks content item index for team-based activities
     @Data

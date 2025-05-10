@@ -356,6 +356,36 @@ const TeamChallengeActivity = ({ activity, content, accessCode, contentItem }) =
         }
     };
 
+    const getDuration = () => {
+        if (contentItem?.data?.duration) {
+            return contentItem.data.duration;
+        }
+        if (contentItem?.data?.roundTime) {
+            return contentItem.data.roundTime;
+        }
+        return 60;
+    };
+
+    
+
+    const [timeRemaining, setTimeRemaining] = useState(getDuration());
+
+    useEffect(() => {
+        if (challengeStatus.status !== 'ACTIVE' || !timeRemaining) return;
+
+        const timer = setInterval(() => {
+            setTimeRemaining(prev => {
+                if (prev <= 1) {
+                    clearInterval(timer);
+                    return 0;
+                }
+                return prev - 1;
+            });
+        }, 1000);
+
+        return () => clearInterval(timer);
+    }, [challengeStatus.status, timeRemaining]);
+    
     const handleStroke = useCallback((stroke) => {
         if (userRole === 'drawer' && userTeam?.teamId && canvasRef.current) {
             if (stompClientRef.current?.connected) {
@@ -740,9 +770,9 @@ const TeamChallengeActivity = ({ activity, content, accessCode, contentItem }) =
         return (
             <div className="challenge-status" style={{ marginBottom: '20px' }}>
                 <h4>Round: {challengeStatus.currentRound?.index + 1 || 1}</h4>
-                {challengeStatus.timeRemaining && (
-                    <p>Time Remaining: {challengeStatus.timeRemaining}s</p>
-                )}
+                <div className="teamchallenge-timer">
+                    Time Remaining: {timeRemaining}s
+                </div>
                 {challengeStatus.currentRound?.guesses?.length > 0 && (
                     <div className="guess-history" style={{ marginTop: '10px' }}>
                         <h5>Recent Guesses:</h5>

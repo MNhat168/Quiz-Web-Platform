@@ -80,7 +80,7 @@ public class Games {
         @Data
         public static class TeamGameSettings {
             private int minTeamSize = 2;
-            private int maxTeamSize = 5;
+            private int maxTeamSize = 4;
             private boolean autoAssignTeams = true;
         }
     }
