@@ -27,6 +27,7 @@ const StudentGamePlay = () => {
     const [sessionStatus, setSessionStatus] = useState('ACTIVE');
     const [submitting, setSubmitting] = useState(false);
     const [submissionResult, setSubmissionResult] = useState(null);
+    const [showResult, setShowResult] = useState(false);
     const [participantScores, setParticipantScores] = useState([]);
     const [contentTimer, setContentTimer] = useState(null);
     const [transitionActive, setTransitionActive] = useState(false);
@@ -41,6 +42,17 @@ const StudentGamePlay = () => {
         resetContentTimer();
         setSubmissionResult(null);
     }, [currentActivity, currentContentItem]);
+
+    useEffect(() => {
+        if (submissionResult) {
+            setShowResult(true);
+            const timer = setTimeout(() => {
+                setShowResult(false);
+                setSubmissionResult(null);
+            }, 1500);
+            return () => clearTimeout(timer);
+        }
+    }, [submissionResult]);
 
     const accessCode = new URLSearchParams(window.location.search).get('accessCode') ||
         localStorage.getItem('studentSessionAccessCode');
@@ -167,53 +179,135 @@ const StudentGamePlay = () => {
         localStorage.removeItem('studentJoinedStatus');
         navigate('/student/join');
     };
-
     const renderFinalLeaderboard = () => {
         return (
-            <div className="final-leaderboard-container">
-                <div className="final-leaderboard-overlay">
-                    <div className="final-leaderboard">
-                        <h2>Game Complete!</h2>
-                        <h3>Final Results</h3>
-                        
-                        {participantScores.length === 0 ? (
-                            <p>Loading final scores...</p>
-                        ) : (
-                            <div className="final-scores">
-                                {participantScores.slice(0, 10).map((entry, index) => (
-                                    <div key={entry.userId} className={`leaderboard-entry ${index < 3 ? 'top-' + (index + 1) : ''}`}>
-                                        <span className="rank">{index + 1}</span>
-                                        <span className="player-name">{entry.displayName}</span>
-                                        <span className="score">{entry.score} points</span>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-                        
-                        {/* Find the current user's score and position */}
-                        {(() => {
-                            const studentId = getStudentId();
-                            const userPosition = participantScores.findIndex(p => p.userId === studentId);
-                            if (userPosition !== -1) {
-                                const userScore = participantScores[userPosition];
-                                return (
-                                    <div className="your-score">
-                                        <h4>Your Score</h4>
-                                        <p>Rank: {userPosition + 1}</p>
-                                        <p>Score: {userScore.score} points</p>
-                                    </div>
-                                );
-                            }
-                            return null;
-                        })()}
-                        
-                        <button 
-                            className="return-to-lobby-button"
-                            onClick={handleReturnToLobby}>
+            <div className="!fixed !inset-0 !flex !items-center !justify-center !z-50">
+                {/* Confetti Animation */}
+                <div className="!fixed !inset-0 !pointer-events-none !overflow-hidden !z-[100]">
+                    {Array.from({ length: 30 }).map((_, i) => {
+                        const duration = 2 + Math.random() * 1;    // 2-3s
+                        const delay = Math.random() * 0.5;         // 0-0.5s
+                        const sway = Math.random() * 40 - 20;      // ±20px horizontal
+                        const color = ['#ff4e91','#ffa638','#38caff','#52ff38','#ff38e7'][i % 5];
+                        const startX = Math.random() * 100;        // start position %
+                        const size = 12 + Math.random() * 12;      // 12-24px
+                        const rotation = Math.random() * 360;      // random initial rotation
+
+                        return (
+                            <div
+                                key={i}
+                                className="confetti"
+                                style={{
+                                    left: `${startX}%`,
+                                    backgroundColor: color,
+                                    width: `${size}px`,
+                                    height: `${size/2}px`,
+                                    animation: `confetti ${duration}s cubic-bezier(0.4, 0, 0.2, 1) ${delay}s forwards`,
+                                    '--sway': `${sway}px`,
+                                    '--rotation': `${rotation}deg`
+                                }}
+                            />
+                        );
+                    })}
+                </div>
+
+                <div className="!absolute !inset-0 !bg-gradient-to-br !from-pink-200/90 !to-purple-200/90 !flex !items-center !justify-center animate-fadeIn">
+                    <div className="!relative !bg-white !rounded-3xl !p-8 !w-[90%] !max-w-[500px] !shadow-2xl !overflow-hidden animate-popIn">
+                        <h2 className="!text-purple-600 !text-3xl !text-center !mb-1 !font-bold animate-float">
+                            Game Complete!
+                        </h2>
+                        <h3 className="!text-pink-500 !text-xl !text-center !mb-6 !font-medium">
+                            Final Results
+                        </h3>
+                        <div className="!mb-6 !max-h-[300px] !overflow-y-auto !pr-2">
+                            {participantScores.slice(0, 10).map((entry, idx) => (
+                                <div
+                                    key={entry.userId}
+                                    className={`!flex !items-center !p-3 !mb-2 !rounded-xl !transition-all !duration-300 animate-slideIn delay-${idx}`}
+                                    style={{
+                                        border: `2px solid ${idx === 0 ? '#FFD700' : '#C0C0C0'}`,
+                                        backgroundColor: idx === 0 ? '#FFFAE1' : 'transparent',
+                                        boxShadow: idx === 0 ? '0 0 10px 5px rgba(255,223,0,0.7)' : 'none'
+                                    }}
+                                >
+                                    <span className="!w-8 !h-8 !flex !items-center !justify-center !rounded-full !mr-3 !font-bold !text-sm">
+                                        {idx + 1}
+                                    </span>
+                                    <span className="!flex-1 !font-medium !text-gray-800 !truncate">
+                                        {entry.displayName}
+                                    </span>
+                                    <span className="!font-bold !text-purple-600">
+                                        {entry.score} points
+                                    </span>
+                                </div>
+                            ))}
+                        </div>
+                        <button
+                            className="!bg-gradient-to-r !from-purple-500 !to-pink-500 !text-white !font-semibold !py-3 !px-6 !rounded-full !block !mx-auto !shadow-lg !transition-all !duration-300 !hover:-translate-y-1 !hover:shadow-xl !active:translate-y-0"
+                            onClick={handleReturnToLobby}
+                        >
                             Return to Lobby
                         </button>
                     </div>
                 </div>
+
+                <style jsx>{`
+                    .confetti {
+                        position: absolute;
+                        top: 0;
+                        transform: translate3d(0, -20px, 0) rotate(0deg);
+                        border-radius: 20%;
+                        will-change: transform, opacity;
+                        backface-visibility: hidden;
+                        transform-style: preserve-3d;
+                        perspective: 1000px;
+                    }
+
+                    @keyframes confetti {
+                        0% {
+                            transform: translate3d(0, -20px, 0) rotate(var(--rotation));
+                            opacity: 1;
+                        }
+                        15% {
+                            transform: translate3d(calc(var(--sway) * 0.5), 15vh, 0) rotate(calc(var(--rotation) + 90deg));
+                            opacity: 0.9;
+                        }
+                        30% {
+                            transform: translate3d(var(--sway), 30vh, 0) rotate(calc(var(--rotation) + 180deg));
+                            opacity: 0.8;
+                        }
+                        45% {
+                            transform: translate3d(calc(var(--sway) * -0.5), 45vh, 0) rotate(calc(var(--rotation) + 270deg));
+                            opacity: 0.7;
+                        }
+                        60% {
+                            transform: translate3d(calc(var(--sway) * -1), 60vh, 0) rotate(calc(var(--rotation) + 360deg));
+                            opacity: 0.6;
+                        }
+                        75% {
+                            transform: translate3d(calc(var(--sway) * -0.5), 75vh, 0) rotate(calc(var(--rotation) + 450deg));
+                            opacity: 0.4;
+                        }
+                        90% {
+                            transform: translate3d(calc(var(--sway) * 0.5), 90vh, 0) rotate(calc(var(--rotation) + 540deg));
+                            opacity: 0.2;
+                        }
+                        100% {
+                            transform: translate3d(0, 100vh, 0) rotate(calc(var(--rotation) + 720deg));
+                            opacity: 0;
+                        }
+                    }
+
+                    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+                    @keyframes popIn  { 0% { transform: scale(0.8); opacity:0; } 100% { transform: scale(1); opacity:1; } }
+                    @keyframes slideIn{ from { opacity:0; transform:translateX(-20px);} to{opacity:1; transform:translateX(0);} }
+                    @keyframes float  { 0%,100%{transform:translateY(0);} 50%{transform:translateY(-5px);} }
+
+                    .animate-fadeIn { animation: fadeIn 0.5s ease-out; }
+                    .animate-popIn  { animation: popIn 0.5s cubic-bezier(0.175,0.885,0.32,1.275); }
+                    .animate-slideIn{ animation: slideIn 0.5s ease-out both; }
+                    .animate-float  { animation: float 3s ease-in-out infinite; }
+                `}</style>
             </div>
         );
     };
@@ -464,41 +558,151 @@ const StudentGamePlay = () => {
     };
 
     const renderSubmissionResult = () => {
-        if (!submissionResult) return null;
-
+        if (!submissionResult || !showResult) return null;
+    
         return (
-            <div className={`submission-result ${submissionResult.correct ? 'correct' : 'incorrect'}`}>
-                <h4>{submissionResult.correct ? 'Correct!' : 'Incorrect'}</h4>
+            <div className={`!fixed !inset-x-0 !bottom-0 !mb-6 !mx-auto !max-w-md !px-6 !py-6 !rounded-2xl !shadow-xl !flex !flex-col !items-center !justify-center !z-50
+                ${submissionResult.correct 
+                    ? '!bg-gradient-to-br !from-green-100 !to-emerald-100 !border-2 !border-green-300 !text-green-700' 
+                    : '!bg-gradient-to-br !from-red-100 !to-rose-100 !border-2 !border-red-300 !text-red-700'}`}
+            >
+                {/* Icon based on result */}
+                <div className={`!w-16 !h-16 !rounded-full !flex !items-center !justify-center !mb-4
+                    ${submissionResult.correct 
+                        ? '!bg-gradient-to-br !from-green-200 !to-emerald-200 !text-green-600 !shadow-lg !shadow-green-100' 
+                        : '!bg-gradient-to-br !from-red-200 !to-rose-200 !text-red-600 !shadow-lg !shadow-red-100'}`}
+                >
+                    {submissionResult.correct ? (
+                        <svg className="!w-8 !h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7"></path>
+                        </svg>
+                    ) : (
+                        <svg className="!w-8 !h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    )}
+                </div>
+                
+                <h4 className={`!text-2xl !font-bold !mb-3
+                    ${submissionResult.correct ? '!text-green-700' : '!text-red-700'}`}
+                >
+                    {submissionResult.correct ? 'Correct!' : 'Incorrect'}
+                </h4>
+                
                 {submissionResult.explanation && (
-                    <p className="explanation">{submissionResult.explanation}</p>
+                    <p className="!text-center !text-base !mb-4 !px-4 !opacity-90">
+                        {submissionResult.explanation}
+                    </p>
                 )}
+                
                 {submissionResult.pointsEarned && (
-                    <p className="points">+ {submissionResult.pointsEarned} points</p>
+                    <div className="!flex !items-center !gap-2">
+                        <span className="!text-lg !font-semibold !text-gray-700">Points earned:</span>
+                        <span className="!font-bold !text-xl !bg-white !bg-opacity-80 !px-4 !py-1 !rounded-full !shadow-sm !text-emerald-600">
+                            +{submissionResult.pointsEarned}
+                        </span>
+                    </div>
                 )}
             </div>
         );
     };
 
-    const renderLeaderboard = () => {
-        if (!participantScores || participantScores.length === 0) {
-            return null;
-        }
+ const renderLeaderboard = () => {
+    if (!participantScores || participantScores.length === 0) {
+        return null;
+    }
 
-        return (
-            <div className="leaderboard">
-                <h3>Leaderboard</h3>
-                <ul>
-                    {participantScores.slice(0, 5).map((entry, index) => (
-                        <li key={entry.userId} className="leaderboard-entry">
-                            <span className="rank">{index + 1}</span>
-                            <span className="player-name">{entry.displayName}</span>
-                            <span className="score">{entry.score}</span>
-                        </li>
-                    ))}
-                </ul>
-            </div>
-        );
-    };
+    return (
+        <div className="!bg-white !rounded-2xl !shadow-lg !p-5 !border !border-purple-100 !overflow-hidden !relative !animate-slide-in">
+            {/* Decorative elements */}
+            <div className="!absolute !-top-6 !-right-6 !w-12 !h-12 !rounded-full !bg-pink-100 !opacity-70"></div>
+            <div className="!absolute !-bottom-6 !-left-6 !w-12 !h-12 !rounded-full !bg-blue-100 !opacity-70"></div>
+            
+            <h3 className="!text-xl !font-bold !text-purple-700 !mb-4 !text-center !relative !z-10 !flex !items-center !justify-center !gap-2">
+                <svg className="!w-5 !h-5 !text-yellow-500 !animate-spin-slow" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd"></path>
+                </svg>
+                Leaderboard
+                <svg className="!w-5 !h-5 !text-yellow-500 !animate-spin-slow" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd"></path>
+                </svg>
+            </h3>
+            
+            <ul className="!space-y-2">
+                {participantScores.slice(0, 5).map((entry, index) => (
+                    <li 
+                        key={entry.userId} 
+                        className={`!flex !items-center !p-3 !rounded-xl !transition-all !duration-300 !animate-slide-up !shadow-sm !hover:shadow-md !hover:translate-x-1
+                            ${index === 0 
+                                ? '!bg-gradient-to-r !from-yellow-50 !to-yellow-100 !border-l-4 !border-yellow-400' 
+                                : index === 1 
+                                    ? '!bg-gradient-to-r !from-gray-50 !to-gray-100 !border-l-4 !border-gray-400' 
+                                    : index === 2 
+                                        ? '!bg-gradient-to-r !from-amber-50 !to-amber-100 !border-l-4 !border-amber-600' 
+                                        : '!bg-gradient-to-r !from-purple-50 !to-pink-50'}`}
+                        style={{ animationDelay: `${index * 0.1}s` }}
+                    >
+                        <span className={`!w-8 !h-8 !flex !items-center !justify-center !rounded-full !mr-3 !font-bold !text-sm !shadow-inner
+                            ${index === 0 
+                                ? '!bg-yellow-400 !text-yellow-900' 
+                                : index === 1 
+                                    ? '!bg-gray-300 !text-gray-800' 
+                                    : index === 2 
+                                        ? '!bg-amber-600 !text-white' 
+                                        : '!bg-purple-200 !text-purple-800'}`}
+                        >
+                            {index + 1}
+                        </span>
+                        
+                        <span className="!flex-1 !font-medium !text-gray-800 !truncate">
+                            {entry.displayName}
+                            {index === 0 && (
+                                <span className="!inline-block !ml-2 !animate-bounce-slow">👑</span>
+                            )}
+                        </span>
+                        
+                        <span className={`!font-bold !px-3 !py-1 !rounded-full !text-sm
+                            ${index === 0 
+                                ? '!bg-yellow-200 !text-yellow-800' 
+                                : index === 1 
+                                    ? '!bg-gray-200 !text-gray-800' 
+                                    : index === 2 
+                                        ? '!bg-amber-200 !text-amber-800' 
+                                        : '!bg-purple-100 !text-purple-800'}`}
+                        >
+                            {entry.score}
+                        </span>
+                    </li>
+                ))}
+            </ul>
+            
+            {/* Custom animations */}
+            <style jsx>{`
+                @keyframes slide-in {
+                    0% { transform: translateY(-20px); opacity: 0; }
+                    100% { transform: translateY(0); opacity: 1; }
+                }
+                
+                @keyframes slide-up {
+                    0% { transform: translateY(10px); opacity: 0; }
+                    100% { transform: translateY(0); opacity: 1; }
+                }
+                
+                @keyframes spin-slow {
+                    0% { transform: rotate(0deg); }
+                    100% { transform: rotate(360deg); }
+                }
+                
+                @keyframes bounce-slow {
+                    0%, 100% { transform: translateY(0); }
+                    50% { transform: translateY(-5px); }
+                }
+                
+               
+            `}</style>
+        </div>
+    );
+};
 
     const renderContentNavigation = () => {
         if (!currentActivity || !currentActivity.contentItems || currentActivity.contentItems.length <= 1) {
@@ -539,47 +743,123 @@ const StudentGamePlay = () => {
         return null;
     };
 
-    const renderActivity = () => {
-        if (!currentActivity) {
-            return <div>No active activity</div>;
-        }
+   const renderActivity = () => {
+    if (!currentActivity) {
+        return (
+            <div className="!flex !flex-col !items-center !justify-center !p-8 !bg-gradient-to-r !from-purple-50 !to-pink-50 !rounded-2xl !shadow-md !animate-fade-in !min-h-[200px]">
+                <div className="!w-16 !h-16 !mb-4 !rounded-full !bg-purple-100 !flex !items-center !justify-center !animate-pulse">
+                    <svg className="!w-8 !h-8 !text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                </div>
+                <p className="!text-lg !font-medium !text-purple-700 !text-center !animate-slide-up">No active activity</p>
+                <p className="!text-sm !text-purple-500 !mt-2 !text-center !max-w-xs !animate-slide-up !delay-100">Please select an activity to begin your learning journey!</p>
+            </div>
+        );
+    }
 
-        const content = getCurrentContent();
-        const commonProps = {
-            activity: currentActivity,
-            content: content,
-            submitting: submitting,
-            submitAnswer: submitAnswer,
-            textAnswer: textAnswer,
-            setTextAnswer: setTextAnswer,
-            contentItem: currentContentItem
-        };
-
-        switch (currentActivity.type) {
-            case 'MULTIPLE_CHOICE':
-                return <MultipleChoiceActivity {...commonProps} />;
-            case 'TRUE_FALSE':
-                return <TrueFalseActivity {...commonProps} />;
-            case 'OPEN_ENDED':
-                return <TextInputActivity {...commonProps} />;
-            case 'FILL_IN_BLANK':
-                return <FillInBlankGame {...commonProps} onComplete={handleActivityComplete} />;
-            case 'SORTING':
-                return <SortingActivity {...commonProps} />;
-            case 'MATCHING':
-                return <MatchingActivity {...commonProps} />;
-            case 'MATH_PROBLEM':
-                return <MathProblemActivity {...commonProps} />;
-            default:
-                return (
-                    <div className="unsupported-activity">
-                        <h3>{currentActivity.title}</h3>
-                        <p>{currentActivity.instructions}</p>
-                        <p>Activity type '{currentActivity.type}' is not fully supported yet.</p>
-                    </div>
-                );
-        }
+    const content = getCurrentContent();
+    const commonProps = {
+        activity: currentActivity,
+        content: content,
+        submitting: submitting,
+        submitAnswer: submitAnswer,
+        textAnswer: textAnswer,
+        setTextAnswer: setTextAnswer,
+        contentItem: currentContentItem
     };
+
+    switch (currentActivity.type) {
+        case 'MULTIPLE_CHOICE':
+            return <MultipleChoiceActivity {...commonProps} />;
+        case 'TRUE_FALSE':
+            return <TrueFalseActivity {...commonProps} />;
+        case 'OPEN_ENDED':
+            return <TextInputActivity {...commonProps} />;
+        case 'FILL_IN_BLANK':
+            return <FillInBlankGame {...commonProps} onComplete={handleActivityComplete} />;
+        case 'SORTING':
+            return <SortingActivity {...commonProps} />;
+        case 'MATCHING':
+            return <MatchingActivity {...commonProps} />;
+        case 'MATH_PROBLEM':
+            return <MathProblemActivity {...commonProps} />;
+        default:
+            return (
+                <div className="!bg-white !rounded-2xl !shadow-lg !p-6 !border !border-yellow-200 !overflow-hidden !relative !animate-slide-in">
+                    {/* Decorative elements */}
+                    <div className="!absolute !-top-10 !-right-10 !w-20 !h-20 !rounded-full !bg-yellow-100 !opacity-50"></div>
+                    <div className="!absolute !-bottom-10 !-left-10 !w-20 !h-20 !rounded-full !bg-blue-100 !opacity-50"></div>
+                    
+                    {/* Warning icon */}
+                    <div className="!flex !items-center !justify-center !mb-4">
+                        <div className="!w-16 !h-16 !rounded-full !bg-yellow-100 !flex !items-center !justify-center !animate-bounce-slow">
+                            <svg className="!w-8 !h-8 !text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                            </svg>
+                        </div>
+                    </div>
+                    
+                    <h3 className="!text-xl !font-bold !text-gray-800 !mb-3 !text-center !animate-slide-up">{currentActivity.title}</h3>
+                    
+                    <p className="!text-gray-600 !mb-4 !text-center !animate-slide-up !delay-100">{currentActivity.instructions}</p>
+                    
+                    <div className="!bg-yellow-50 !border-l-4 !border-yellow-400 !p-4 !rounded-r-lg !mb-4 !animate-slide-up !delay-200">
+                        <p className="!text-yellow-700 !flex !items-center">
+                            <svg className="!w-5 !h-5 !mr-2 !inline" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd"></path>
+                            </svg>
+                            Activity type '{currentActivity.type}' is not fully supported yet.
+                        </p>
+                    </div>
+                    
+                    <div className="!flex !justify-center !animate-slide-up !delay-300">
+                        <button className="!bg-gradient-to-r !from-purple-500 !to-pink-500 !text-white !font-medium !py-2 !px-6 !rounded-full !shadow-md !transition-all !duration-300 !hover:-translate-y-1 !hover:shadow-lg !active:translate-y-0">
+                            Return to Activities
+                        </button>
+                    </div>
+                </div>
+            );
+    }
+};
+
+{/* Custom animations */}
+<style jsx global>{`
+    @keyframes fade-in {
+        0% { opacity: 0; }
+        100% { opacity: 1; }
+    }
+    
+    @keyframes slide-in {
+        0% { transform: translateY(-20px); opacity: 0; }
+        100% { transform: translateY(0); opacity: 1; }
+    }
+    
+    @keyframes slide-up {
+        0% { transform: translateY(10px); opacity: 0; }
+        100% { transform: translateY(0); opacity: 1; }
+    }
+    
+    @keyframes bounce-slow {
+        0%, 100% { transform: translateY(0); }
+        50% { transform: translateY(-5px); }
+    }
+    
+    @keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.7; }
+    }
+    
+    .animate-fade-in { animation: fade-in 0.5s ease-out forwards; }
+    .animate-slide-in { animation: slide-in 0.5s ease-out forwards; }
+    .animate-slide-up { animation: slide-up 0.4s ease-out forwards; }
+    .animate-bounce-slow { animation: bounce-slow 2s infinite; }
+    .animate-pulse { animation: pulse 2s infinite; }
+    
+    .delay-100 { animation-delay: 0.1s; }
+    .delay-200 { animation-delay: 0.2s; }
+    .delay-300 { animation-delay: 0.3s; }
+`}</style>
 
     const handleActivityComplete = () => {
         console.log('Activity completed, requesting advancement');

@@ -95,27 +95,23 @@ const FillInBlankGame = ({
             newAnswers[blankIndex] = currentAnswer.trim();
             setUserAnswers(newAnswers);
             
+            // Normalize answers for comparison
+            const normalizedUserAnswer = currentAnswer.trim().toLowerCase();
+            const normalizedCorrectAnswer = correctAnswer.trim().toLowerCase();
+            const normalizedAlternatives = alternatives.map(alt => alt.trim().toLowerCase());
+            
             // Check if the answer matches the correct answer or any alternative
-            const isCorrect = currentAnswer.trim().toLowerCase() === correctAnswer.toLowerCase();
-            const isAlternative = alternatives.some(alt => 
-                currentAnswer.trim().toLowerCase() === alt.toLowerCase()
-            );
+            const isCorrect = normalizedUserAnswer === normalizedCorrectAnswer;
+            const isAlternative = normalizedAlternatives.some(alt => alt === normalizedUserAnswer);
             
             // Set feedback based on answer type
-            if (isCorrect) {
-                setFeedback(prev => ({
-                    ...prev,
-                    [blankIndex]: {
-                        correct: true
-                    }
-                }));
-            } else if (isAlternative) {
+            if (isCorrect || isAlternative) {
                 setFeedback(prev => ({
                     ...prev,
                     [blankIndex]: {
                         correct: true,
-                        isAlternative: true,
-                        correctAnswer: correctAnswer
+                        isAlternative: isAlternative,
+                        correctAnswer: correctAnswer.trim()
                     }
                 }));
             } else {
@@ -123,7 +119,7 @@ const FillInBlankGame = ({
                     ...prev,
                     [blankIndex]: {
                         correct: false,
-                        correctAnswer: correctAnswer
+                        correctAnswer: correctAnswer.trim()
                     }
                 }));
             }
@@ -149,7 +145,15 @@ const FillInBlankGame = ({
                     }
                 }, 3000); // 3 seconds delay
             } else {
-                setAnswered(false);
+                // Clear feedback after 3 seconds for single blank
+                setTimeout(() => {
+                    setFeedback(prev => {
+                        const newFeedback = { ...prev };
+                        delete newFeedback[blankIndex];
+                        return newFeedback;
+                    });
+                    setAnswered(false);
+                }, 1500);
             }
         } catch (error) {
             console.error('Error submitting answer:', error);
@@ -234,12 +238,12 @@ const FillInBlankGame = ({
                             {feedback.correct ? (
                                 feedback.isAlternative ? (
                                     <div>
-                                        In another answer: "{feedback.correctAnswer}"
+                                        Correct answer also is "{(feedback.correctAnswer || '').trim()}"
                                     </div>
                                 ) : null
                             ) : (
                                 <div>
-                                    Correct answer is "{feedback.correctAnswer}"
+                                    Correct answer  is "{(feedback.correctAnswer || '').trim()}"
                                 </div>
                             )}
                         </div>
