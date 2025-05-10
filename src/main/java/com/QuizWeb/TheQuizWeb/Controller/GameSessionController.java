@@ -137,9 +137,15 @@ public class GameSessionController {
             @PathVariable String activityId,
             @PathVariable int contentIndex,
             Authentication authentication) {
-        
+
         User user = userService.getCurrentUser(authentication);
-        
+
+        // Get the activity
+        Activity activity = activityService.getActivityById(activityId);
+        if (activity == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "Activity not found"));
+        }
+
         // Verify the session exists and user is a participant
         GameSession session = gameSessionService.getSessionByAccessCode(accessCode);
         if (session == null || !gameSessionService.isUserParticipant(session, user.getEmail())) {
@@ -481,7 +487,7 @@ public class GameSessionController {
             status.put("teams", session.getTeams().stream()
                     .map(team -> Map.of(
                             "teamId", team.getTeamId(),
-                            "currentPromptIndex", team.getCurrentPromptIndex()))
+                            "currentPromptIndex", team.getCurrentContentIndex()))
                     .collect(Collectors.toList()));
             return ResponseEntity.ok(status);
         } catch (Exception e) {

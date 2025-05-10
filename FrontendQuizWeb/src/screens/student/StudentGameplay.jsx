@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import axios from 'axios';
 import SockJS from 'sockjs-client';
@@ -29,10 +29,8 @@ const StudentGamePlay = () => {
     const [submitting, setSubmitting] = useState(false);
     const [submissionResult, setSubmissionResult] = useState(null);
     const [participantScores, setParticipantScores] = useState([]);
-    const [contentTimer, setContentTimer] = useState(null);
     const [transitionActive, setTransitionActive] = useState(false);
     const [timeRemaining, setTimeRemaining] = useState(0);
-    const [contentTimerId, setContentTimerId] = useState(null);
     const [contentTransitioning, setContentTransitioning] = useState(false);
     const [gameCompleted, setGameCompleted] = useState(false);
     const navigate = useNavigate();
@@ -55,6 +53,12 @@ const StudentGamePlay = () => {
             return null;
         }
     };
+
+    useEffect(() => {
+        return () => {
+            clearContentTimer(); 
+        };
+    }, []);
 
     useEffect(() => {
         if (!accessCode) {
@@ -110,15 +114,13 @@ const StudentGamePlay = () => {
             connectHeaders: { Authorization: `Bearer ${token}` },
             onConnect: () => {
                 console.log('WebSocket connected for game play');
-                client.subscribe(
-                    `/topic/session/${accessCode}/activity`,
-                    (message) => {
-                        console.log('Received activity update:', message.body);
-                        const activityData = JSON.parse(message.body);
-                        handleActivityTransition(activityData);
-                        setSubmissionResult(null);
-                    }
-                );
+                client.subscribe(`/topic/session/${accessCode}/activity`, (message) => {
+                    const activityData = JSON.parse(message.body);
+                    console.log(activityData)
+                    setCurrentActivity(activityData);
+                    setCurrentContentIndex(0);
+                    setCurrentContentItem(activityData.contentItems?.[0] || null);
+                });
 
                 client.subscribe(
                     `/topic/session/${accessCode}/status`,
@@ -127,9 +129,7 @@ const StudentGamePlay = () => {
                         const newStatus = message.body;
                         setSessionStatus(newStatus);
                         if (newStatus === 'COMPLETED') {
-                            // Instead of navigating away immediately, set gameCompleted to true
                             setGameCompleted(true);
-                            // Don't clear local storage yet - we'll do that when they click "Return to Lobby"
                         }
                     }
                 );
@@ -142,17 +142,16 @@ const StudentGamePlay = () => {
                     }
                 );
 
-                client.subscribe(
-                    `/topic/session/${accessCode}/content`,
-                    (message) => {
-                        console.log('Received content update:', message.body);
-                        const contentData = JSON.parse(message.body);
-
-                        if (contentData.status === 'advanced_content') {
+                client.subscribe(`/topic/session/${accessCode}/content`, (message) => {
+                    const contentData = JSON.parse(message.body);
+                    if (contentData.status === 'advanced_content') {
+                        clearContentTimer();
+                        setTimeRemaining(0);
+                        setTimeout(() => {
                             handleContentTransition(contentData.contentItem, contentData.currentIndex);
-                        }
+                        }, 50);
                     }
-                );
+                });
             },
             onStompError: (frame) => {
                 console.error('STOMP Error:', frame);
@@ -190,7 +189,7 @@ const StudentGamePlay = () => {
                                 ))}
                             </div>
                         )}
-                        
+
                         {(() => {
                             const studentId = getStudentId();
                             const userPosition = participantScores.findIndex(p => p.userId === studentId);
@@ -238,43 +237,43 @@ const StudentGamePlay = () => {
     };
 
     const handleContentTransition = (newContentItem, newIndex) => {
-        if (contentTransitioning) return;
-
+        clearContentTimer(); 
         setContentTransitioning(true);
-        setTransitionActive(true);
-        clearContentTimer();
+        setTimeRemaining(0);
         setSubmissionResult(null);
 
         setTimeout(() => {
             setCurrentContentItem(newContentItem);
             setCurrentContentIndex(newIndex);
-            startContentTimer(newContentItem);
-            setTransitionActive(false);
+            startContentTimer(newContentItem); 
             setContentTransitioning(false);
         }, 500);
     };
 
+    const contentTimerId = useRef(null);
+
     const startContentTimer = (contentOrActivity) => {
-        if (!contentOrActivity) return;
-        clearContentTimer();
+        clearContentTimer(); 
+        const duration = contentOrActivity?.duration || 60;
+        setTimeRemaining(duration);
 
-        // Use content duration only (remove timeLimit fallback)
-        const duration = contentOrActivity.duration || 60; // Default to 60s if undefined
-
-        console.log(`Setting timer for ${duration} seconds for ${contentOrActivity.title || 'content'}`);
-        let timeLeft = duration;
-        setTimeRemaining(timeLeft);
-        const timer = setInterval(() => {
-            timeLeft -= 1;
-            setTimeRemaining(timeLeft);
-
-            if (timeLeft <= 0) {
-                clearInterval(timer);
-                advanceToNextContent();
-            }
+        contentTimerId.current = setInterval(() => {
+            setTimeRemaining(prev => {
+                if (prev <= 1) {
+                    clearInterval(contentTimerId.current);
+                    advanceToNextContent();
+                    return 0;
+                }
+                return prev - 1;
+            });
         }, 1000);
+    };
 
-        setContentTimer(timer);
+    const clearContentTimer = () => {
+        if (contentTimerId.current) {
+            clearInterval(contentTimerId.current);
+            contentTimerId.current = null;
+        }
     };
 
     const advanceToNextContent = useCallback(async () => {
@@ -302,29 +301,6 @@ const StudentGamePlay = () => {
         }
     }, [currentActivity, currentContentIndex, contentTransitioning]);
 
-    const requestContentAdvancement = async () => {
-        try {
-            await axios.post(
-                `http://localhost:8080/api/sessions/${accessCode}/activity/${currentActivity.id}/advance-content`,
-                { currentContentIndex },
-                {
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
-                }
-            );
-        } catch (error) {
-            console.error('Failed to advance content:', error);
-        }
-    };
-
-    const clearContentTimer = () => {
-        if (contentTimer) {
-            clearInterval(contentTimer);
-            setContentTimer(null);
-        }
-    };
-
     const resetContentTimer = () => {
         if (currentContentItem) {
             startContentTimer(currentContentItem);
@@ -337,50 +313,27 @@ const StudentGamePlay = () => {
         if (!game || !currentActivity || contentTransitioning) return;
 
         try {
-            // Signal to advance via API
-            await axios.post(
-                `http://localhost:8080/api/sessions/${accessCode}/activity/${currentActivity.id}/advance-content`,
-                { currentContentIndex },
-                {
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
-                }
+            const sessionResponse = await axios.get(
+                `http://localhost:8080/api/sessions/${accessCode}`,
+                { headers: { Authorization: `Bearer ${token}` } }
             );
-        } catch (error) {
-            console.error('Failed to advance to next activity:', error);
-            const currentIndex = game.activities.findIndex(a => a.activityId === currentActivity.id);
-            if (currentIndex < game.activities.length - 1) {
-                try {
-                    const nextActivityData = await fetchActivityById(game.activities[currentIndex + 1].activityId);
-                    if (nextActivityData) {
-                        handleActivityTransition(nextActivityData);
-                    }
-                } catch (err) {
-                    console.error('Failed to fetch next activity:', err);
-                }
-            } else {
-                console.log('Reached the end of activities');
-            }
-        }
-    }, [game, currentActivity, currentContentIndex, contentTransitioning, accessCode, token]);
 
-    const fetchActivityById = async (activityId) => {
-        try {
-            const response = await axios.get(
-                `http://localhost:8080/api/activities/session/${accessCode}/activity/${activityId}`,
-                {
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
-                }
+            const freshActivityId = sessionResponse.data.currentActivity?.activityId;
+
+            if (!freshActivityId || freshActivityId !== currentActivity.id) {
+                handleActivityTransition(sessionResponse.data.currentActivity);
+                return;
+            }
+            await axios.post(
+                `http://localhost:8080/api/sessions/${accessCode}/activity/${freshActivityId}/advance-content`,
+                { currentContentIndex },
+                { headers: { Authorization: `Bearer ${token}` } }
             );
-            return response.data;
         } catch (error) {
-            console.error('Failed to fetch activity:', error);
-            return null;
+            console.error('Failed to advance:', error);
+            fetchGameContent(); 
         }
-    };
+    }, [accessCode, token, currentActivity, contentTransitioning]);
 
     const submitAnswer = async (answer) => {
         const studentId = getStudentId();
@@ -400,7 +353,7 @@ const StudentGamePlay = () => {
                     activityId: currentActivity.id,
                     contentId: contentId,
                     answer: answer,
-                    contentIndex: currentContentIndex  // Add content index to validate sequence
+                    contentIndex: currentContentIndex  
                 },
                 {
                     headers: {
@@ -420,24 +373,8 @@ const StudentGamePlay = () => {
             console.log('Submitting answer:', JSON.stringify(answer));
             console.log('Submission response:', response.data);
             setSubmissionResult(response.data);
-            resetContentTimer();
-            
-            if (answer.questionIndex !== undefined) {
-                const mcContent = currentContentItem ? currentContentItem.data : currentActivity.content;
-                let mcQuestions = [];
-                if (Array.isArray(mcContent)) {
-                    mcQuestions = mcContent;
-                } else if (mcContent.questions && Array.isArray(mcContent.questions)) {
-                    mcQuestions = mcContent.questions;
-                } else if (typeof mcContent === 'object') {
-                    mcQuestions = [mcContent];
-                }
-                if (answer.questionIndex === mcQuestions.length - 1 && currentActivity.type !== 'FILL_IN_BLANK') {
-                    setTimeout(() => {
-                        requestContentAdvancement(); // Use the new function to request server advancement
-                    }, 3000); // Wait 3s to show feedback before advancing
-                }
-            }
+            clearContentTimer();
+            return response.data;
         } catch (error) {
             console.error('Failed to submit answer:', error);
         } finally {
@@ -509,13 +446,10 @@ const StudentGamePlay = () => {
         );
     };
 
-    // Get the current content to display (either from multiple content items or legacy content)
     const getCurrentContent = () => {
         if (currentContentItem) {
-            // Using structured multiple content approach
             return currentContentItem.data;
         } else if (currentActivity) {
-            // Legacy approach - use activity's content directly
             return currentActivity.content;
         }
         return null;
@@ -535,7 +469,8 @@ const StudentGamePlay = () => {
             textAnswer: textAnswer,
             setTextAnswer: setTextAnswer,
             contentItem: currentContentItem,
-            accessCode: accessCode  // Add accessCode to props for team challenge
+            accessCode: accessCode,  
+            currentContentIndex: currentContentIndex
         };
 
         switch (currentActivity.type) {
@@ -546,18 +481,15 @@ const StudentGamePlay = () => {
             case 'OPEN_ENDED':
                 return <TextInputActivity {...commonProps} />;
             case 'FILL_IN_BLANK':
-                return <FillInBlankGame {...commonProps} onComplete={handleActivityComplete} />;
+                return <FillInBlankGame {...commonProps} currentContentIndex={currentContentIndex} />;
             case 'SORTING':
                 return <SortingActivity {...commonProps} />;
             case 'MATCHING':
-                return <MatchingActivity {...commonProps} />;
+                return <MatchingActivity {...commonProps} contentItem={currentContentItem} />;
             case 'MATH_PROBLEM':
                 return <MathProblemActivity {...commonProps} />;
-                
-            // Add the new Team Challenge activity type
             case 'TEAM_CHALLENGE':
                 return <TeamChallengeActivity {...commonProps} />;
-
             default:
                 return (
                     <div className="unsupported-activity">
@@ -566,19 +498,6 @@ const StudentGamePlay = () => {
                         <p>Activity type '{currentActivity.type}' is not fully supported yet.</p>
                     </div>
                 );
-        }
-    };
-
-    const handleActivityComplete = () => {
-        console.log('Activity completed, requesting advancement');
-        if (currentActivity.type === 'FILL_IN_BLANK') {
-            // For FillInBlank, advance immediately when completed
-            requestContentAdvancement();
-        } else {
-            // For other activities, wait for timer
-            setTimeout(() => {
-                requestContentAdvancement();
-            }, 3000);
         }
     };
 

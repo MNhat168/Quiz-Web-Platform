@@ -300,15 +300,12 @@ const TeamChallengeActivity = ({ activity, content, accessCode, contentItem }) =
         setIsSubmitting(true);
         try {
             const teamId = userTeam.id || userTeam.teamId;
-
-            if (!teamId) {
-                throw new Error("Team ID is missing");
-            }
             const guessData = {
                 teamId: teamId,
                 guess: guess.trim()
             };
 
+            // Add explicit content type header
             await axios.post(
                 `http://localhost:8080/api/sessions/${accessCode}/teamchallenge/guess`,
                 guessData,
@@ -325,8 +322,9 @@ const TeamChallengeActivity = ({ activity, content, accessCode, contentItem }) =
         } catch (error) {
             console.error('Failed to submit guess:', error);
             if (error.response) {
-                console.error('Error response:', error.response.data);
-                setError(`Failed to submit guess: ${error.response.data.error || error.message}`);
+                // Handle structured error response
+                const errorMsg = error.response.data.error || error.message;
+                setError(`Failed to submit guess: ${errorMsg}`);
             } else {
                 setError(`Failed to submit guess: ${error.message}`);
             }
@@ -468,26 +466,23 @@ const TeamChallengeActivity = ({ activity, content, accessCode, contentItem }) =
                             console.error("Error processing drawing update:", error);
                         }
                     });
+                    const promptTopic = `/topic/session/${accessCode}/teamchallenge/prompts`;
+                    client.subscribe(promptTopic, (message) => {
+                        const update = JSON.parse(message.body);
+                        // Only update if the update is for the current user's team
+                        if (update.teamId === userTeam.teamId) {
+                            fetchChallengeStatus();
+                        }
+                    });
+
+                    // Modify guess handling to remove canvas clearing
                     const teamGuessTopic = `/topic/session/${accessCode}/teamchallenge/guess/${userTeam.teamId}`;
                     client.subscribe(teamGuessTopic, (message) => {
                         const guessResult = JSON.parse(message.body);
-
-                        // Check if the guess was correct and team advanced to next prompt
-                        if (guessResult.correct && guessResult.advancedToNextPrompt) {
-                            // Update the team's prompt index in state
-                            setUserTeam(prevTeam => ({
-                                ...prevTeam,
-                                currentPromptIndex: (prevTeam.currentPromptIndex || 0) + 1
-                            }));
-                        }
-
-                        // Fetch updated challenge status
+                        // Only update status without modifying canvas
                         fetchChallengeStatus();
                         fetchTeams();
                     });
-                    setTimeout(() => {
-                        requestInitialCanvas();
-                    }, 500);
                 }
             },
             onDisconnect: () => {
@@ -504,50 +499,54 @@ const TeamChallengeActivity = ({ activity, content, accessCode, contentItem }) =
                 client.deactivate();
             }
         };
-    }, [accessCode, userTeam?.teamId, userRole, fetchChallengeStatus, requestInitialCanvas]);
-
-    const handleManualRefresh = async () => {
-        await fetchChallengeStatus();
-        await fetchTeams();
-    };
-
+    }, [accessCode, userTeam?.teamId, userRole, fetchChallengeStatus]);
+    // Update renderPrompt function
     const renderPrompt = () => {
-        if (!userTeam || userRole !== 'drawer') {
-            return null;
-        }
-        if (!userTeam) {
-            return <p>You need to be assigned to a team to participate.</p>;
-        }
-        const currentPromptIndex = userTeam.currentPromptIndex || 0;
-        const currentWord = getPromptFromContentStructure(currentPromptIndex) || getLegacyPrompt(currentPromptIndex);
-        if (!currentWord) {
-            console.error("No prompt found in:", {
-                challengeStatus,
-                content,
-                contentItem,
-                currentPromptIndex
-            });
-            return <p>Waiting for word...</p>;
-        }
+        if (!userTeam || userRole !== 'drawer') return null;
+
+        // Get index directly from the team's progress
+        const currentPromptIndex = userTeam.currentContentIndex || 0;
+        const currentWord = getPromptFromContentStructure(currentPromptIndex) ||
+            getLegacyPrompt(currentPromptIndex);
+
         return (
             <div className="drawing-prompt">
                 <h4>Draw this word:</h4>
                 <p className="prompt-word">{currentWord}</p>
+                {currentPromptIndex < (challengeStatus.totalPrompts - 1) && (
+                    <p className="prompt-counter">
+                        Word {currentPromptIndex + 1} of {challengeStatus.totalPrompts}
+                    </p>
+                )}
             </div>
         );
     };
 
-    // Helper functions
+    useEffect(() => {
+        if (challengeStatus.teams) {
+            const currentTeamStatus = challengeStatus.teams.find(t => t.teamId === userTeam?.teamId);
+            if (currentTeamStatus) {
+                setUserTeam(prev => ({
+                    ...prev,
+                    currentContentIndex: currentTeamStatus.currentPromptIndex
+                }));
+            }
+        }
+    }, [challengeStatus.teams, userTeam?.teamId]);
+
     const getPromptFromContentStructure = (index) => {
-        if (content?.prompts && Array.isArray(content.prompts)) {
-            return content.prompts[index];
+        if (contentItem?.data?.prompts) {
+            const prompt = contentItem.data.prompts[index];
+            // Handle both string and object formats
+            return typeof prompt === 'string' ? prompt : prompt?.prompt;
         }
         return null;
     };
 
     const getLegacyPrompt = (index) => {
-        if (contentItem?.data?.prompts?.[index]?.prompt) {
-            return contentItem.data.prompts[index].prompt;
+        // Handle legacy format where prompts are directly in activity content
+        if (content?.prompts?.[index]) {
+            return content.prompts[index];
         }
         return null;
     };

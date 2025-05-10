@@ -76,18 +76,6 @@ const GameActivityEditor = () => {
         }
     })
 
-    const [teamChallengeContent, setTeamChallengeContent] = useState({
-        prompts: [""],
-        roundTime: 60,
-        maxRounds: 5,
-        allowGuessing: true,
-        pointsPerCorrect: 10,
-        allowedWords: [],
-        teamParticipants: [],
-        rounds: [],
-        hints: []
-    });
-
     const [sortingContent, setSortingContent] = useState({
         instructions: "",
         items: [
@@ -187,8 +175,6 @@ const GameActivityEditor = () => {
                         data: item.data,
                         instructions: ""
                     };
-
-                    // Type-specific configurations
                     switch (newActivity.type) {
                         case "TEAM_CHALLENGE":
                             return {
