@@ -60,20 +60,14 @@ const MultipleChoiceActivity = ({ activity, submitting, submitAnswer, contentIte
         }
     }
 
-    const handleSubmitAnswer = (answer) => {
-        if (answered) return; 
-        const answerData = {
-            questionIndex: currentQuestionIndex,
-            answer: answer
-        };
-
+    const handleSubmitAnswer = (answer, index) => {
+        if (answered) return;
+        submitAnswer({
+          questionIndex: currentQuestionIndex,
+          selectedOption: index // Send the index instead of text
+        });
         setAnswered(true);
-        submitAnswer(answerData);
-        
-        setTimeout(() => {
-            moveToNextQuestion();
-        }, 1500);
-    };
+      };
 
     return (
         <div className="quiz-activity">
@@ -86,7 +80,7 @@ const MultipleChoiceActivity = ({ activity, submitting, submitAnswer, contentIte
                     options.map((option, index) => (
                         <button
                             key={index}
-                            onClick={() => handleSubmitAnswer(typeof option === 'object' ? option.text : option)}
+                            onClick={() => handleSubmitAnswer(option, index)}
                             className={`quiz-option ${answered ? 'answered' : ''}`}
                             disabled={submitting || answered}
                         >

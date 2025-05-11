@@ -1,38 +1,46 @@
-import { useState, useEffect, useRef } from "react"
-import { Lightbulb } from "lucide-react"
+import { useState, useEffect, useRef } from "react";
+import { Lightbulb } from "lucide-react";
 
 const FillInBlankGame = ({ 
-    content = { questions: [], hints: [] }, 
-    submitAnswer,
-    onComplete = () => {},
-    activity
+    activity, 
+    contentItem, 
+    submitting, 
+    submitAnswer, 
+    currentContentIndex,
+    onComplete = () => {} 
 }) => {
-    const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0)
-    const [userAnswers, setUserAnswers] = useState([])
-    const [showFeedback, setShowFeedback] = useState(false)
-    const [currentAnswer, setCurrentAnswer] = useState("")
-    const [answered, setAnswered] = useState(false)
-    const [activeBlankIndex, setActiveBlankIndex] = useState(null)
-    const [feedback, setFeedback] = useState({})
-    const inputRef = useRef(null)
+    const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+    const [userAnswers, setUserAnswers] = useState([]);
+    const [showFeedback, setShowFeedback] = useState(false);
+    const [currentAnswer, setCurrentAnswer] = useState("");
+    const [answered, setAnswered] = useState(false);
+    const [activeBlankIndex, setActiveBlankIndex] = useState(null);
+    const [feedback, setFeedback] = useState({});
+    const inputRef = useRef(null);
+
+    // Unified content handling
+    const getContent = () => {
+        if (contentItem && contentItem.data) return contentItem.data;
+        return activity?.content || { questions: [], hints: [] };
+    };
+
+    const content = getContent();
 
     // Reset state when content changes
     useEffect(() => {
-      
-        setCurrentQuestionIndex(0)
-        setUserAnswers([])
-        setAnswered(false)
-        setCurrentAnswer("")
-        setActiveBlankIndex(null)
-    }, [content, activity])
+        setCurrentQuestionIndex(0);
+        setUserAnswers([]);
+        setAnswered(false);
+        setCurrentAnswer("");
+        setActiveBlankIndex(null);
+    }, [content, activity]);
 
     // Initialize userAnswers when question changes
     useEffect(() => {
-        if (content.questions[currentQuestionIndex]) {
+        if (content.questions && content.questions[currentQuestionIndex]) {
             const question = content.questions[currentQuestionIndex];
             const parts = question.question.split(/_+/g);
             const blankCount = parts.length - 1;
-         
             setUserAnswers(new Array(blankCount).fill(""));
         }
     }, [currentQuestionIndex, content]);
@@ -67,21 +75,20 @@ const FillInBlankGame = ({
 
     // Handle answer submission
     const handleAnswer = async (blankIndex) => {
-        if (!currentAnswer.trim() || answered) {
-            return;
-        }
+        if (!currentAnswer.trim() || submitting || answered) return;
 
         try {
             const currentQuestion = content.questions[currentQuestionIndex];
             const correctAnswer = currentQuestion.answer[blankIndex];
-            const alternatives = currentQuestion.alternatives[blankIndex] || [];
+            const alternatives = currentQuestion.alternatives?.[blankIndex] || [];
             
+            // Format the answer data according to backend expectations
             const answerData = {
-                questionIndex: currentQuestionIndex,
+                questionIndex: currentQuestionIndex,  // Changed from currentContentIndex
                 blankIndex: blankIndex,
                 answer: currentAnswer.trim(),
                 acceptableAnswers: {
-                    [currentQuestionIndex]: {
+                    [currentQuestionIndex]: {  // Changed from currentContentIndex
                         [blankIndex]: [correctAnswer, ...alternatives].filter(Boolean)
                     }
                 }
@@ -97,21 +104,28 @@ const FillInBlankGame = ({
             
             // Normalize answers for comparison
             const normalizedUserAnswer = currentAnswer.trim().toLowerCase();
-            const normalizedCorrectAnswer = correctAnswer.trim().toLowerCase();
-            const normalizedAlternatives = alternatives.map(alt => alt.trim().toLowerCase());
+            const normalizedCorrectAnswer = correctAnswer.toLowerCase();
+            const normalizedAlternatives = alternatives.map(alt => alt.toLowerCase());
             
             // Check if the answer matches the correct answer or any alternative
             const isCorrect = normalizedUserAnswer === normalizedCorrectAnswer;
             const isAlternative = normalizedAlternatives.some(alt => alt === normalizedUserAnswer);
             
             // Set feedback based on answer type
-            if (isCorrect || isAlternative) {
+            if (isCorrect) {
+                setFeedback(prev => ({
+                    ...prev,
+                    [blankIndex]: {
+                        correct: true
+                    }
+                }));
+            } else if (isAlternative) {
                 setFeedback(prev => ({
                     ...prev,
                     [blankIndex]: {
                         correct: true,
-                        isAlternative: isAlternative,
-                        correctAnswer: correctAnswer.trim()
+                        isAlternative: true,
+                        correctAnswer: correctAnswer
                     }
                 }));
             } else {
@@ -119,7 +133,7 @@ const FillInBlankGame = ({
                     ...prev,
                     [blankIndex]: {
                         correct: false,
-                        correctAnswer: correctAnswer.trim()
+                        correctAnswer: correctAnswer
                     }
                 }));
             }
@@ -145,7 +159,7 @@ const FillInBlankGame = ({
                     }
                 }, 3000); // 3 seconds delay
             } else {
-                // Clear feedback after 3 seconds for single blank
+                // Clear feedback after 1.5 seconds for single blank
                 setTimeout(() => {
                     setFeedback(prev => {
                         const newFeedback = { ...prev };
@@ -194,7 +208,7 @@ const FillInBlankGame = ({
         <div className="!p-6 !space-y-6 !bg-white !rounded-lg !shadow-md">
             <div className="!flex !justify-between !items-center">
                 <div className="!text-lg !font-medium">
-                    Question {currentQuestionIndex + 1} of {content.questions.length}
+                    {activity?.title || "Fill in the Blanks"}
                 </div>
             </div>
 
@@ -210,7 +224,7 @@ const FillInBlankGame = ({
                                 <div key={index} className="!flex !items-center !gap-2">
                                     <span className="!text-gray-700">{part}</span>
                                     <button
-                                        className={`!px-4 !py-2 !border !rounded-md focus:!outline-none focus:!ring-2 focus:!ring-blue-500 ${
+                                        className={`!px-4 !py-2 !border !rounded-md focus:!outline-none focus:!ring-2 focus:!ring-blue-500 transition-all duration-300 ${
                                             isActive ? '!bg-blue-50 !border-blue-500' : 
                                             isAnswered ? '!bg-green-50 !border-green-500' : 
                                             '!bg-gray-50 !border-gray-300'
@@ -221,6 +235,7 @@ const FillInBlankGame = ({
                                                 setCurrentAnswer("");
                                             }
                                         }}
+                                        disabled={submitting || isAnswered}
                                     >
                                         {isAnswered ? userAnswers[index] : '_'.repeat(wordCount === "multiple" ? 2 : 1)}
                                     </button>
@@ -234,16 +249,16 @@ const FillInBlankGame = ({
                 {/* Display feedback below the question */}
                 <div className="!space-y-2">
                     {Object.entries(feedback).map(([blankIndex, feedback]) => (
-                        <div key={blankIndex} className={`!text-sm ${feedback.correct ? '!text-green-500' : '!text-red-500'}`}>
+                        <div key={blankIndex} className={`!text-sm transition-opacity duration-300 ${feedback.correct ? '!text-green-500' : '!text-red-500'}`}>
                             {feedback.correct ? (
                                 feedback.isAlternative ? (
                                     <div>
-                                        Correct answer also is "{(feedback.correctAnswer || '').trim()}"
+                                        In another answer: "{feedback.correctAnswer}"
                                     </div>
                                 ) : null
                             ) : (
                                 <div>
-                                    Correct answer  is "{(feedback.correctAnswer || '').trim()}"
+                                    Correct answer is "{feedback.correctAnswer}"
                                 </div>
                             )}
                         </div>
@@ -255,7 +270,7 @@ const FillInBlankGame = ({
                         <input
                             ref={inputRef}
                             type="text"
-                            className="!flex-1 !px-4 !py-2 !border !rounded-md focus:!outline-none focus:!ring-2 focus:!ring-blue-500"
+                            className="!flex-1 !px-4 !py-2 !border !rounded-md focus:!outline-none focus:!ring-2 focus:!ring-blue-500 transition-all duration-300"
                             value={currentAnswer}
                             onChange={(e) => setCurrentAnswer(e.target.value)}
                             placeholder={`Type ${getWordCount(currentQuestion.question, activeBlankIndex) === "multiple" ? "multiple" : "a"} word${getWordCount(currentQuestion.question, activeBlankIndex) === "multiple" ? "s" : ""} here...`}
@@ -267,7 +282,7 @@ const FillInBlankGame = ({
                             disabled={answered}
                         />
                         <button 
-                            className="!px-4 !py-2 !text-white !bg-blue-600 !rounded-md hover:!bg-blue-700 focus:!outline-none focus:!ring-2 focus:!ring-blue-500"
+                            className="!px-4 !py-2 !text-white !bg-blue-600 !rounded-md hover:!bg-blue-700 focus:!outline-none focus:!ring-2 focus:!ring-blue-500 transition-all duration-300"
                             onClick={() => handleAnswer(activeBlankIndex)}
                             disabled={answered}
                         >
@@ -279,14 +294,14 @@ const FillInBlankGame = ({
                 {(content.hints || []).length > 0 && (
                     <div className="!space-y-2">
                         <button 
-                            className="!flex !items-center !gap-2 !px-4 !py-2 !text-blue-600 hover:!text-blue-800"
+                            className="!flex !items-center !gap-2 !px-4 !py-2 !text-blue-600 hover:!text-blue-800 transition-colors duration-300"
                             onClick={() => setShowFeedback(!showFeedback)}
                         >
                             <Lightbulb className="!w-4 !h-4" /> Hint
                         </button>
 
                         {showFeedback && (
-                            <div className="!p-4 !bg-gray-50 !rounded-md">
+                            <div className="!p-4 !bg-gray-50 !rounded-md transition-all duration-300">
                                 {(content.hints || []).map((hint, index) => (
                                     <p key={index} className="!text-gray-600">{hint}</p>
                                 ))}
@@ -299,4 +314,4 @@ const FillInBlankGame = ({
     );
 };
 
-export default FillInBlankGame; 
+export default FillInBlankGame;

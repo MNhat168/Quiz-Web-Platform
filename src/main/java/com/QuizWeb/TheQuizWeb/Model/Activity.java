@@ -2,12 +2,18 @@ package com.QuizWeb.TheQuizWeb.Model;
 
 import lombok.Data;
 import org.springframework.data.annotation.Id;
+import org.springframework.data.annotation.TypeAlias;
 import org.springframework.data.mongodb.core.mapping.Document;
+
+import com.QuizWeb.TheQuizWeb.Model.Activity.TeamChallengeContent;
+import com.fasterxml.jackson.annotation.JsonSubTypes;
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
 
 import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Data
@@ -33,7 +39,7 @@ public class Activity {
     private List<PowerUpRule> powerUpRules;
     private ActivitySettings settings;
     private Date createdAt;
-    private boolean isPublic; // Whether other teachers can use this activity
+    private boolean isPublic; 
 
     public enum ActivityType {
         MULTIPLE_CHOICE, TRUE_FALSE, OPEN_ENDED, PUZZLE, SORTING, MATCHING,
@@ -69,7 +75,6 @@ public class Activity {
         private int maxQuantity;
     }
 
-    // Activity Content Models (polymorphic design)
     @Data
     public static class MultipleChoiceContent {
         private List<QuestionItem> questions;
@@ -139,82 +144,131 @@ public class Activity {
 
     @Data
     public static class TeamChallengeContent {
-        private List<String> prompts; // List of drawing prompts
-        private int roundTime; // Seconds per round
-        private int maxRounds;
-        private boolean allowGuessing; // Team members can guess
-        private int pointsPerCorrect;
-        private List<String> allowedWords; // Optional restricted word list
+        private List<DrawingPrompt> prompts;
+        private PictionarySettings pictionarySettings;
+        
+        @Data
+        public static class DrawingPrompt {
+            private String prompt;       
+            private String category;      
+            private String difficulty;    
+            private int timeLimit;       
+            private int points;           
+            private List<String> hints;  
+            private List<String> synonyms; 
+        }
+        
+        @Data
+        public static class PictionarySettings {
+            private boolean rotateDrawers;      
+            private int roundsPerPlayer;        
+            private boolean allowPartialPoints; 
+            private boolean revealAnswerOnFail;  
+            private int maxGuessesPerTeam;       
+            private GuessValidation guessValidation; 
+        }
+        
+        public enum GuessValidation {
+            EXACT_MATCH,        
+            CONTAINS_KEYWORD,   
+            SYNONYM_MATCH,     
+            MANUAL_TEACHER     
+        }
+    }
+
+    public String getCorrectAnswer() {
+        if (this.contentItems != null && !this.contentItems.isEmpty()) {
+            // Handle multi-content activities
+            return contentItems.stream()
+                .map(contentItem -> getAnswerForContent(contentItem.getData()))
+                .filter(Objects::nonNull)
+                .collect(Collectors.joining(" | "));
+        }
+        
+        // Fallback to legacy content if no contentItems
+        return getAnswerForContent(this.content);
     }
     
-    public String getCorrectAnswer() {
-        if (this.content == null) {
-            return null;
-        }
-
+    private String getAnswerForContent(Object contentData) {
+        if (contentData == null) return null;
+    
         switch (this.type) {
             case MULTIPLE_CHOICE:
-                if (this.content instanceof MultipleChoiceContent) {
-                    MultipleChoiceContent mcContent = (MultipleChoiceContent) this.content;
-                    if (mcContent.getQuestions() != null && !mcContent.getQuestions().isEmpty()) {
-                        QuestionItem question = mcContent.getQuestions().get(0);
-                        return question.getOptions().stream()
-                                .filter(Option::isCorrect)
-                                .map(Option::getText)
-                                .collect(Collectors.joining(", "));
-                    }
+                if (contentData instanceof MultipleChoiceContent) {
+                    MultipleChoiceContent mcContent = (MultipleChoiceContent) contentData;
+                    return mcContent.getQuestions().stream()
+                        .map(question -> question.getOptions().stream()
+                            .filter(Option::isCorrect)
+                            .map(Option::getText)
+                            .collect(Collectors.joining(", ")))
+                        .collect(Collectors.joining("; "));
                 }
                 break;
-
+    
             case TRUE_FALSE:
-                if (this.content instanceof Map) {
-                    Map<String, Object> tfContent = (Map<String, Object>) this.content;
-                    if (tfContent.containsKey("correctAnswer")) {
-                        return String.valueOf(tfContent.get("correctAnswer"));
-                    }
+                if (contentData instanceof Map) {
+                    Map<String, Object> tfContent = (Map<String, Object>) contentData;
+                    return tfContent.containsKey("correctAnswer") ? 
+                        String.valueOf(tfContent.get("correctAnswer")) : null;
                 }
                 break;
-
+    
             case FILL_IN_BLANK:
-                if (this.content instanceof FillInBlankContent) {
-                    FillInBlankContent fbContent = (FillInBlankContent) this.content;
+                if (contentData instanceof FillInBlankContent) {
+                    FillInBlankContent fbContent = (FillInBlankContent) contentData;
                     return fbContent.getAnswers().values().stream()
-                            .collect(Collectors.joining(", "));
+                        .collect(Collectors.joining(", "));
                 }
                 break;
-
+    
             case MATH_PROBLEM:
-                if (this.content instanceof MathProblemContent) {
-                    MathProblemContent mpContent = (MathProblemContent) this.content;
-                    return mpContent.getCorrectAnswer();
+                if (contentData instanceof MathProblemContent) {
+                    return ((MathProblemContent) contentData).getCorrectAnswer();
                 }
                 break;
-
+    
             case SORTING:
-                if (this.content instanceof SortingContent) {
-                    SortingContent sContent = (SortingContent) this.content;
+                if (contentData instanceof SortingContent) {
+                    SortingContent sContent = (SortingContent) contentData;
                     return "Correct order: " + sContent.getItems().stream()
-                            .sorted(Comparator.comparingInt(SortItem::getCorrectPosition))
-                            .map(SortItem::getText)
-                            .collect(Collectors.joining(" → "));
+                        .sorted(Comparator.comparingInt(SortItem::getCorrectPosition))
+                        .map(SortItem::getText)
+                        .collect(Collectors.joining(" → "));
                 }
                 break;
-
+    
             case MATCHING:
-                if (this.content instanceof MatchingContent) {
-                    MatchingContent mContent = (MatchingContent) this.content;
+                if (contentData instanceof MatchingContent) {
+                    MatchingContent mContent = (MatchingContent) contentData;
                     return mContent.getPairs().stream()
-                            .map(pair -> pair.getItem1() + " → " + pair.getItem2())
-                            .collect(Collectors.joining(", "));
+                        .map(pair -> pair.getItem1() + " → " + pair.getItem2())
+                        .collect(Collectors.joining(", "));
                 }
                 break;
-
+    
+            case TEAM_CHALLENGE:
+                if (contentData instanceof TeamChallengeContent) {
+                    TeamChallengeContent tcContent = (TeamChallengeContent) contentData;
+                    return tcContent.getPrompts().stream()
+                        .map(prompt -> {
+                            StringBuilder sb = new StringBuilder(prompt.getPrompt());
+                            if (prompt.getSynonyms() != null && !prompt.getSynonyms().isEmpty()) {
+                                sb.append(" (or ")
+                                  .append(String.join(", ", prompt.getSynonyms()))
+                                  .append(")");
+                            }
+                            return sb.toString();
+                        })
+                        .collect(Collectors.joining(" | "));
+                }
+                break;
+    
             default:
                 return "No single correct answer for this activity type";
         }
-
         return null;
     }
+
     public String getExplanation() {
         if (this.content == null) {
             return null;

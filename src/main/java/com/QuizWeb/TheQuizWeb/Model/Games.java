@@ -7,7 +7,6 @@ import org.springframework.data.mongodb.core.mapping.Document;
 import java.util.Date;
 import java.util.List;
 
-
 @Data
 @Document(collection = "games")
 public class Games {
@@ -15,28 +14,42 @@ public class Games {
     private String id;
     private String title;
     private String description;
-    private String creatorId; // Teacher who created the game
+    private String creatorId;
     private boolean isPublic;
     private List<String> tags;
-    private String subject; // Main subject (Math, Science, etc.)
-    private String gradeLevel; // Target grade level
-    private List<String> topics; // Specific topics covered
+    private String subject;
+    private String gradeLevel;
+    private List<String> topics;
     private List<GameActivity> activities;
     private GameSettings settings;
     private Date createdAt;
     private Date updatedAt;
-    private List<String> assignedClassIds; // Classes this game is assigned to
+    private List<String> assignedClassIds;
 
     @Data
     public static class GameActivity {
-        private String activityId; // Reference to Activity
+        private String activityId;
         private Activity.ActivityType activityType;
-        private int order; // Order in the game sequence
-        private int duration; // Time allowed for this activity in seconds
+        private int order;
+        private int duration;
         private int points;
-        private String topic; // Specific topic this activity addresses
-        private String learningObjective; // Learning objective for this activity
-        private ActivityRequirement requirement;
+        private String topic;
+        private String learningObjective;
+        private TeamActivitySettings teamSettings;
+    }
+
+    @Data
+    public static class TeamActivitySettings {
+        private boolean enableTeams;
+        private int minTeamSize;
+        private int maxTeamSize;
+        private TeamFormationMethod formationMethod;
+        private int roundsPerDrawer;
+        private int drawingTimePerRound;
+
+        public enum TeamFormationMethod {
+            RANDOM, TEACHER_ASSIGNED, STUDENT_CHOICE, BALANCED_SKILL
+        }
     }
 
     @Data
@@ -55,13 +68,21 @@ public class Games {
         private boolean powerUpsEnabled;
         private boolean randomizeActivities;
         private boolean teamBased;
-        private int globalTimeLimit; // In seconds, 0 for no limit
-        private String pointsStrategy; // CUMULATIVE, HIGHEST, AVERAGE
-        private boolean adaptiveDifficulty; // Adjust difficulty based on performance
+        private int globalTimeLimit;
+        private String pointsStrategy;
+        private boolean adaptiveDifficulty;
         private PowerUpSettings powerUpSettings;
-        private boolean showFeedbackImmediately; // Show correctness immediately after answer
-        private boolean allowRetries; // Allow students to retry activities
-        private int maxRetries; // Maximum number of retries per activity
+        private boolean showFeedbackImmediately;
+        private boolean allowRetries;
+        private int maxRetries;
+        private TeamGameSettings teamSettings;
+
+        @Data
+        public static class TeamGameSettings {
+            private int minTeamSize = 2;
+            private int maxTeamSize = 4;
+            private boolean autoAssignTeams = true;
+        }
     }
 
     @Data

@@ -13,9 +13,9 @@ import java.util.Map;
 public class GameSession {
     @Id
     private String id;
-    private String gameId; // Reference to Game
-    private String classId; // Reference to Class
-    private String teacherId; // Teacher hosting the session
+    private String gameId;
+    private String classId;
+    private String teacherId;
     private String accessCode;
     private SessionStatus status;
     private Date startTime;
@@ -26,132 +26,49 @@ public class GameSession {
     private SessionActivity currentActivity;
     private List<PowerUpEvent> powerUpEvents;
     private SessionSettings settings;
-    private SessionStatistics statistics; // Real-time statistics for teacher dashboard
+    private SessionStatistics statistics;
+    private List<SessionActivity> completedActivities;
 
-    public void setId(String id) {
-        this.id = id;
-    }
+    // Team class now tracks content item index for team-based activities
+    @Data
+    public static class Team {
+        private String teamId;
+        private String teamName;
+        private List<String> teamMembers;
+        private int teamScore;
+        private String currentDrawerId;
+        private int nextDrawerIndex;
+        private int currentContentIndex = 0; // Tracks progress through activity's contentItems
+        private Object currentDrawing;
+        private Date lastDrawingUpdate;
 
-    public void setGameId(String gameId) {
-        this.gameId = gameId;
-    }
+        public void initializeDrawingRotation() {
+            if (this.teamMembers != null && !this.teamMembers.isEmpty()) {
+                this.currentDrawerId = this.teamMembers.get(0);
+            }
+        }
 
-    public void setClassId(String classId) {
-        this.classId = classId;
-    }
-
-    public void setTeacherId(String teacherId) {
-        this.teacherId = teacherId;
-    }
-
-    public void setAccessCode(String accessCode) {
-        this.accessCode = accessCode;
-    }
-
-    public void setStatus(SessionStatus status) {
-        this.status = status;
-    }
-
-    public void setStartTime(Date startTime) {
-        this.startTime = startTime;
-    }
-
-    public void setEndTime(Date endTime) {
-        this.endTime = endTime;
-    }
-
-    public void setParticipants(List<Participant> participants) {
-        this.participants = participants;
-    }
-
-    public void setTeams(List<Team> teams) {
-        this.teams = teams;
-    }
-
-    public void setCurrentActivityIndex(int currentActivityIndex) {
-        this.currentActivityIndex = currentActivityIndex;
-    }
-
-    public void setCurrentActivity(SessionActivity currentActivity) {
-        this.currentActivity = currentActivity;
-    }
-
-    public void setPowerUpEvents(List<PowerUpEvent> powerUpEvents) {
-        this.powerUpEvents = powerUpEvents;
-    }
-
-    public void setSettings(SessionSettings settings) {
-        this.settings = settings;
-    }
-
-    public void setStatistics(SessionStatistics statistics) {
-        this.statistics = statistics;
-    }
-
-    public String getId() {
-        return id;
-    }
-
-    public String getGameId() {
-        return gameId;
-    }
-
-    public String getClassId() {
-        return classId;
-    }
-
-    public String getTeacherId() {
-        return teacherId;
-    }
-
-    public String getAccessCode() {
-        return accessCode;
-    }
-
-    public SessionStatus getStatus() {
-        return status;
-    }
-
-    public Date getStartTime() {
-        return startTime;
-    }
-
-    public Date getEndTime() {
-        return endTime;
-    }
-
-    public List<Participant> getParticipants() {
-        return participants;
-    }
-
-    public List<Team> getTeams() {
-        return teams;
-    }
-
-    public int getCurrentActivityIndex() {
-        return currentActivityIndex;
-    }
-
-    public SessionActivity getCurrentActivity() {
-        return currentActivity;
-    }
-
-    public List<PowerUpEvent> getPowerUpEvents() {
-        return powerUpEvents;
-    }
-
-    public SessionSettings getSettings() {
-        return settings;
-    }
-
-    public SessionStatistics getStatistics() {
-        return statistics;
+        public String getNextDrawer() {
+            if (this.teamMembers == null || this.teamMembers.isEmpty()) {
+                return null;
+            }
+            if (this.currentDrawerId == null) {
+                return this.teamMembers.get(0);
+            }
+            int currentIndex = this.teamMembers.indexOf(this.currentDrawerId);
+            if (currentIndex == -1) {
+                return this.teamMembers.get(0);
+            }
+            int nextIndex = (currentIndex + 1) % this.teamMembers.size();
+            return this.teamMembers.get(nextIndex);
+        }
     }
 
     public enum SessionStatus {
         LOBBY, ACTIVE, PAUSED, COMPLETED
     }
 
+    // SessionActivity tracks the current content item index for non-team activities
     @Data
     public static class SessionActivity {
         private String activityId;
@@ -159,7 +76,29 @@ public class GameSession {
         private Date endTime;
         private ActivityStatus status;
         private List<ParticipantResponse> responses;
-        private int currentContentIndex = 0; 
+        private int currentContentIndex = 0; // Tracks current content item in the activity
+
+        public String getCurrentDrawer(GameSession session, String teamId) {
+            if (session.getTeams() == null) return null;
+            return session.getTeams().stream()
+                    .filter(t -> t.getTeamId().equals(teamId))
+                    .findFirst()
+                    .map(Team::getCurrentDrawerId)
+                    .orElse(null);
+        }
+
+        public void rotateDrawer(GameSession session, String teamId) {
+            if (session.getTeams() == null) return;
+            session.getTeams().stream()
+                    .filter(t -> t.getTeamId().equals(teamId))
+                    .findFirst()
+                    .ifPresent(team -> {
+                        String nextDrawer = team.getNextDrawer();
+                        if (nextDrawer != null) {
+                            team.setCurrentDrawerId(nextDrawer);
+                        }
+                    });
+        }
     }
 
     public enum ActivityStatus {
@@ -168,7 +107,7 @@ public class GameSession {
 
     @Data
     public static class Participant {
-        private String userId; 
+        private String userId;
         private String displayName;
         private String avatarUrl;
         private String teamId;
@@ -177,122 +116,34 @@ public class GameSession {
         private boolean isActive;
         private Date joinedAt;
         private Date lastActiveAt;
-        private Map<String, Integer> activityScores; // Activity ID to score mapping
-
-        public String getUserId() {
-            return userId;
-        }
-
-        public void setUserId(String userId) {
-            this.userId = userId;
-        }
-
-        public String getDisplayName() {
-            return displayName;
-        }
-
-        public void setDisplayName(String displayName) {
-            this.displayName = displayName;
-        }
-
-        public String getAvatarUrl() {
-            return avatarUrl;
-        }
-
-        public void setAvatarUrl(String avatarUrl) {
-            this.avatarUrl = avatarUrl;
-        }
-
-        public String getTeamId() {
-            return teamId;
-        }
-
-        public void setTeamId(String teamId) {
-            this.teamId = teamId;
-        }
-
-        public int getTotalScore() {
-            return totalScore;
-        }
-
-        public void setTotalScore(int totalScore) {
-            this.totalScore = totalScore;
-        }
-
-        public List<ParticipantPowerUp> getPowerUps() {
-            return powerUps;
-        }
-
-        public void setPowerUps(List<ParticipantPowerUp> powerUps) {
-            this.powerUps = powerUps;
-        }
-
-        public boolean isActive() {
-            return isActive;
-        }
-
-        public void setActive(boolean active) {
-            isActive = active;
-        }
-
-        public Date getJoinedAt() {
-            return joinedAt;
-        }
-
-        public void setJoinedAt(Date joinedAt) {
-            this.joinedAt = joinedAt;
-        }
-
-        public Date getLastActiveAt() {
-            return lastActiveAt;
-        }
-
-        public void setLastActiveAt(Date lastActiveAt) {
-            this.lastActiveAt = lastActiveAt;
-        }
-
-        public Map<String, Integer> getActivityScores() {
-            return activityScores;
-        }
-
-        public void setActivityScores(Map<String, Integer> activityScores) {
-            this.activityScores = activityScores;
-        }
-    }
-
-    @Data
-    public static class Team {
-        private String id;
-        private String name;
-        private String color;
-        private List<String> participantIds;
-        private int totalScore;
-        private Map<String, Integer> activityScores; // Activity ID to score mapping
+        private Map<String, Integer> activityScores; // Tracks scores per activity:contentItem
     }
 
     @Data
     public static class ParticipantResponse {
         private String participantId;
         private String activityId;
-        private String contentId;
-        private Object answer; // Will be deserialized to specific response type
+        private String contentId; // Now tracks which contentItem was answered
+        private Object answer;
         private boolean isCorrect;
-        private int timeSpent; // In milliseconds
+        private int timeSpent;
         private int pointsEarned;
         private Date submittedAt;
         private List<String> hintsUsed;
-        private int attempts; // Number of attempts if retries are allowed
+        private int attempts;
+        private String teamId;
+        private String drawerId;
     }
 
     @Data
     public static class SessionStatistics {
         private int totalParticipants;
         private int activeParticipants;
-        private Map<String, Integer> participantScores; // Real-time scores
-        private Map<String, PerformanceMetric> activityPerformance; // Activity ID to performance metrics
+        private Map<String, Integer> participantScores;
+        private Map<String, PerformanceMetric> activityPerformance;
         private double overallCompletionPercentage;
         private double overallCorrectAnswerPercentage;
-        private Map<String, List<String>> strugglingStudents; // Activity ID to list of struggling student IDs
+        private Map<String, List<String>> strugglingStudents;
     }
 
     @Data
@@ -309,8 +160,8 @@ public class GameSession {
     public static class PowerUpEvent {
         private String id;
         private String powerUpId;
-        private String userId; // Student who used the power-up
-        private String targetId; // Target user ID or team ID
+        private String userId;
+        private String targetId;
         private PowerUpEventType eventType;
         private Date timestamp;
         private Map<String, Object> effectDetails;
@@ -328,4 +179,3 @@ public class GameSession {
         private Date lastUsedAt;
     }
 }
-
