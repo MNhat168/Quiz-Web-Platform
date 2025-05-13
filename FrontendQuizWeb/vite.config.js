@@ -12,5 +12,8 @@ export default defineConfig({
   },
   build: {
     outDir: '../src/main/resources/static', // Output to Spring Boot static dir
+    rollupOptions: {
+      platform: process.env.RENDER ? 'linux' : process.platform
+    },
   },
 })
