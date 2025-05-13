@@ -56,7 +56,7 @@ const StudentGamePlay = () => {
 
     useEffect(() => {
         return () => {
-            clearContentTimer(); 
+            clearContentTimer();
         };
     }, []);
 
@@ -237,7 +237,7 @@ const StudentGamePlay = () => {
     };
 
     const handleContentTransition = (newContentItem, newIndex) => {
-        clearContentTimer(); 
+        clearContentTimer();
         setContentTransitioning(true);
         setTimeRemaining(0);
         setSubmissionResult(null);
@@ -245,7 +245,7 @@ const StudentGamePlay = () => {
         setTimeout(() => {
             setCurrentContentItem(newContentItem);
             setCurrentContentIndex(newIndex);
-            startContentTimer(newContentItem); 
+            startContentTimer(newContentItem);
             setContentTransitioning(false);
         }, 500);
     };
@@ -253,7 +253,7 @@ const StudentGamePlay = () => {
     const contentTimerId = useRef(null);
 
     const startContentTimer = (contentOrActivity) => {
-        clearContentTimer(); 
+        clearContentTimer();
         const duration = contentOrActivity?.duration || 60;
         setTimeRemaining(duration);
 
@@ -279,6 +279,17 @@ const StudentGamePlay = () => {
     const advanceToNextContent = useCallback(async () => {
         if (contentTransitioning) return;
         if (!currentActivity) return;
+        if (currentActivity.type === 'TEAM_CHALLENGE') {
+            try {
+                await axios.post(
+                    `http://localhost:8080/api/sessions/${accessCode}/activity/${currentActivity.id}/advance-content`,
+                    { currentContentIndex },
+                    { headers: { Authorization: `Bearer ${token}` } }
+                );
+            } catch (error) {
+                console.error('Failed to advance team challenge:', error);
+            }
+        }
         if (currentActivity.contentItems && currentActivity.contentItems.length > 0) {
             if (currentContentIndex < currentActivity.contentItems.length - 1) {
                 setContentTransitioning(true);
@@ -299,7 +310,7 @@ const StudentGamePlay = () => {
         } else {
             advanceToNextActivity();
         }
-    }, [currentActivity, currentContentIndex, contentTransitioning]);
+    },  [currentActivity, contentTransitioning, accessCode, token, currentContentIndex]);
 
     const resetContentTimer = () => {
         if (currentContentItem) {
@@ -331,7 +342,7 @@ const StudentGamePlay = () => {
             );
         } catch (error) {
             console.error('Failed to advance:', error);
-            fetchGameContent(); 
+            fetchGameContent();
         }
     }, [accessCode, token, currentActivity, contentTransitioning]);
 
@@ -353,7 +364,7 @@ const StudentGamePlay = () => {
                     activityId: currentActivity.id,
                     contentId: contentId,
                     answer: {
-                        ...answer, 
+                        ...answer,
                         timeRemaining: timeRemaining
                     },
                     contentIndex: currentContentIndex
@@ -472,7 +483,7 @@ const StudentGamePlay = () => {
             textAnswer: textAnswer,
             setTextAnswer: setTextAnswer,
             contentItem: currentContentItem,
-            accessCode: accessCode,  
+            accessCode: accessCode,
             currentContentIndex: currentContentIndex
         };
 

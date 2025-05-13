@@ -41,6 +41,7 @@ public class GameSession {
         private int currentContentIndex = 0; // Tracks progress through activity's contentItems
         private Object currentDrawing;
         private Date lastDrawingUpdate;
+        private boolean currentPromptCompleted;
 
         public void initializeDrawingRotation() {
             if (this.teamMembers != null && !this.teamMembers.isEmpty()) {

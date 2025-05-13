@@ -911,7 +911,6 @@ public class GameSessionService {
     }
 
     private boolean advanceToNextPrompt(GameSession session, Activity activity, Team team) {
-
         GameSession.SessionActivity currentActivity = session.getCurrentActivity();
         if (currentActivity == null)
             return false;
@@ -920,63 +919,49 @@ public class GameSessionService {
         if (teamChallengeContent == null || teamChallengeContent.getPrompts() == null)
             return false;
 
-        if (team == null || teamChallengeContent == null) {
-            return false;
-        }
-        if (teamChallengeContent == null ||
-                teamChallengeContent.getPrompts() == null ||
-                teamChallengeContent.getPrompts().isEmpty()) {
-            return false;
-        }
-        int currentIndex = team.getCurrentContentIndex();
         int totalPrompts = teamChallengeContent.getPrompts().size();
+        int currentIndex = team.getCurrentContentIndex();
 
         if (currentIndex >= totalPrompts - 1) {
-            // Notify completion
-            Map<String, Object> completionMessage = new HashMap<>();
-            completionMessage.put("status", "COMPLETED");
-            completionMessage.put("totalPrompts", totalPrompts);
+            team.setCurrentContentIndex(totalPrompts);
+            gameSessionRepository.save(session); 
+            boolean allTeamsCompleted = session.getTeams().stream()
+                    .allMatch(t -> t.getCurrentContentIndex() >= totalPrompts);
+
+            if (allTeamsCompleted) {
+                this.advanceActivity(session.getId());
+                Map<String, Object> completionMessage = new HashMap<>();
+                completionMessage.put("status", "COMPLETED");
+                completionMessage.put("totalPrompts", totalPrompts);
+                messagingTemplate.convertAndSend(
+                        "/topic/session/" + session.getAccessCode() + "/teamchallenge/status",
+                        completionMessage);
+                return false;
+            }
+            Map<String, Object> update = new HashMap<>();
+            update.put("teamId", team.getTeamId());
+            update.put("currentPromptIndex", totalPrompts);
+            update.put("status", "AWAITING_OTHERS");
             messagingTemplate.convertAndSend(
                     "/topic/session/" + session.getAccessCode() + "/teamchallenge/status",
-                    completionMessage);
-            return false;
+                    update);
+            return true;
+        } else {
+            int newIndex = currentIndex + 1;
+            team.setCurrentContentIndex(newIndex);
+            gameSessionRepository.save(session);
+
+            Activity.TeamChallengeContent.DrawingPrompt newPrompt = teamChallengeContent.getPrompts().get(newIndex);
+            Map<String, Object> promptUpdate = new HashMap<>();
+            promptUpdate.put("type", "PROMPT_ADVANCE");
+            promptUpdate.put("teamId", team.getTeamId());
+            promptUpdate.put("newPromptIndex", newIndex);
+            promptUpdate.put("newPrompt", newPrompt.getPrompt());
+            messagingTemplate.convertAndSend(
+                    "/topic/session/" + session.getAccessCode() + "/teamchallenge/prompts",
+                    promptUpdate);
+            return true;
         }
-
-        int newIndex = currentIndex + 1;
-        team.setCurrentContentIndex(newIndex);
-        gameSessionRepository.save(session);
-        Activity.TeamChallengeContent.DrawingPrompt newPrompt = teamChallengeContent.getPrompts().get(newIndex);
-
-        Map<String, Object> promptUpdate = new HashMap<>();
-        promptUpdate.put("type", "PROMPT_ADVANCE");
-        promptUpdate.put("teamId", team.getTeamId());
-        promptUpdate.put("newPromptIndex", newIndex);
-        promptUpdate.put("newPrompt", newPrompt.getPrompt());
-
-        messagingTemplate.convertAndSend(
-                "/topic/session/" + session.getAccessCode() + "/teamchallenge/prompts",
-                promptUpdate);
-
-        // Prepare and broadcast update
-        Map<String, Object> update = new HashMap<>();
-        update.put("teamId", team.getTeamId());
-        update.put("currentPromptIndex", newIndex);
-        update.put("currentWord", newPrompt.getPrompt());
-        update.put("status", "ACTIVE");
-
-        if (newPrompt.getSynonyms() != null && !newPrompt.getSynonyms().isEmpty()) {
-            update.put("synonyms", newPrompt.getSynonyms());
-        }
-
-        if (newPrompt.getTimeLimit() > 0) {
-            update.put("timeLimit", newPrompt.getTimeLimit());
-        }
-
-        messagingTemplate.convertAndSend(
-                "/topic/session/" + session.getAccessCode() + "/teamchallenge/status",
-                update);
-
-        return true;
     }
 
     private void rotateDrawer(GameSession session, GameSession.Team team) {

@@ -357,16 +357,22 @@ const TeamChallengeActivity = ({ activity, content, accessCode, contentItem }) =
     };
 
     const getDuration = () => {
-        if (contentItem?.data?.duration) {
-            return contentItem.data.duration;
-        }
-        if (contentItem?.data?.roundTime) {
-            return contentItem.data.roundTime;
-        }
-        return 60;
+        const currentPromptIndex = challengeStatus.currentPromptIndex ?? userTeam?.currentContentIndex ?? 0;
+        const prompts = contentItem?.data?.prompts || [];
+        const currentPrompt = prompts[currentPromptIndex];
+
+        if (currentPrompt?.timeLimit) return currentPrompt.timeLimit;
+        return contentItem?.data?.duration || contentItem?.data?.roundTime || 60;
     };
 
-    
+    useEffect(() => {
+        if (challengeStatus.status === 'ACTIVE') {
+            const newDuration = getDuration();
+            setTimeRemaining(newDuration);
+        }
+    }, [challengeStatus.currentPromptIndex, userTeam?.currentContentIndex]);
+
+
 
     const [timeRemaining, setTimeRemaining] = useState(getDuration());
 
@@ -374,18 +380,12 @@ const TeamChallengeActivity = ({ activity, content, accessCode, contentItem }) =
         if (challengeStatus.status !== 'ACTIVE' || !timeRemaining) return;
 
         const timer = setInterval(() => {
-            setTimeRemaining(prev => {
-                if (prev <= 1) {
-                    clearInterval(timer);
-                    return 0;
-                }
-                return prev - 1;
-            });
+            setTimeRemaining(prev => prev > 0 ? prev - 1 : 0);
         }, 1000);
 
         return () => clearInterval(timer);
     }, [challengeStatus.status, timeRemaining]);
-    
+
     const handleStroke = useCallback((stroke) => {
         if (userRole === 'drawer' && userTeam?.teamId && canvasRef.current) {
             if (stompClientRef.current?.connected) {
@@ -499,8 +499,9 @@ const TeamChallengeActivity = ({ activity, content, accessCode, contentItem }) =
                     const promptTopic = `/topic/session/${accessCode}/teamchallenge/prompts`;
                     client.subscribe(promptTopic, (message) => {
                         const update = JSON.parse(message.body);
-                        // Only update if the update is for the current user's team
                         if (update.teamId === userTeam.teamId) {
+                            setGuess('');
+                            setError('');
                             fetchChallengeStatus();
                         }
                     });

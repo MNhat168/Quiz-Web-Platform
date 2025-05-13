@@ -1,90 +1,167 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, ChangeEvent, FocusEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
 const Signup = () => {
   const navigate = useNavigate();
-  const [formData, setFormData] = useState({
+  
+  interface FormData {
+    email: string;
+    username: string;
+    displayName: string;
+    password: string;
+    role: string;
+  }
+  
+  interface FormErrors {
+    email: string;
+    username: string;
+    displayName: string;
+    password: string;
+    role: string;
+  }
+  
+  interface FormTouched {
+    email: boolean;
+    username: boolean;
+    displayName: boolean;
+    password: boolean;
+    role: boolean;
+  }
+  
+  const [formData, setFormData] = useState<FormData>({
     email: '',
     username: '',
     displayName: '',
     password: '',
     role: ''
   });
-  const [errors, setErrors] = useState({
+  
+  const [errors, setErrors] = useState<FormErrors>({
     email: '',
     username: '',
     displayName: '',
     password: '',
     role: ''
   });
+  
+  const [touched, setTouched] = useState<FormTouched>({
+    email: false,
+    username: false,
+    displayName: false,
+    password: false,
+    role: false
+  });
+  
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState('');
 
-  const validateEmail = (email: string) => {
+  const validateEmail = (email) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return emailRegex.test(email);
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const validatePassword = (password) =>{
+    const passwordRegex = /^(?=.*?[A-Z])(?=.*?[a-z])(?=.*?[0-9])(?=.*?[#?!@$ %^&*-]).{8,}$/
+    return passwordRegex.test(password)
+  }
+
+  // Validate a specific field
+  const validateField = (name: string, value: string): string => {
+    switch (name) {
+      case 'email':
+        if (!value) return 'Email is required';
+        if (!validateEmail(value)) return 'Invalid email format';
+        return '';
+      case 'username':
+        if (!value) return 'Username is required';
+        if (value.length < 3) return 'Username must be at least 3 characters';
+        return '';
+      case 'displayName':
+        if (!value) return 'Display name is required';
+        return '';
+      case 'password':
+        if (!value) return 'Password is required';
+        if (!validatePassword(value)) return 'Password must be minimum eight characters, at least one upper case English letter, one lower case English letter, one number and one special character';
+        return '';
+      case 'role':
+        if (!value) return 'Please select a role';
+        return '';
+      default:
+        return '';
+    }
+  };
+
+  // Re-validate when input changes
+  useEffect(() => {
+    const validateTouchedFields = () => {
+      const newErrors = { ...errors };
+      
+      Object.keys(touched).forEach(field => {
+        const key = field as keyof FormTouched;
+        if (touched[key]) {
+          newErrors[key] = validateField(field, formData[key]);
+        }
+      });
+      
+      setErrors(newErrors);
+    };
+    
+    validateTouchedFields();
+  }, [formData, touched, errors]);
+
+  const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
       [name]: value
     }));
+    
+    // Mark field as touched when user types
+    setTouched(prev => ({
+      ...prev,
+      [name as keyof FormTouched]: true
+    }));
+  };
 
-    // Clear error when user starts typing
-    if (errors[name as keyof typeof errors]) {
-      setErrors(prev => ({
-        ...prev,
-        [name]: ''
-      }));
-    }
+  const handleBlur = (e: FocusEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name } = e.target;
+    
+    // Mark field as touched when it loses focus
+    setTouched(prev => ({
+      ...prev,
+      [name as keyof FormTouched]: true
+    }));
   };
 
   const validateForm = () => {
-    let isValid = true;
-    const newErrors = {
+    // Mark all fields as touched
+    const allTouched: FormTouched = {
+      email: true,
+      username: true,
+      displayName: true,
+      password: true,
+      role: true
+    };
+    setTouched(allTouched);
+    
+    // Validate all fields
+    const newErrors: FormErrors = {
       email: '',
       username: '',
       displayName: '',
       password: '',
       role: ''
     };
-
-    if (!formData.email) {
-      newErrors.email = 'Email is required';
-      isValid = false;
-    } else if (!validateEmail(formData.email)) {
-      newErrors.email = 'Invalid email format';
-      isValid = false;
-    }
-
-    if (!formData.username) {
-      newErrors.username = 'Username is required';
-      isValid = false;
-    }
-
-    if (!formData.displayName) {
-      newErrors.displayName = 'Display name is required';
-      isValid = false;
-    }
-
-    if (!formData.password) {
-      newErrors.password = 'Password is required';
-      isValid = false;
-    } else if (formData.password.length < 6) {
-      newErrors.password = 'Password must be at least 6 characters';
-      isValid = false;
-    }
-
-    if (!formData.role) {
-      newErrors.role = 'Please select a role';
-      isValid = false;
-    }
-
+    
+    Object.keys(formData).forEach(key => {
+      const fieldKey = key as keyof FormData;
+      newErrors[fieldKey] = validateField(key, formData[fieldKey]);
+    });
     setErrors(newErrors);
-    return isValid;
+    
+    // Check if any errors exist
+    return !Object.values(newErrors).some(error => error !== '');
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -126,7 +203,7 @@ const Signup = () => {
           </p>
         </div>
 
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
+        <form className="mt-8 space-y-6" onSubmit={handleSubmit} noValidate>
           <div className="space-y-4">
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700">
@@ -138,13 +215,16 @@ const Signup = () => {
                 type="email"
                 required
                 className={`mt-1 block w-full px-4 py-3 border ${
-                  errors.email ? 'border-red-500' : 'border-gray-300'
+                  touched.email && errors.email ? 'border-red-500' : 'border-gray-300'
                 } rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500`}
                 placeholder="Enter your email"
                 value={formData.email}
                 onChange={handleChange}
+                onBlur={handleBlur}
               />
-              {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email}</p>}
+              {touched.email && errors.email && (
+                <p className="text-red-500 text-xs mt-1">{errors.email}</p>
+              )}
             </div>
 
             <div>
@@ -157,13 +237,16 @@ const Signup = () => {
                 type="text"
                 required
                 className={`mt-1 block w-full px-4 py-3 border ${
-                  errors.username ? 'border-red-500' : 'border-gray-300'
+                  touched.username && errors.username ? 'border-red-500' : 'border-gray-300'
                 } rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500`}
                 placeholder="Enter your username"
                 value={formData.username}
                 onChange={handleChange}
+                onBlur={handleBlur}
               />
-              {errors.username && <p className="text-red-500 text-xs mt-1">{errors.username}</p>}
+              {touched.username && errors.username && (
+                <p className="text-red-500 text-xs mt-1">{errors.username}</p>
+              )}
             </div>
 
             <div>
@@ -176,13 +259,16 @@ const Signup = () => {
                 type="text"
                 required
                 className={`mt-1 block w-full px-4 py-3 border ${
-                  errors.displayName ? 'border-red-500' : 'border-gray-300'
+                  touched.displayName && errors.displayName ? 'border-red-500' : 'border-gray-300'
                 } rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500`}
                 placeholder="Enter your display name"
                 value={formData.displayName}
                 onChange={handleChange}
+                onBlur={handleBlur}
               />
-              {errors.displayName && <p className="text-red-500 text-xs mt-1">{errors.displayName}</p>}
+              {touched.displayName && errors.displayName && (
+                <p className="text-red-500 text-xs mt-1">{errors.displayName}</p>
+              )}
             </div>
 
             <div>
@@ -195,13 +281,16 @@ const Signup = () => {
                 type="password"
                 required
                 className={`mt-1 block w-full px-4 py-3 border ${
-                  errors.password ? 'border-red-500' : 'border-gray-300'
+                  touched.password && errors.password ? 'border-red-500' : 'border-gray-300'
                 } rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500`}
                 placeholder="Enter your password"
                 value={formData.password}
                 onChange={handleChange}
+                onBlur={handleBlur}
               />
-              {errors.password && <p className="text-red-500 text-xs mt-1">{errors.password}</p>}
+              {touched.password && errors.password && (
+                <p className="text-red-500 text-xs mt-1">{errors.password}</p>
+              )}
             </div>
 
             <div>
@@ -212,16 +301,19 @@ const Signup = () => {
                 id="role"
                 name="role"
                 className={`mt-1 block w-full px-4 py-3 border ${
-                  errors.role ? 'border-red-500' : 'border-gray-300'
+                  touched.role && errors.role ? 'border-red-500' : 'border-gray-300'
                 } rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500`}
                 value={formData.role}
                 onChange={handleChange}
+                onBlur={handleBlur}
               >
                 <option value="">Select a role</option>
                 <option value="STUDENT">Student</option>
                 <option value="TEACHER">Teacher</option>
               </select>
-              {errors.role && <p className="text-red-500 text-xs mt-1">{errors.role}</p>}
+              {touched.role && errors.role && (
+                <p className="text-red-500 text-xs mt-1">{errors.role}</p>
+              )}
             </div>
           </div>
 
