@@ -114,7 +114,7 @@ const FillInBlankForm = ({
                     <div className="!space-y-4">
                         <div>
                             <label className="!block !text-sm !font-medium !text-gray-700 !mb-1">
-                                Question Text (use _ for blanks)
+                                Question Text (use _ for blanks 1 word , use __ for blanks multiple words)
                             </label>
                             <input
                                 value={item.data.questionText}
