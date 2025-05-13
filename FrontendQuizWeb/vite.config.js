@@ -9,5 +9,8 @@ export default defineConfig({
   },
   define: {
     global: 'globalThis',
-  }
+  },
+  build: {
+    outDir: '../src/main/resources/static', // Output to Spring Boot static dir
+  },
 })
