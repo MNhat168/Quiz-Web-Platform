@@ -615,12 +615,9 @@ public class GameSessionService {
         } else {
             contentToEvaluate = activity.getContent();
         }
-
-        // Cast answer to Map to extract timeRemaining
         Map<String, Object> answerData = (Map<String, Object>) answer;
         int remainingTime = (int) answerData.getOrDefault("timeRemaining", 0);
 
-        // Calculate total duration
         int totalDuration = contentItem.isPresent()
                 ? contentItem.get().getDuration()
                 : activity.getTimeLimit();
@@ -628,6 +625,11 @@ public class GameSessionService {
 
         boolean isCorrect = evaluateAnswer(activity.getType().toString(), contentToEvaluate, answer);
         int pointsEarned = isCorrect ? calculatePoints(activity) : 0;
+        if (isCorrect && totalDuration > 0) {
+            double timeFactor = 1.0 - (Math.min(timeSpent, totalDuration) / (double) totalDuration);
+            timeFactor = Math.max(timeFactor, 0.3);
+            pointsEarned = (int) Math.round(pointsEarned * timeFactor);
+        }
         participant.setTotalScore(participant.getTotalScore() + pointsEarned);
 
         if (participant.getActivityScores() == null) {
@@ -782,6 +784,34 @@ public class GameSessionService {
                     entry.put("displayName", p.getDisplayName());
                     entry.put("score", p.getTotalScore());
                     entry.put("avatarUrl", p.getAvatarUrl());
+
+                    int correctCount = 0;
+                    int incorrectCount = 0;
+
+                    List<GameSession.SessionActivity> allActivities = new ArrayList<>();
+                    if (session.getCompletedActivities() != null) {
+                        allActivities.addAll(session.getCompletedActivities());
+                    }
+                    if (session.getCurrentActivity() != null) {
+                        allActivities.add(session.getCurrentActivity()); // Include current activity
+                    }
+                    for (GameSession.SessionActivity activity : allActivities) {
+                        if (activity.getResponses() != null) {
+                            for (GameSession.ParticipantResponse response : activity.getResponses()) {
+                                if (response.getParticipantId().equals(p.getUserId())) {
+                                    if (response.isCorrect()) {
+                                        correctCount++;
+                                    } else {
+                                        incorrectCount++;
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    entry.put("correctCount", correctCount);
+                    entry.put("incorrectCount", incorrectCount);
+
                     return entry;
                 })
                 .sorted((p1, p2) -> Integer.compare((int) p2.get("score"), (int) p1.get("score")))
@@ -924,7 +954,7 @@ public class GameSessionService {
 
         if (currentIndex >= totalPrompts - 1) {
             team.setCurrentContentIndex(totalPrompts);
-            gameSessionRepository.save(session); 
+            gameSessionRepository.save(session);
             boolean allTeamsCompleted = session.getTeams().stream()
                     .allMatch(t -> t.getCurrentContentIndex() >= totalPrompts);
 
@@ -980,19 +1010,20 @@ public class GameSessionService {
             return false;
         }
         Map<String, Object> answerMap = (Map<String, Object>) answer;
-        
+
         // Get question index and blank index
         Object qIdxObj = answerMap.get("questionIndex");
         Object bIdxObj = answerMap.get("blankIndex");
-        if (qIdxObj == null || bIdxObj == null) return false;
-        
+        if (qIdxObj == null || bIdxObj == null)
+            return false;
+
         int questionIndex = Integer.parseInt(String.valueOf(qIdxObj));
         int blankIndex = Integer.parseInt(String.valueOf(bIdxObj));
-        
+
         // Get user's answer
         final String answerStr = answerMap.get("answer") != null
-            ? answerMap.get("answer").toString().trim().toLowerCase()
-            : "";
+                ? answerMap.get("answer").toString().trim().toLowerCase()
+                : "";
 
         // Get acceptable answers from the answer data
         Map<String, Map<String, List<String>>> acceptableAnswers = null;
@@ -1000,16 +1031,17 @@ public class GameSessionService {
             acceptableAnswers = (Map<String, Map<String, List<String>>>) answerMap.get("acceptableAnswers");
         }
 
-        if (acceptableAnswers != null && 
-            acceptableAnswers.containsKey(String.valueOf(questionIndex)) && 
-            acceptableAnswers.get(String.valueOf(questionIndex)).containsKey(String.valueOf(blankIndex))) {
-            
-            List<String> answersForThisBlank = acceptableAnswers.get(String.valueOf(questionIndex)).get(String.valueOf(blankIndex));
+        if (acceptableAnswers != null &&
+                acceptableAnswers.containsKey(String.valueOf(questionIndex)) &&
+                acceptableAnswers.get(String.valueOf(questionIndex)).containsKey(String.valueOf(blankIndex))) {
+
+            List<String> answersForThisBlank = acceptableAnswers.get(String.valueOf(questionIndex))
+                    .get(String.valueOf(blankIndex));
             if (answersForThisBlank != null) {
                 return answersForThisBlank.stream()
-                    .map(String::toLowerCase)
-                    .map(String::trim)
-                    .anyMatch(correctAns -> correctAns.equals(answerStr));
+                        .map(String::toLowerCase)
+                        .map(String::trim)
+                        .anyMatch(correctAns -> correctAns.equals(answerStr));
             }
         }
         return false;
