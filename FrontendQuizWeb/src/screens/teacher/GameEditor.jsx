@@ -7,6 +7,7 @@ import MultipleChoiceForm from "./games/MultipleChoice"
 import SortingForm from "./games/Sorting"
 import MatchingForm from "./games/Matching"
 import TeamChallengeForm from "./games/TeamChallenge"
+import FillInBlankForm from "./games/FillInBlank"
 import Sidebar from "../../layout/teacher/teacherSidebar"
 import Header from "../../layout/teacher/teacherHeader";
 import "../../style/game-editor.css"
@@ -20,10 +21,34 @@ const GameActivityEditor = () => {
     const [gameActivities, setGameActivities] = useState([])
     const [isAddingActivity, setIsAddingActivity] = useState(false)
     const [isCreatingActivity, setIsCreatingActivity] = useState(false)
-    const [activityTypes, setActivityTypes] = useState([]);
+    const [activeTypeFilter, setActiveTypeFilter] = useState("ALL");
+    const [activityTypes, setActivityTypes] = useState([
+        "MULTIPLE_CHOICE",
+        "SORTING",
+        "MATCHING",
+        "FILL_IN_BLANK"
+    ]);
+    const [shuffleOptions, setShuffleOptions] = useState(false);
+    const [hints, setHints] = useState([]);
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState("")
     const [successMessage, setSuccessMessage] = useState("")
+    const [currentPage, setCurrentPage] = useState(1);
+    const [activitiesPerPage] = useState(10);
+    const [searchQuery, setSearchQuery] = useState('');
+    const filteredActivities = activities.filter(activity => {
+        const typeMatch = activeTypeFilter === "ALL" || activity.type === activeTypeFilter;
+        const searchMatch = searchQuery === '' ||
+            activity.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            (activity.subject && activity.subject.toLowerCase().includes(searchQuery.toLowerCase()));
+
+        return typeMatch && searchMatch;
+    });
+
+    const totalPages = Math.ceil(filteredActivities.length / activitiesPerPage);
+    const indexOfLastActivity = currentPage * activitiesPerPage;
+    const indexOfFirstActivity = indexOfLastActivity - activitiesPerPage;
+    const paginatedActivities = filteredActivities.slice(indexOfFirstActivity, indexOfLastActivity);
     const [newActivity, setNewActivity] = useState({
         title: "",
         type: "MULTIPLE_CHOICE",
@@ -37,8 +62,8 @@ const GameActivityEditor = () => {
         gradeLevel: "",
         tags: [],
         isPublic: false,
-        content: {}
-    })
+        contentItems: []  // Changed from content to contentItems
+    });
     const [gameActivity, setGameActivity] = useState({
         activityId: "",
         order: 1,
@@ -50,32 +75,6 @@ const GameActivityEditor = () => {
             type: "COMPLETION"
         }
     })
-    const [multipleChoiceContent, setMultipleChoiceContent] = useState({
-        questions: [
-            {
-                question: "",
-                options: [
-                    { text: "", isCorrect: false, explanation: "" },
-                    { text: "", isCorrect: false, explanation: "" }
-                ],
-                explanation: ""
-            }
-        ],
-        allowMultipleAnswers: false,
-        hints: []
-    });
-
-    const [teamChallengeContent, setTeamChallengeContent] = useState({
-        prompts: [""],
-        roundTime: 60,
-        maxRounds: 5,
-        allowGuessing: true,
-        pointsPerCorrect: 10,
-        allowedWords: [],
-        teamParticipants: [],
-        rounds: [],
-        hints: []
-    });
 
     const [sortingContent, setSortingContent] = useState({
         instructions: "",
@@ -83,14 +82,6 @@ const GameActivityEditor = () => {
             { text: "", imageUrl: "", correctPosition: 1 },
             { text: "", imageUrl: "", correctPosition: 2 }
         ],
-        hints: []
-    })
-
-    const [matchingContent, setMatchingContent] = useState({
-        pairs: [
-            { item1: "", item2: "", item1ImageUrl: "", item2ImageUrl: "" }
-        ],
-        shuffleOptions: true,
         hints: []
     })
 
@@ -159,18 +150,13 @@ const GameActivityEditor = () => {
         fetchData();
     }, [gameId, token]);
 
-
     useEffect(() => {
-        if (newActivity.type === "MULTIPLE_CHOICE") {
-            setNewActivity({ ...newActivity, content: multipleChoiceContent })
-        } else if (newActivity.type === "SORTING") {
-            setNewActivity({ ...newActivity, content: sortingContent })
-        } else if (newActivity.type === "MATCHING") {
-            setNewActivity({ ...newActivity, content: matchingContent })
-        } else if (newActivity.type === "TEAM_CHALLENGE") {
-            setNewActivity({ ...newActivity, content: teamChallengeContent })
-        }
-    }, [multipleChoiceContent, sortingContent, matchingContent, teamChallengeContent, newActivity.type])
+        // Clear contentItems when switching types
+        setNewActivity(prev => ({
+            ...prev,
+            contentItems: []
+        }));
+    }, [newActivity.type]);
 
     const createActivity = async () => {
         try {
@@ -180,11 +166,55 @@ const GameActivityEditor = () => {
                 setError("Activity title is required")
                 return
             }
+            const activityToCreate = {
+                ...newActivity,
+                content: null,
+                contentItems: newActivity.contentItems.map(item => {
+                    const baseItem = {
+                        contentId: item.contentId,
+                        data: item.data,
+                        instructions: ""
+                    };
+                    switch (newActivity.type) {
+                        case "TEAM_CHALLENGE":
+                            return {
+                                ...baseItem,
+                                title: `Team Challenge - ${item.data.prompts[0]?.substring(0, 20) || 'Untitled'}`, // Truncate long prompts
+                                duration: item.data.roundTime
+                            }
+                        case "FILL_IN_BLANK":
+                            return {
+                                ...baseItem,
+                                title: `Fill-in-Blank - ${item.data.questionText?.substring(0, 30) || 'Untitled'}`,
+                                duration: item.duration  // Correct reference
+                            };
+                        case "MULTIPLE_CHOICE":
+                            return {
+                                ...baseItem,
+                                title: `MCQ - ${item.data.question?.substring(0, 30) || 'Untitled'}`,
+                                duration: item.data.duration
+                            }
+                        case "MATCHING":
+                            return {
+                                ...baseItem,
+                                title: `Matching - ${item.data.item1 || 'Pair'}`,
+                                duration: item.duration  // Correct reference
+                            };
+                        default:
+                            return {
+                                ...baseItem,
+                                title: "Activity",
+                                duration: 60
+                            }
+                    }
+                })
+            };
+
             const response = await axios.post(
                 "http://localhost:8080/api/activities",
-                newActivity,
+                activityToCreate,
                 { headers: { Authorization: `Bearer ${token}` } }
-            )
+            );
             const { data: activitiesData } = await axios.get(
                 "http://localhost:8080/api/activities/teacher",
                 { headers: { Authorization: `Bearer ${token}` } }
@@ -361,8 +391,8 @@ const GameActivityEditor = () => {
                 ...prev,
                 settings: {
                     ...prev.settings,
-                    teamBased: true, 
-                    teamSettings: prev.settings.teamSettings || { 
+                    teamBased: true,
+                    teamSettings: prev.settings.teamSettings || {
                         autoAssignTeams: true,
                         numberOfTeams: 2,
                         membersPerTeam: 2
@@ -405,6 +435,11 @@ const GameActivityEditor = () => {
                 ...teamChallengeContent,
                 hints: [...teamChallengeContent.hints, currentHint]
             })
+        } else if (newActivity.type === "FILL_IN_BLANK") {
+            setFillInBlankContent({
+                ...fillInBlankContent,
+                hints: [...fillInBlankContent.hints, currentHint]
+            })
         }
         setCurrentHint("")
     }
@@ -438,6 +473,13 @@ const GameActivityEditor = () => {
                 ...teamChallengeContent,
                 hints: updatedHints
             })
+        } else if (newActivity.type === "FILL_IN_BLANK") {
+            const updatedHints = [...fillInBlankContent.hints]
+            updatedHints.splice(index, 1)
+            setFillInBlankContent({
+                ...fillInBlankContent,
+                hints: updatedHints
+            })
         }
     }
 
@@ -455,55 +497,14 @@ const GameActivityEditor = () => {
             gradeLevel: "",
             tags: [],
             isPublic: false,
-            content: {}
-        })
+            contentItems: [] // Reset to empty array instead of using content
+        });
 
-        setMultipleChoiceContent({
-            questions: [
-                {
-                    question: "",
-                    options: [
-                        { text: "", isCorrect: false, explanation: "" },
-                        { text: "", isCorrect: false, explanation: "" }
-                    ],
-                    explanation: ""
-                }
-            ],
-            allowMultipleAnswers: false,
-            hints: []
-        })
+        // We don't need to reset these state variables anymore since we're using contentItems
+        // setMultipleChoiceContent, setSortingContent, etc. are not needed
 
-        setSortingContent({
-            instructions: "",
-            items: [
-                { text: "", imageUrl: "", correctPosition: 1 },
-                { text: "", imageUrl: "", correctPosition: 2 }
-            ],
-            hints: []
-        })
-
-        setMatchingContent({
-            pairs: [
-                { item1: "", item2: "", item1ImageUrl: "", item2ImageUrl: "" }
-            ],
-            shuffleOptions: true,
-            hints: []
-        })
-
-        setTeamChallengeContent({
-            prompts: [""],
-            roundTime: 60,
-            maxRounds: 5,
-            allowGuessing: true,
-            pointsPerCorrect: 10,
-            allowedWords: [],
-            teamParticipants: [],
-            rounds: [],
-            hints: []
-        })
-
-        setCurrentHint("")
-    }
+        setCurrentHint("");
+    };
 
     const saveGame = async () => {
         try {
@@ -530,8 +531,8 @@ const GameActivityEditor = () => {
             case "MULTIPLE_CHOICE":
                 return (
                     <MultipleChoiceForm
-                        content={multipleChoiceContent}
-                        setContent={setMultipleChoiceContent}
+                        contentItems={newActivity.contentItems}
+                        setContentItems={(items) => setNewActivity({ ...newActivity, contentItems: items })}
                         currentHint={currentHint}
                         setCurrentHint={setCurrentHint}
                         addHint={addHint}
@@ -552,8 +553,12 @@ const GameActivityEditor = () => {
             case "MATCHING":
                 return (
                     <MatchingForm
-                        content={matchingContent}
-                        setContent={setMatchingContent}
+                        contentItems={newActivity.contentItems}
+                        setContentItems={(items) => setNewActivity({ ...newActivity, contentItems: items })}
+                        shuffleOptions={shuffleOptions}
+                        setShuffleOptions={setShuffleOptions}
+                        hints={hints}
+                        setHints={setHints}
                         currentHint={currentHint}
                         setCurrentHint={setCurrentHint}
                         addHint={addHint}
@@ -563,8 +568,19 @@ const GameActivityEditor = () => {
             case "TEAM_CHALLENGE":
                 return (
                     <TeamChallengeForm
-                        content={teamChallengeContent}
-                        setContent={setTeamChallengeContent}
+                        contentItems={newActivity.contentItems}
+                        setContentItems={(items) => setNewActivity({ ...newActivity, contentItems: items })}
+                        currentHint={currentHint}
+                        setCurrentHint={setCurrentHint}
+                        addHint={addHint}
+                        removeHint={removeHint}
+                    />
+                )
+            case "FILL_IN_BLANK":
+                return (
+                    <FillInBlankForm
+                        contentItems={newActivity.contentItems}
+                        setContentItems={(items) => setNewActivity({ ...newActivity, contentItems: items })}
                         currentHint={currentHint}
                         setCurrentHint={setCurrentHint}
                         addHint={addHint}
@@ -775,7 +791,7 @@ const GameActivityEditor = () => {
 
                 {isAddingActivity && (
                     <div className="modal-overlay">
-                        <div className="modal-content">
+                        <div className="modal-content activity-modal">
                             <div className="modal-header">
                                 <h2>Add Activities to Game</h2>
                                 <button className="close-modal" onClick={closeAddActivityModal}>
@@ -841,7 +857,8 @@ const GameActivityEditor = () => {
                                                             <option key={type} value={type}>
                                                                 {type === "MULTIPLE_CHOICE" ? "Multiple Choice" :
                                                                     type === "SORTING" ? "Sorting" :
-                                                                        type === "MATCHING" ? "Matching" : type}
+                                                                        type === "MATCHING" ? "Matching" :
+                                                                            type === "FILL_IN_BLANK" ? "Fill In Blank" : type}
                                                             </option>
                                                         ))}
                                                     </select>
@@ -849,28 +866,6 @@ const GameActivityEditor = () => {
                                             </div>
 
                                             <div className="form-row">
-                                                <div className="form-group">
-                                                    <label htmlFor="timeLimit">Time Limit (seconds)</label>
-                                                    <input
-                                                        id="timeLimit"
-                                                        type="number"
-                                                        min="10"
-                                                        value={newActivity.timeLimit}
-                                                        onChange={(e) => setNewActivity({ ...newActivity, timeLimit: parseInt(e.target.value) })}
-                                                        className="form-input"
-                                                    />
-                                                </div>
-                                                <div className="form-group">
-                                                    <label htmlFor="points">Points</label>
-                                                    <input
-                                                        id="points"
-                                                        type="number"
-                                                        min="0"
-                                                        value={newActivity.points}
-                                                        onChange={(e) => setNewActivity({ ...newActivity, points: parseInt(e.target.value) })}
-                                                        className="form-input"
-                                                    />
-                                                </div>
                                                 <div className="form-group">
                                                     <label htmlFor="difficulty">Difficulty</label>
                                                     <select
@@ -883,62 +878,6 @@ const GameActivityEditor = () => {
                                                         <option value="MEDIUM">Medium</option>
                                                         <option value="HARD">Hard</option>
                                                     </select>
-                                                </div>
-                                            </div>
-
-                                            <div className="form-group">
-                                                <label htmlFor="instructions">Instructions</label>
-                                                <textarea
-                                                    id="instructions"
-                                                    value={newActivity.instructions}
-                                                    onChange={(e) => setNewActivity({ ...newActivity, instructions: e.target.value })}
-                                                    className="form-textarea"
-                                                ></textarea>
-                                            </div>
-
-                                            <div className="form-row">
-                                                <div className="form-group">
-                                                    <label htmlFor="subject">Subject</label>
-                                                    <input
-                                                        id="subject"
-                                                        type="text"
-                                                        value={newActivity.subject}
-                                                        onChange={(e) => setNewActivity({ ...newActivity, subject: e.target.value })}
-                                                        className="form-input"
-                                                    />
-                                                </div>
-                                                <div className="form-group">
-                                                    <label htmlFor="topic">Topic</label>
-                                                    <input
-                                                        id="topic"
-                                                        type="text"
-                                                        value={newActivity.topic}
-                                                        onChange={(e) => setNewActivity({ ...newActivity, topic: e.target.value })}
-                                                        className="form-input"
-                                                    />
-                                                </div>
-                                            </div>
-
-                                            <div className="form-row">
-                                                <div className="form-group">
-                                                    <label htmlFor="learningObjective">Learning Objective</label>
-                                                    <input
-                                                        id="learningObjective"
-                                                        type="text"
-                                                        value={newActivity.learningObjective}
-                                                        onChange={(e) => setNewActivity({ ...newActivity, learningObjective: e.target.value })}
-                                                        className="form-input"
-                                                    />
-                                                </div>
-                                                <div className="form-group">
-                                                    <label htmlFor="gradeLevel">Grade Level</label>
-                                                    <input
-                                                        id="gradeLevel"
-                                                        type="text"
-                                                        value={newActivity.gradeLevel}
-                                                        onChange={(e) => setNewActivity({ ...newActivity, gradeLevel: e.target.value })}
-                                                        className="form-input"
-                                                    />
                                                 </div>
                                             </div>
 
@@ -975,70 +914,178 @@ const GameActivityEditor = () => {
                                 </div>
                             ) : (
                                 <div className="select-activity-content">
-                                    <div className="activities-list">
-                                        {activities.length > 0 ? (
-                                            activities.map((activity) => {
-                                                const isSelected = selectedActivities.findIndex(a => a.id === activity.id) >= 0;
-                                                return (
-                                                    <div
-                                                        key={activity.id}
-                                                        className={`activity-select-item ${isSelected ? 'selected' : ''}`}
-                                                        onClick={() => selectActivity(activity)}
-                                                    >
-                                                        <div className="activity-select-info">
-                                                            <div className="activity-select-title">
-                                                                <span>{activity.title}</span>
-                                                                <div className="activity-select-badges">
-                                                                    <span className="activity-type-badge">
-                                                                        {activity.type === "MULTIPLE_CHOICE" ? "Multiple Choice" :
-                                                                            activity.type === "SORTING" ? "Sorting" :
-                                                                                activity.type === "MATCHING" ? "Matching" : activity.type}
-                                                                    </span>
-                                                                    <span className="activity-points-badge">
-                                                                        <Award size={14} /> {activity.points || 10} pts
-                                                                    </span>
-                                                                    <span className="activity-time-badge">
-                                                                        <Clock size={14} /> {activity.timeLimit || 60}s
-                                                                    </span>
+                                    <div className="activity-selection-container">
+                                        {/* Vertical sidebar for activity type filters */}
+                                        <div className="activity-type-sidebar">
+                                            <div className="activity-type-sidebar-header">
+                                                <h3>Filter Types</h3>
+                                            </div>
+                                            <div className="activity-type-list">
+                                                <button
+                                                    className={`activity-type-item ${activeTypeFilter === "ALL" ? 'active' : ''}`}
+                                                    onClick={() => setActiveTypeFilter("ALL")}
+                                                >
+                                                    <ListOrdered size={16} /> All Types
+                                                </button>
+
+                                                {activityTypes.map(type => {
+                                                    let icon;
+                                                    switch (type) {
+                                                        case "MULTIPLE_CHOICE":
+                                                            icon = <CheckCircle size={16} />;
+                                                            break;
+                                                        case "SORTING":
+                                                            icon = <ArrowDown size={16} />;
+                                                            break;
+                                                        case "MATCHING":
+                                                            icon = <ChevronRight size={16} />;
+                                                            break;
+                                                        case "FILL_IN_BLANK":
+                                                            icon = <Edit size={16} />;
+                                                            break;
+                                                        case "TEAM_CHALLENGE":
+                                                            icon = <Award size={16} />;
+                                                            break;
+                                                        default:
+                                                            icon = <Book size={16} />;
+                                                    }
+
+                                                    return (
+                                                        <button
+                                                            key={type}
+                                                            className={`activity-type-item ${activeTypeFilter === type ? 'active' : ''}`}
+                                                            onClick={() => setActiveTypeFilter(type)}
+                                                        >
+                                                            {icon}
+                                                            {type === "MULTIPLE_CHOICE" ? "Multiple Choice" :
+                                                                type === "SORTING" ? "Sorting" :
+                                                                    type === "MATCHING" ? "Matching" :
+                                                                        type === "FILL_IN_BLANK" ? "Fill In Blank" :
+                                                                            type === "TEAM_CHALLENGE" ? "Team Challenge" : type}
+                                                        </button>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
+
+                                        {/* Activities list container with pagination */}
+                                        <div className="activities-list-container">
+                                            <div className="activities-list-header">
+                                                <h3>Activities ({filteredActivities.length})</h3>
+                                                <div className="activities-search">
+                                                    <input
+                                                        type="text"
+                                                        placeholder="Search activities..."
+                                                        value={searchQuery}
+                                                        onChange={(e) => setSearchQuery(e.target.value)}
+                                                        className="activity-search-input"
+                                                    />
+                                                </div>
+                                            </div>
+                                            <div className="activities-list-scrollable">
+                                                {filteredActivities.length > 0 ? (
+                                                    paginatedActivities.map((activity) => {
+                                                        const isSelected = selectedActivities.findIndex(a => a.id === activity.id) >= 0;
+                                                        return (
+                                                            <div
+                                                                key={activity.id}
+                                                                className={`activity-select-item ${isSelected ? 'selected' : ''}`}
+                                                                onClick={() => selectActivity(activity)}
+                                                            >
+                                                                <div className="activity-select-info">
+                                                                    <div className="activity-select-title">
+                                                                        <span>{activity.title}</span>
+                                                                        <div className="activity-select-badges">
+                                                                            <span className="activity-type-badge">
+                                                                                {activity.type === "MULTIPLE_CHOICE" ? "Multiple Choice" :
+                                                                                    activity.type === "SORTING" ? "Sorting" :
+                                                                                        activity.type === "MATCHING" ? "Matching" :
+                                                                                            activity.type === "FILL_IN_BLANK" ? "Fill In Blank" : activity.type}
+                                                                            </span>
+                                                                            <span className="activity-points-badge">
+                                                                                <Award size={14} /> {activity.points || 10} pts
+                                                                            </span>
+                                                                            <span className="activity-time-badge">
+                                                                                <Clock size={14} /> {activity.timeLimit || 60}s
+                                                                            </span>
+                                                                        </div>
+                                                                    </div>
+                                                                    <div className="activity-select-details">
+                                                                        {activity.subject && (
+                                                                            <span className="activity-subject">
+                                                                                <Book size={14} /> {activity.subject}
+                                                                            </span>
+                                                                        )}
+                                                                        {activity.difficulty && (
+                                                                            <span className={`activity-difficulty ${activity.difficulty.toLowerCase()}`}>
+                                                                                {activity.difficulty}
+                                                                            </span>
+                                                                        )}
+                                                                    </div>
+                                                                </div>
+                                                                <div className="activity-select-checkbox">
+                                                                    {isSelected && (
+                                                                        <>
+                                                                            <div className="selection-order">
+                                                                                {selectedActivities.find(a => a.id === activity.id).selectionOrder}
+                                                                            </div>
+                                                                            <CheckCircle size={20} />
+                                                                        </>
+                                                                    )}
                                                                 </div>
                                                             </div>
-                                                            <div className="activity-select-details">
-                                                                {activity.subject && (
-                                                                    <span className="activity-subject">
-                                                                        <Book size={14} /> {activity.subject}
-                                                                    </span>
-                                                                )}
-                                                                {activity.difficulty && (
-                                                                    <span className={`activity-difficulty ${activity.difficulty.toLowerCase()}`}>
-                                                                        {activity.difficulty}
-                                                                    </span>
-                                                                )}
-                                                            </div>
-                                                        </div>
-                                                        <div className="activity-select-checkbox">
-                                                            {isSelected && (
-                                                                <>
-                                                                    <div className="selection-order">
-                                                                        {selectedActivities.find(a => a.id === activity.id).selectionOrder}
-                                                                    </div>
-                                                                    <CheckCircle size={20} />
-                                                                </>
-                                                            )}
-                                                        </div>
+                                                        );
+                                                    })
+                                                ) : (
+                                                    <div className="no-activities">
+                                                        <p>No activities found. Try adjusting your search or filter.</p>
+                                                        <button
+                                                            className="create-first-activity"
+                                                            onClick={() => setIsCreatingActivity(true)}
+                                                        >
+                                                            <Plus size={18} /> Create Activity
+                                                        </button>
                                                     </div>
-                                                );
-                                            })
-                                        ) : (
-                                            <div className="no-activities">
-                                                <p>You don't have any activities yet. Create one first!</p>
-                                                <button
-                                                    className="create-first-activity"
-                                                    onClick={() => setIsCreatingActivity(true)}
-                                                >
-                                                    <Plus size={18} /> Create Activity
-                                                </button>
+                                                )}
                                             </div>
-                                        )}
+
+                                            {/* Pagination Controls */}
+                                            {filteredActivities.length > activitiesPerPage && (
+                                                <div className="pagination-controls">
+                                                    <button
+                                                        className="pagination-button"
+                                                        disabled={currentPage === 1}
+                                                        onClick={() => setCurrentPage(1)}
+                                                    >
+                                                        First
+                                                    </button>
+                                                    <button
+                                                        className="pagination-button"
+                                                        disabled={currentPage === 1}
+                                                        onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                                                    >
+                                                        Previous
+                                                    </button>
+                                                    <span className="pagination-info">
+                                                        Page {currentPage} of {totalPages}
+                                                    </span>
+                                                    <button
+                                                        className="pagination-button"
+                                                        disabled={currentPage === totalPages}
+                                                        onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                                                    >
+                                                        Next
+                                                    </button>
+                                                    <button
+                                                        className="pagination-button"
+                                                        disabled={currentPage === totalPages}
+                                                        onClick={() => setCurrentPage(totalPages)}
+                                                    >
+                                                        Last
+                                                    </button>
+                                                </div>
+                                            )}
+                                        </div>
                                     </div>
 
                                     <div className="modal-actions">

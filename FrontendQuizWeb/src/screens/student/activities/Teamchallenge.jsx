@@ -16,13 +16,10 @@ const TeamChallengeActivity = ({ activity, content, accessCode, contentItem }) =
     const [loading, setLoading] = useState(true);
     const [initialized, setInitialized] = useState(false);
     const canvasRef = useRef(null);
-    const statusPollingRef = useRef(null);
-    const teamsPollingRef = useRef(null);
     const lastStatusRef = useRef(null);
     const lastTeamsRef = useRef(null);
     const { token } = useAuth();
-
-    
+    const [canvasReady, setCanvasReady] = useState(false);
     const stompClientRef = useRef(null);
     const subscriptionRef = useRef(null);
     const [isConnected, setIsConnected] = useState(false);
@@ -93,7 +90,10 @@ const TeamChallengeActivity = ({ activity, content, accessCode, contentItem }) =
             const newStatus = response.data;
             if (!isEqual(newStatus, lastStatusRef.current)) {
                 lastStatusRef.current = newStatus;
-                setChallengeStatus(newStatus);
+                setChallengeStatus({
+                    ...newStatus,
+                    currentPromptIndex: userTeam?.currentPromptIndex || 0
+                });
                 if (!userTeam) {
                     if (newStatus.teams && newStatus.teams.length > 0) {
                         const currentUserTeam = newStatus.teams.find(team =>
@@ -152,6 +152,55 @@ const TeamChallengeActivity = ({ activity, content, accessCode, contentItem }) =
         }
     }, [accessCode, token, studentId, userTeam]);
 
+    const saveTimeoutRef = useRef(null);
+
+    useEffect(() => {
+        return () => {
+            if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+        };
+    }, []);
+
+    const handlePathsChange = useCallback((updatedPaths) => {
+        if (userRole === 'drawer' && userTeam?.teamId) {
+            if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+            saveTimeoutRef.current = setTimeout(() => {
+                axios.post(
+                    `http://localhost:8080/api/sessions/${accessCode}/teamchallenge/save-drawing`,
+                    {
+                        teamId: userTeam.teamId,
+                        paths: updatedPaths
+                    },
+                    { headers: { Authorization: `Bearer ${token}` } }
+                );
+            }, 1000); // Debounce 1 second
+        }
+    }, [userRole, accessCode, userTeam?.teamId, token]);
+
+    const requestInitialCanvas = useCallback(() => {
+        if (userTeam?.teamId) {
+            console.log(`Requesting initial canvas data as ${userRole}`);
+            axios.get(
+                `http://localhost:8080/api/sessions/${accessCode}/teamchallenge/drawing/${userTeam.teamId}`,
+                { headers: { Authorization: `Bearer ${token}` } }
+            )
+                .then(response => {
+                    console.log('Received REST drawing data:', response.data);
+                    if (canvasRef.current && response.data) {
+                        canvasRef.current.loadPaths(response.data);
+                    }
+                })
+                .catch(error => {
+                    console.warn('Could not get drawing via REST, falling back to WebSocket:', error);
+                    if (stompClientRef.current?.connected) {
+                        stompClientRef.current.publish({
+                            destination: `/app/session/${accessCode}/teamchallenge/request-drawing/${userTeam.teamId}`,
+                            body: JSON.stringify(studentId)
+                        });
+                    }
+                });
+        }
+    }, [userRole, accessCode, userTeam?.teamId, studentId, token]);
+
     useEffect(() => {
         if (initialized) return;
 
@@ -191,44 +240,59 @@ const TeamChallengeActivity = ({ activity, content, accessCode, contentItem }) =
     }, [accessCode, token, fetchChallengeStatus, fetchTeams, initialized]);
 
     useEffect(() => {
-        if (!initialized) return;
-        if (statusPollingRef.current) clearInterval(statusPollingRef.current);
-        if (teamsPollingRef.current) clearInterval(teamsPollingRef.current);
-        statusPollingRef.current = setInterval(() => {
-            fetchChallengeStatus();
-        }, 5000);
-        if (!userTeam) {
-            teamsPollingRef.current = setInterval(() => {
-                if (challengeStatus.status === 'ACTIVE') {
-                    fetchTeams();
-                }
-            }, 3000);
+        if (userTeam?.teamId && userRole === 'guesser' && isConnected) {
+            requestInitialCanvas();
         }
-        return () => {
-            if (statusPollingRef.current) clearInterval(statusPollingRef.current);
-            if (teamsPollingRef.current) clearInterval(teamsPollingRef.current);
-        };
-    }, [initialized, userTeam, challengeStatus.status, fetchChallengeStatus, fetchTeams]);
-
-    useEffect(() => {
-        if (userTeam && teamsPollingRef.current) {
-            clearInterval(teamsPollingRef.current);
-            teamsPollingRef.current = null;
-            console.log("Cleared teams polling interval - user team found");
-        }
-    }, [userTeam]);
-
-    useEffect(() => {
-        if (challengeStatus.status === 'COMPLETED' && statusPollingRef.current) {
-            clearInterval(statusPollingRef.current);
-            statusPollingRef.current = null;
-            console.log("Cleared status polling interval - challenge completed");
-        }
-    }, [challengeStatus.status]);
+    }, [userTeam?.teamId, userRole, isConnected, requestInitialCanvas]);
 
     const clearCanvas = () => {
         if (userRole !== 'drawer' || !canvasRef.current) return;
-        canvasRef.current.clearCanvas();
+
+        if (canvasRef.current && typeof canvasRef.current.clearCanvas === 'function') {
+            Promise.resolve(canvasRef.current.clearCanvas())
+                .then(() => {
+                    console.log('Canvas cleared, sending empty paths');
+                    if (stompClientRef.current?.connected) {
+                        stompClientRef.current.publish({
+                            destination: `/app/session/${accessCode}/teamchallenge/drawing/${userTeam.teamId}`,
+                            body: JSON.stringify({
+                                type: 'clear',
+                                data: []
+                            })
+                        });
+                    }
+                    axios.post(
+                        `http://localhost:8080/api/sessions/${accessCode}/teamchallenge/save-drawing`,
+                        {
+                            teamId: userTeam.teamId,
+                            paths: []
+                        },
+                        { headers: { Authorization: `Bearer ${token}` } }
+                    );
+                })
+                .catch(error => {
+                    console.error('Error clearing canvas:', error);
+                });
+        } else {
+            console.warn('Canvas reference not ready, sending clear command directly');
+            if (stompClientRef.current?.connected && userTeam?.teamId) {
+                stompClientRef.current.publish({
+                    destination: `/app/session/${accessCode}/teamchallenge/drawing/${userTeam.teamId}`,
+                    body: JSON.stringify({
+                        type: 'clear',
+                        data: []
+                    })
+                });
+            }
+            axios.post(
+                `http://localhost:8080/api/sessions/${accessCode}/teamchallenge/save-drawing`,
+                {
+                    teamId: userTeam.teamId,
+                    paths: []
+                },
+                { headers: { Authorization: `Bearer ${token}` } }
+            );
+        }
     };
 
     const submitGuess = async () => {
@@ -236,18 +300,15 @@ const TeamChallengeActivity = ({ activity, content, accessCode, contentItem }) =
         setIsSubmitting(true);
         try {
             const teamId = userTeam.id || userTeam.teamId;
-
-            if (!teamId) {
-                throw new Error("Team ID is missing");
-            }
             const guessData = {
                 teamId: teamId,
                 guess: guess.trim()
             };
 
+            // Add explicit content type header
             await axios.post(
                 `http://localhost:8080/api/sessions/${accessCode}/teamchallenge/guess`,
-                guessData,  // Send as a plain object, Axios will handle JSON conversion
+                guessData,
                 {
                     headers: {
                         'Authorization': `Bearer ${token}`,
@@ -261,8 +322,9 @@ const TeamChallengeActivity = ({ activity, content, accessCode, contentItem }) =
         } catch (error) {
             console.error('Failed to submit guess:', error);
             if (error.response) {
-                console.error('Error response:', error.response.data);
-                setError(`Failed to submit guess: ${error.response.data.error || error.message}`);
+                // Handle structured error response
+                const errorMsg = error.response.data.error || error.message;
+                setError(`Failed to submit guess: ${errorMsg}`);
             } else {
                 setError(`Failed to submit guess: ${error.message}`);
             }
@@ -294,10 +356,77 @@ const TeamChallengeActivity = ({ activity, content, accessCode, contentItem }) =
         }
     };
 
+    const getDuration = () => {
+        const currentPromptIndex = challengeStatus.currentPromptIndex ?? userTeam?.currentContentIndex ?? 0;
+        const prompts = contentItem?.data?.prompts || [];
+        const currentPrompt = prompts[currentPromptIndex];
 
-    // WebSocket connection setup
+        if (currentPrompt?.timeLimit) return currentPrompt.timeLimit;
+        return contentItem?.data?.duration || contentItem?.data?.roundTime || 60;
+    };
+
     useEffect(() => {
-        const socket = new SockJS('http://localhost:8080/ws');
+        if (challengeStatus.status === 'ACTIVE') {
+            const newDuration = getDuration();
+            setTimeRemaining(newDuration);
+        }
+    }, [challengeStatus.currentPromptIndex, userTeam?.currentContentIndex]);
+
+
+
+    const [timeRemaining, setTimeRemaining] = useState(getDuration());
+
+    useEffect(() => {
+        if (challengeStatus.status !== 'ACTIVE' || !timeRemaining) return;
+
+        const timer = setInterval(() => {
+            setTimeRemaining(prev => prev > 0 ? prev - 1 : 0);
+        }, 1000);
+
+        return () => clearInterval(timer);
+    }, [challengeStatus.status, timeRemaining]);
+
+    const handleStroke = useCallback((stroke) => {
+        if (userRole === 'drawer' && userTeam?.teamId && canvasRef.current) {
+            if (stompClientRef.current?.connected) {
+                stompClientRef.current.publish({
+                    destination: `/app/session/${accessCode}/teamchallenge/drawing/${userTeam.teamId}`,
+                    body: JSON.stringify({
+                        type: 'stroke',
+                        data: stroke
+                    })
+                });
+            }
+
+            if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+            saveTimeoutRef.current = setTimeout(() => {
+                canvasRef.current.exportPaths().then(paths => {
+                    axios.post(
+                        `http://localhost:8080/api/sessions/${accessCode}/teamchallenge/save-drawing`,
+                        {
+                            teamId: userTeam.teamId,
+                            paths: paths
+                        },
+                        { headers: { Authorization: `Bearer ${token}` } }
+                    );
+
+                    if (stompClientRef.current?.connected) {
+                        stompClientRef.current.publish({
+                            destination: `/app/session/${accessCode}/teamchallenge/drawing/${userTeam.teamId}`,
+                            body: JSON.stringify({
+                                type: 'full',
+                                data: paths
+                            })
+                        });
+                    }
+                }).catch(console.error);
+            }, 1000);
+        }
+    }, [userRole, accessCode, userTeam?.teamId, token]);
+
+    useEffect(() => {
+        if (!userTeam?.teamId) return;
+        const socket = new SockJS('http://localhost:8080/ws-sessions');
         const client = new Client({
             webSocketFactory: () => socket,
             reconnectDelay: 5000,
@@ -307,17 +436,84 @@ const TeamChallengeActivity = ({ activity, content, accessCode, contentItem }) =
                 setIsConnected(true);
                 console.log('WebSocket connected');
 
-                // Subscribe only if userTeam exists
-                if (userTeam) {
-                    const teamGuessTopic = `/topic/session/${accessCode}/teamchallenge/guess/${userTeam.teamId}`;
-                    subscriptionRef.current = client.subscribe(
-                        teamGuessTopic,
-                        (message) => {
-                            const guessResult = JSON.parse(message.body);
-                            console.log('New guess:', guessResult);
+                const personalQueue = `/user/queue/drawing-init`;
+                client.subscribe(personalQueue, (message) => {
+                    try {
+                        console.log('Received initial drawing data');
+                        const paths = JSON.parse(message.body);
+                        if (canvasRef.current && paths && paths.length > 0) {
+                            console.log('Loading initial paths:', paths.length);
+                            canvasRef.current.loadPaths(paths);
+                        } else {
+                            console.log('No paths to load or invalid data');
+                        }
+                    } catch (error) {
+                        console.error("Error processing initial drawing data:", error);
+                    }
+                });
+
+                if (userTeam?.teamId) {
+                    const pathsRef = { current: [] };
+
+                    const drawingTopic = `/topic/session/${accessCode}/teamchallenge/drawing/${userTeam.teamId}`;
+                    client.subscribe(drawingTopic, (message) => {
+                        try {
+                            const update = JSON.parse(message.body);
+                            if (update.type === 'stroke' && userRole === 'guesser') {
+                                const stroke = update.data;
+                                if (canvasRef.current && stroke) {
+                                    pathsRef.current.push(stroke);
+                                    canvasRef.current.loadPaths(pathsRef.current);
+                                }
+                            } else if (update.type === 'clear') {
+                                if (canvasRef.current) {
+                                    console.log('Received clear command - clearing canvas');
+                                    canvasRef.current.clearCanvas();
+                                    pathsRef.current = [];
+                                }
+                            } else if (update.type === 'full') {
+                                const paths = update.data;
+                                if (canvasRef.current && paths) {
+                                    if (paths.length === 0) {
+                                        canvasRef.current.clearCanvas();
+                                    } else {
+                                        pathsRef.current = paths;
+                                        canvasRef.current.loadPaths(paths);
+                                    }
+                                }
+                            } else if (Array.isArray(update)) {
+                                if (canvasRef.current) {
+                                    if (update.length === 0) {
+                                        canvasRef.current.clearCanvas();
+                                        pathsRef.current = [];
+                                    } else {
+                                        pathsRef.current = update;
+                                        canvasRef.current.loadPaths(update);
+                                    }
+                                }
+                            }
+                        } catch (error) {
+                            console.error("Error processing drawing update:", error);
+                        }
+                    });
+                    const promptTopic = `/topic/session/${accessCode}/teamchallenge/prompts`;
+                    client.subscribe(promptTopic, (message) => {
+                        const update = JSON.parse(message.body);
+                        if (update.teamId === userTeam.teamId) {
+                            setGuess('');
+                            setError('');
                             fetchChallengeStatus();
                         }
-                    );
+                    });
+
+                    // Modify guess handling to remove canvas clearing
+                    const teamGuessTopic = `/topic/session/${accessCode}/teamchallenge/guess/${userTeam.teamId}`;
+                    client.subscribe(teamGuessTopic, (message) => {
+                        const guessResult = JSON.parse(message.body);
+                        // Only update status without modifying canvas
+                        fetchChallengeStatus();
+                        fetchTeams();
+                    });
                 }
             },
             onDisconnect: () => {
@@ -330,126 +526,60 @@ const TeamChallengeActivity = ({ activity, content, accessCode, contentItem }) =
         client.activate();
 
         return () => {
-            client.deactivate();
-            subscriptionRef.current?.unsubscribe();
-        };
-    }, [accessCode]); // Only re-run if accessCode changes
-
-    // Handle team-specific subscriptions when userTeam changes
-    useEffect(() => {
-        if (!isConnected || !userTeam) return;
-
-        const teamGuessTopic = `/topic/session/${accessCode}/teamchallenge/guess/${userTeam.teamId}`;
-
-        // Unsubscribe previous if exists
-        if (subscriptionRef.current) {
-            subscriptionRef.current.unsubscribe();
-        }
-
-        // Create new subscription
-        subscriptionRef.current = stompClientRef.current.subscribe(
-            teamGuessTopic,
-            (message) => {
-                const guessResult = JSON.parse(message.body);
-                console.log('Team guess update:', guessResult);
-                fetchChallengeStatus();
+            if (client.connected) {
+                client.deactivate();
             }
-        );
-    }, [userTeam, isConnected, accessCode]);
-
-    const handleManualRefresh = async () => {
-        await fetchChallengeStatus();
-        await fetchTeams();
-    };
-
+        };
+    }, [accessCode, userTeam?.teamId, userRole, fetchChallengeStatus]);
+    // Update renderPrompt function
     const renderPrompt = () => {
-        if (!userTeam || userRole !== 'drawer') {
-            return null;
-        }
-        if (!userTeam) {
-            return <p>You need to be assigned to a team to participate.</p>;
-        }
+        if (!userTeam || userRole !== 'drawer') return null;
 
-        const currentPromptIndex = challengeStatus.currentPromptIndex || 0;
-
-        // Try different sources for the prompt
-        const currentWord = challengeStatus.currentWord ||
-            getPromptFromContentStructure(currentPromptIndex) ||
+        // Get index directly from the team's progress
+        const currentPromptIndex = userTeam.currentContentIndex || 0;
+        const currentWord = getPromptFromContentStructure(currentPromptIndex) ||
             getLegacyPrompt(currentPromptIndex);
-
-        if (!currentWord) {
-            console.error("No prompt found in:", {
-                challengeStatus,
-                content,
-                contentItem,
-                currentPromptIndex
-            });
-            return <p>Waiting for word...</p>;
-        }
 
         return (
             <div className="drawing-prompt">
                 <h4>Draw this word:</h4>
                 <p className="prompt-word">{currentWord}</p>
+                {currentPromptIndex < (challengeStatus.totalPrompts - 1) && (
+                    <p className="prompt-counter">
+                        Word {currentPromptIndex + 1} of {challengeStatus.totalPrompts}
+                    </p>
+                )}
             </div>
         );
     };
 
-    // Helper functions
+    useEffect(() => {
+        if (challengeStatus.teams) {
+            const currentTeamStatus = challengeStatus.teams.find(t => t.teamId === userTeam?.teamId);
+            if (currentTeamStatus) {
+                setUserTeam(prev => ({
+                    ...prev,
+                    currentContentIndex: currentTeamStatus.currentPromptIndex
+                }));
+            }
+        }
+    }, [challengeStatus.teams, userTeam?.teamId]);
+
     const getPromptFromContentStructure = (index) => {
-        // Handle new content format with string array
-        if (content?.prompts && Array.isArray(content.prompts)) {
-            return content.prompts[index];
+        if (contentItem?.data?.prompts) {
+            const prompt = contentItem.data.prompts[index];
+            // Handle both string and object formats
+            return typeof prompt === 'string' ? prompt : prompt?.prompt;
         }
         return null;
     };
 
     const getLegacyPrompt = (index) => {
-        // Handle legacy format if needed
-        if (contentItem?.data?.prompts?.[index]?.prompt) {
-            return contentItem.data.prompts[index].prompt;
+        // Handle legacy format where prompts are directly in activity content
+        if (content?.prompts?.[index]) {
+            return content.prompts[index];
         }
         return null;
-    };
-
-    // Add this debug function to help troubleshoot issues
-    const debugChallengeData = () => {
-        if (!challengeStatus || !content || !contentItem) {
-            return null;
-        }
-
-        // Only show debug info for teachers or in development
-        const isTeacher = studentId?.includes("teacher");
-        if (!isTeacher && process.env.NODE_ENV !== 'development') {
-            return null;
-        }
-
-        return (
-            <div className="debug-info" style={{
-                border: '1px dashed #999',
-                padding: '10px',
-                marginTop: '20px',
-                fontSize: '12px',
-                backgroundColor: '#f8f9fa'
-            }}>
-                <h5>Debug Info (Only visible to teachers/devs)</h5>
-                <div>
-                    <strong>Challenge Status:</strong> {challengeStatus.status || 'N/A'}
-                </div>
-                <div>
-                    <strong>Current Prompt Index:</strong> {challengeStatus.currentPromptIndex || 0}
-                </div>
-                <div>
-                    <strong>Content Prompts Available:</strong> {content?.prompts?.length || 0}
-                </div>
-                <div>
-                    <strong>Content Item Prompts Available:</strong> {contentItem?.prompts?.length || 0}
-                </div>
-                <button onClick={() => console.log({ challengeStatus, content, contentItem, userTeam })} style={{ marginTop: '5px' }}>
-                    Log Details to Console
-                </button>
-            </div>
-        );
     };
 
     const renderDrawingInterface = () => {
@@ -462,8 +592,11 @@ const TeamChallengeActivity = ({ activity, content, accessCode, contentItem }) =
         return (
             <div className="drawing-interface">
                 <ReactSketchCanvas
-                    key={userTeam?.id} // Use team ID as a stable key
-                    ref={canvasRef}
+                    key={`draw-${userTeam?.teamId}`} // Use stable key with role prefix
+                    ref={(ref) => {
+                        canvasRef.current = ref;
+                        setCanvasReady(!!ref);
+                    }}
                     style={canvasStyle}
                     width="500px"
                     height="400px"
@@ -471,11 +604,14 @@ const TeamChallengeActivity = ({ activity, content, accessCode, contentItem }) =
                     strokeColor="black"
                     eraserWidth={20}
                     canvasColor="white"
+                    onStroke={handleStroke}
+                    readOnly={false}
+                    exportWithBackgroundImage={false}
                 />
                 <div className="drawing-controls" style={{ marginTop: '10px' }}>
                     <button
                         onClick={clearCanvas}
-                        disabled={isSubmitting}
+                        disabled={isSubmitting || !canvasReady}
                         style={{ marginRight: '10px', padding: '5px 10px' }}
                     >
                         Clear
@@ -489,15 +625,29 @@ const TeamChallengeActivity = ({ activity, content, accessCode, contentItem }) =
         if (userRole !== 'guesser') return null;
         return (
             <div className="guessing-interface">
-                {challengeStatus.currentRound?.currentDrawing && (
-                    <div className="current-drawing">
-                        <img
-                            src={challengeStatus.currentRound.currentDrawing}
-                            alt="Current drawing"
-                            style={{ maxWidth: '500px', maxHeight: '400px', border: '1px solid #ddd' }}
-                        />
-                    </div>
-                )}
+                <div className="current-drawing" style={{ marginBottom: '10px' }}>
+                    <ReactSketchCanvas
+                        key={`guess-${userTeam?.teamId}`}
+                        ref={canvasRef}
+                        style={{ border: '1px solid #000', boxShadow: '0 0 5px rgba(0, 0, 0, 0.2)', borderRadius: '5px' }}
+                        width="500px"
+                        height="400px"
+                        strokeWidth={4}
+                        strokeColor="black"
+                        canvasColor="white"
+                        readOnly={true}
+                        allowOnlyPointerType="none"
+                        exportWithBackgroundImage={false}
+                    />
+                    <button
+                        onClick={async () => {
+                            await requestInitialCanvas();
+                        }}
+                        style={{ padding: '5px 10px', marginTop: '10px' }}
+                    >
+                        Refresh Canvas
+                    </button>
+                </div>
                 <div className="guess-input" style={{ marginTop: '10px' }}>
                     <input
                         type="text"
@@ -621,9 +771,9 @@ const TeamChallengeActivity = ({ activity, content, accessCode, contentItem }) =
         return (
             <div className="challenge-status" style={{ marginBottom: '20px' }}>
                 <h4>Round: {challengeStatus.currentRound?.index + 1 || 1}</h4>
-                {challengeStatus.timeRemaining && (
-                    <p>Time Remaining: {challengeStatus.timeRemaining}s</p>
-                )}
+                <div className="teamchallenge-timer">
+                    Time Remaining: {timeRemaining}s
+                </div>
                 {challengeStatus.currentRound?.guesses?.length > 0 && (
                     <div className="guess-history" style={{ marginTop: '10px' }}>
                         <h5>Recent Guesses:</h5>
@@ -682,7 +832,7 @@ const TeamChallengeActivity = ({ activity, content, accessCode, contentItem }) =
                 {renderPrompt()}
                 <div className="challenge-interface">
                     {renderDrawingInterface()}
-                    {renderGuessingInterface()}
+                    {userRole === 'guesser' && renderGuessingInterface()}
                 </div>
             </>
         );
@@ -692,7 +842,6 @@ const TeamChallengeActivity = ({ activity, content, accessCode, contentItem }) =
             <h3>{activity.title || 'Team Drawing Challenge'}</h3>
             {activity.instructions && <p>{activity.instructions}</p>}
             {error && <p className="error-message" style={{ color: 'red', fontWeight: 'bold' }}>{error}</p>}
-            {debugChallengeData()}
             {renderChallengeStatus()}
             {renderTeamInfo()}
             {renderContent()}

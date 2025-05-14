@@ -3,6 +3,7 @@ package com.QuizWeb.TheQuizWeb.Service;
 import com.QuizWeb.TheQuizWeb.Model.SessionSettings;
 import com.QuizWeb.TheQuizWeb.Model.Activity;
 import com.QuizWeb.TheQuizWeb.Model.GameSession;
+import com.QuizWeb.TheQuizWeb.Model.GameSession.Team;
 import com.QuizWeb.TheQuizWeb.Model.Games;
 import com.QuizWeb.TheQuizWeb.Model.User;
 import com.QuizWeb.TheQuizWeb.Repository.ActivityRepository;
@@ -16,7 +17,9 @@ import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
+import java.util.logging.Logger;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 @Service
 public class GameSessionService {
@@ -83,6 +86,15 @@ public class GameSessionService {
         GameSession session = gameSessionRepository.findById(sessionId)
                 .orElseThrow(() -> new RuntimeException("Session not found"));
 
+        if (session.getCurrentActivity() != null) {
+            session.getCurrentActivity().setEndTime(new Date());
+            session.getCurrentActivity().setStatus(GameSession.ActivityStatus.COMPLETED);
+            if (session.getCompletedActivities() == null) {
+                session.setCompletedActivities(new ArrayList<>());
+            }
+            session.getCompletedActivities().add(session.getCurrentActivity());
+            session.setCurrentActivity(null);
+        }
         session.setStatus(GameSession.SessionStatus.COMPLETED);
         session.setEndTime(new Date());
 
@@ -236,23 +248,38 @@ public class GameSessionService {
     public GameSession advanceActivity(String sessionId) {
         GameSession session = gameSessionRepository.findById(sessionId)
                 .orElseThrow(() -> new RuntimeException("Session not found"));
+
+        // Move current activity to completed list
+        if (session.getCurrentActivity() != null) {
+            session.getCurrentActivity().setEndTime(new Date());
+            session.getCurrentActivity().setStatus(GameSession.ActivityStatus.COMPLETED);
+            if (session.getCompletedActivities() == null) {
+                session.setCompletedActivities(new ArrayList<>());
+            }
+            session.getCompletedActivities().add(session.getCurrentActivity());
+        }
+
         Games game = gamesRepository.findById(session.getGameId())
                 .orElseThrow(() -> new RuntimeException("Game not found"));
 
-        int currentIndex = session.getCurrentActivityIndex();
-        int nextIndex = currentIndex + 1;
+        int nextIndex = session.getCurrentActivityIndex() + 1;
 
-        if (game.getActivities() != null && nextIndex < game.getActivities().size()) {
+        if (nextIndex < game.getActivities().size()) {
+            // Create new activity
+            GameSession.SessionActivity newActivity = new GameSession.SessionActivity();
+            newActivity.setActivityId(game.getActivities().get(nextIndex).getActivityId());
+            newActivity.setStartTime(new Date());
+            newActivity.setStatus(GameSession.ActivityStatus.ACTIVE);
+            newActivity.setResponses(new ArrayList<>());
+            newActivity.setCurrentContentIndex(0);
+
+            session.setCurrentActivity(newActivity);
             session.setCurrentActivityIndex(nextIndex);
-            GameSession.SessionActivity sessionActivity = new GameSession.SessionActivity();
-            sessionActivity.setActivityId(game.getActivities().get(nextIndex).getActivityId());
-            sessionActivity.setStartTime(new Date());
-            sessionActivity.setStatus(GameSession.ActivityStatus.ACTIVE);
-            sessionActivity.setResponses(new ArrayList<>());
-            session.setCurrentActivity(sessionActivity);
 
+            // Save and return
             GameSession updatedSession = gameSessionRepository.save(session);
-            Activity nextActivity = getActivityById(game.getActivities().get(nextIndex).getActivityId());
+            Activity nextActivity = getActivityById(newActivity.getActivityId());
+
             messagingTemplate.convertAndSend(
                     "/topic/session/" + session.getAccessCode() + "/activity",
                     nextActivity);
@@ -280,6 +307,8 @@ public class GameSessionService {
             sessionActivity.setStartTime(new Date());
             sessionActivity.setStatus(GameSession.ActivityStatus.ACTIVE);
             sessionActivity.setResponses(new ArrayList<>());
+            // Ensure content index starts at 0
+            sessionActivity.setCurrentContentIndex(0);
             session.setCurrentActivity(sessionActivity);
             session.setCurrentActivityIndex(0);
         }
@@ -296,58 +325,63 @@ public class GameSessionService {
         return updatedSession;
     }
 
-    private boolean evaluateMultipleChoice(Object content, Object answer) {
-        int questionIndex = 0;
-        Object selectedOption = answer;
-        if (answer instanceof Map) {
-            Map<String, Object> answerMap = (Map<String, Object>) answer;
-            if (answerMap.containsKey("questionIndex")) {
-                questionIndex = ((Number) answerMap.get("questionIndex")).intValue();
-            }
-            if (answerMap.containsKey("selectedOption")) {
-                selectedOption = answerMap.get("selectedOption");
-            } else if (answerMap.containsKey("answer")) {
-                selectedOption = answerMap.get("answer");
-            }
-            if (selectedOption == null) {
-                return false;
-            }
-        }
-        List<?> options = getOptionsForQuestion(content, questionIndex);
-        if (options == null || options.isEmpty()) {
-            return false;
-        }
-        return isCorrectOption(options, selectedOption);
-    }
-
-    // Đảm bảo backend xử lý đúng format dữ liệu
     private boolean evaluateMatching(Object content, Object answer) {
         try {
             Map<String, Object> contentMap = (Map<String, Object>) content;
             Map<String, Object> answerMap = (Map<String, Object>) answer;
             Map<String, Object> studentAnswer = (Map<String, Object>) answerMap.get("answer");
-    
+
             List<Map<String, Object>> pairs = (List<Map<String, Object>>) contentMap.get("pairs");
             List<Map<String, String>> studentConnections = (List<Map<String, String>>) studentAnswer.get("connections");
-    
-            // Tạo connections đúng từ danh sách pairs
+
             Set<String> correctConnections = new HashSet<>();
             for (int i = 0; i < pairs.size(); i++) {
                 correctConnections.add("left-" + i + "-right-" + i);
             }
-    
-            // Tạo connections từ câu trả lời của học sinh
+
             Set<String> userConnections = studentConnections.stream()
-                .map(conn -> conn.get("leftId") + "-" + conn.get("rightId"))
-                .collect(Collectors.toSet());
-    
+                    .map(conn -> conn.get("leftId") + "-" + conn.get("rightId"))
+                    .collect(Collectors.toSet());
+
             // So sánh
             return correctConnections.equals(userConnections);
         } catch (Exception e) {
             e.printStackTrace();
             return false;
         }
-    } 
+    }
+
+    private boolean evaluateMultipleChoice(Object content, Object answer) {
+        try {
+            int questionIndex = 0;
+            int selectedOptionIndex = -1;
+
+            if (answer instanceof Map) {
+                Map<String, Object> answerMap = (Map<String, Object>) answer;
+                questionIndex = (int) answerMap.getOrDefault("questionIndex", 0);
+                selectedOptionIndex = (int) answerMap.getOrDefault("selectedOption", -1);
+            } else if (answer instanceof Integer) {
+                selectedOptionIndex = (Integer) answer;
+            }
+
+            List<?> options = getOptionsForQuestion(content, questionIndex);
+
+            if (options == null || options.isEmpty()) {
+                System.err.println("No options found for question index: " + questionIndex);
+                return false;
+            }
+
+            if (selectedOptionIndex < 0 || selectedOptionIndex >= options.size()) {
+                return false;
+            }
+
+            return isOptionCorrect(options.get(selectedOptionIndex));
+        } catch (Exception e) {
+            System.err.println("Error evaluating multiple choice: " + e.getMessage());
+            return false;
+        }
+    }
+
     
     private List<?> getOptionsForQuestion(Object content, int questionIndex) {
         if (content instanceof Activity.MultipleChoiceContent) {
@@ -357,35 +391,20 @@ public class GameSessionService {
             }
         } else if (content instanceof Map) {
             Map<String, Object> contentMap = (Map<String, Object>) content;
-            if (contentMap.containsKey("questions")) {
+
+            // Handle content item format (single question per content item)
+            if (contentMap.containsKey("options")) {
+                return (List<?>) contentMap.get("options");
+            }
+            // Handle legacy format with questions array
+            else if (contentMap.containsKey("questions")) {
                 List<Map<String, Object>> questions = (List<Map<String, Object>>) contentMap.get("questions");
                 if (questions.size() > questionIndex) {
-                    Map<String, Object> question = questions.get(questionIndex);
-                    if (question.containsKey("options")) {
-                        return (List<?>) question.get("options");
-                    }
+                    return (List<?>) questions.get(questionIndex).get("options");
                 }
             }
         }
         return null;
-    }
-
-    private boolean isCorrectOption(List<?> options, Object selectedAnswer) {
-        if (selectedAnswer instanceof Integer) {
-            int selectedIndex = (Integer) selectedAnswer;
-            if (selectedIndex < 0 || selectedIndex >= options.size()) {
-                return false;
-            }
-
-            Object option = options.get(selectedIndex);
-            return isOptionCorrect(option);
-        } else {
-            String answerText = selectedAnswer.toString().trim();
-            return options.stream()
-                    .filter(opt -> getOptionText(opt).equalsIgnoreCase(answerText) && isOptionCorrect(opt))
-                    .findFirst()
-                    .isPresent();
-        }
     }
 
     private boolean isOptionCorrect(Object option) {
@@ -395,16 +414,6 @@ public class GameSessionService {
             return Boolean.TRUE.equals(((Map<String, Object>) option).get("isCorrect"));
         }
         return false;
-    }
-
-    private String getOptionText(Object option) {
-        if (option instanceof Activity.Option) {
-            return ((Activity.Option) option).getText().trim();
-        } else if (option instanceof Map) {
-            String text = (String) ((Map<String, Object>) option).get("text");
-            return text != null ? text.trim() : "";
-        }
-        return "";
     }
 
     public boolean isUserParticipant(GameSession session, String userId) {
@@ -440,24 +449,29 @@ public class GameSessionService {
     public Map<String, Object> advanceContentForActivity(String sessionId, String activityId) {
         GameSession session = gameSessionRepository.findById(sessionId)
                 .orElseThrow(() -> new RuntimeException("Session not found"));
+
         if (session.getCurrentActivity() == null || !session.getCurrentActivity().getActivityId().equals(activityId)) {
             throw new RuntimeException("Activity is not the current active activity");
         }
 
         Activity activity = activityRepository.findById(activityId)
                 .orElseThrow(() -> new RuntimeException("Activity not found"));
+
         int currentIndex = session.getCurrentActivity().getCurrentContentIndex();
         int nextIndex = currentIndex + 1;
 
+        // If we're out of content items or there are none, move to the next activity
         if (activity.getContentItems() == null ||
                 activity.getContentItems().isEmpty() ||
                 nextIndex >= activity.getContentItems().size()) {
+
             advanceActivity(sessionId);
             return Map.of("status", "advanced_activity");
         }
 
         session.getCurrentActivity().setCurrentContentIndex(nextIndex);
         gameSessionRepository.save(session);
+
         Activity.ActivityContent nextContent = activity.getContentItems().get(nextIndex);
 
         Map<String, Object> contentUpdate = new HashMap<>();
@@ -472,180 +486,42 @@ public class GameSessionService {
         return contentUpdate;
     }
 
-    public Map<String, Object> processStudentAnswer(
-            String accessCode, String studentId, String activityId, String contentId, Object answer) {
-
+    /**
+     * Gets content for a specific activity and content index, respecting the
+     * duration property
+     */
+    public Map<String, Object> getActivityContent(String accessCode, String activityId, int contentIndex) {
         GameSession session = gameSessionRepository.findByAccessCode(accessCode)
                 .orElseThrow(() -> new RuntimeException("Session not found"));
 
-        if (session.getStatus() != GameSession.SessionStatus.ACTIVE) {
-            throw new RuntimeException("Game session is not active");
+        Activity activity = activityRepository.findById(activityId)
+                .orElseThrow(() -> new RuntimeException("Activity not found"));
+
+        // Check if the activity has multiple content items
+        if (activity.getContentItems() == null || activity.getContentItems().isEmpty()) {
+            // Return the legacy content with the activity's timeLimit as duration
+            Map<String, Object> response = new HashMap<>();
+            response.put("content", activity.getContent());
+            response.put("isLegacy", true);
+            response.put("duration", activity.getTimeLimit()); // Use timeLimit as fallback
+            return response;
         }
 
-        GameSession.Participant participant = session.getParticipants().stream()
-                .filter(p -> p.getUserId().equals(studentId))
-                .findFirst()
-                .orElseThrow(() -> new RuntimeException("Participant not found in session"));
-        Activity activity = getActivityById(activityId);
-
-        Object contentToEvaluate = null;
-        String explanation = null;
-
-        if (contentId != null && !contentId.equals("legacy")) {
-            if (activity.getContentItems() != null) {
-                Optional<Activity.ActivityContent> contentItem = activity.getContentItems().stream()
-                        .filter(c -> c.getContentId().equals(contentId))
-                        .findFirst();
-
-                if (contentItem.isPresent()) {
-                    contentToEvaluate = contentItem.get().getData();
-                    if (contentItem.get().getData() instanceof Map) {
-                        Map<String, Object> dataMap = (Map<String, Object>) contentItem.get().getData();
-                        if (dataMap.containsKey("explanation")) {
-                            explanation = (String) dataMap.get("explanation");
-                        }
-                    }
-                } else {
-                    System.out.println("Content item not found with ID: " + contentId);
-                    contentToEvaluate = activity.getContent(); // Fallback to legacy content
-                }
-            } else {
-                System.out.println("Activity has no content items, using legacy content");
-                contentToEvaluate = activity.getContent();
-            }
-        } else {
-            System.out.println("Using legacy content for activity: " + activity.getId());
-            contentToEvaluate = activity.getContent();
+        // Check if contentIndex is valid
+        if (contentIndex < 0 || contentIndex >= activity.getContentItems().size()) {
+            throw new RuntimeException("Invalid content index");
         }
 
-        boolean isCorrect = evaluateAnswer(activity.getType().toString(), contentToEvaluate, answer);
-        int pointsEarned = isCorrect ? calculatePoints(activity) : 0;
-        participant.setTotalScore(participant.getTotalScore() + pointsEarned);
-        if (participant.getActivityScores() == null) {
-            participant.setActivityScores(new HashMap<>());
-        }
+        // Get the specific content item
+        Activity.ActivityContent contentItem = activity.getContentItems().get(contentIndex);
 
-        String scoreKey = contentId != null && !contentId.equals("legacy") ? activityId + ":" + contentId : activityId;
-        participant.getActivityScores().put(scoreKey, pointsEarned);
+        Map<String, Object> response = new HashMap<>();
+        response.put("contentItem", contentItem);
+        response.put("totalItems", activity.getContentItems().size());
+        response.put("currentIndex", contentIndex);
+        response.put("duration", contentItem.getDuration()); // Use the duration from the content item
 
-        if (session.getCurrentActivity() != null &&
-                session.getCurrentActivity().getActivityId().equals(activityId)) {
-            if (activity.getContentItems() != null && !activity.getContentItems().isEmpty()) {
-                int currentContentIndex = session.getCurrentActivity().getCurrentContentIndex();
-                if (currentContentIndex < activity.getContentItems().size()) {
-                    String expectedContentId = activity.getContentItems().get(currentContentIndex).getContentId();
-                    if (!contentId.equals(expectedContentId) && !contentId.equals("legacy")) {
-                        return Map.of(
-                                "error", "You're answering a different question than the current one",
-                                "valid", false);
-                    }
-                }
-            }
-        }
-
-        if (session.getCurrentActivity() != null &&
-                activityId.equals(session.getCurrentActivity().getActivityId())) {
-
-            GameSession.ParticipantResponse response = new GameSession.ParticipantResponse();
-            response.setParticipantId(studentId);
-            response.setActivityId(activityId);
-            response.setContentId(contentId); // Store contentId with the response
-            response.setAnswer(answer);
-            response.setCorrect(isCorrect);
-            response.setPointsEarned(pointsEarned);
-            response.setSubmittedAt(new Date());
-
-            if (session.getCurrentActivity().getResponses() == null) {
-                session.getCurrentActivity().setResponses(new ArrayList<>());
-            }
-            session.getCurrentActivity().getResponses().add(response);
-        }
-
-        updateActivityStatistics(session, activityId, isCorrect);
-        gameSessionRepository.save(session);
-        Map<String, Object> result = new HashMap<>();
-        result.put("correct", isCorrect);
-        result.put("pointsEarned", pointsEarned);
-        result.put("totalScore", participant.getTotalScore());
-
-        if (session.getSettings() != null && session.getSettings().isShowCorrectAnswers()) {
-            if (explanation != null) {
-                result.put("explanation", explanation);
-            } else {
-                result.put("explanation", activity.getExplanation());
-            }
-            if (contentToEvaluate instanceof Map) {
-                Map<String, Object> contentMap = (Map<String, Object>) contentToEvaluate;
-                if (contentMap.containsKey("correctAnswer")) {
-                    result.put("correctAnswer", contentMap.get("correctAnswer"));
-                }
-            } else {
-                result.put("correctAnswer", activity.getCorrectAnswer());
-            }
-        }
-        if (session.getSettings() != null && session.getSettings().isShowLeaderboard()) {
-            sendLeaderboardUpdate(session);
-        }
-
-        return result;
-    }
-
-    private boolean evaluateAnswer(String activityType, Object contentToEvaluate, Object answer) {
-        if (contentToEvaluate == null) {
-            return false;
-        }
-
-        try {
-            if (contentToEvaluate instanceof Activity.ActivityContent) {
-                contentToEvaluate = ((Activity.ActivityContent) contentToEvaluate).getData();
-            }
-
-            if (contentToEvaluate instanceof Map && ((Map<?, ?>) contentToEvaluate).containsKey("data")) {
-                contentToEvaluate = ((Map<?, ?>) contentToEvaluate).get("data");
-            }
-
-            Activity.ActivityType type = Activity.ActivityType.valueOf(activityType);
-
-            switch (type) {
-                case MULTIPLE_CHOICE:
-                    return evaluateMultipleChoice(contentToEvaluate, answer);
-                case OPEN_ENDED:
-                    // For open-ended questions, always return true
-                    return true;
-                case SORTING:
-                case MATCHING:
-                    return evaluateMatching(contentToEvaluate, answer);
-                default:
-                    // For other activity types (including polls/surveys)
-                    return true;
-            }
-        } catch (Exception e) {
-            System.err.println("Error evaluating answer: " + e.getMessage());
-            e.printStackTrace();
-            return false;
-        }
-    }
-
-    private int calculatePoints(Activity activity) {
-        if (activity == null) {
-            System.out.println("Activity is null, returning default points");
-            return 10; // Default points
-        }
-        int basePoints = activity.getPoints() > 0 ? activity.getPoints() : 10; // Default to 10
-        System.out.println("Base points: " + basePoints);
-        if (activity.getDifficulty() != null) {
-            switch (activity.getDifficulty()) {
-                case "HARD":
-                    basePoints *= 1.5;
-                    break;
-                case "MEDIUM":
-                    break;
-                case "EASY":
-                    basePoints *= 0.8;
-                    break;
-            }
-        }
-        return basePoints;
+        return response;
     }
 
     private void updateActivityStatistics(GameSession session, String activityId, boolean isCorrect) {
@@ -697,6 +573,208 @@ public class GameSessionService {
         stats.setOverallCorrectAnswerPercentage(correctAnswerPercentage);
     }
 
+    public Map<String, Object> processStudentAnswer(
+            String accessCode, String studentId, String activityId, String contentId, Object answer) {
+
+        GameSession session = gameSessionRepository.findByAccessCode(accessCode)
+                .orElseThrow(() -> new RuntimeException("Session not found"));
+
+        if (session.getStatus() != GameSession.SessionStatus.ACTIVE) {
+            throw new RuntimeException("Game session is not active");
+        }
+
+        GameSession.Participant participant = session.getParticipants().stream()
+                .filter(p -> p.getUserId().equals(studentId))
+                .findFirst()
+                .orElseThrow(() -> new RuntimeException("Participant not found in session"));
+        Activity activity = getActivityById(activityId);
+
+        Object contentToEvaluate = null;
+        String explanation = null;
+        Optional<Activity.ActivityContent> contentItem = Optional.empty();
+
+        if (contentId != null && !contentId.equals("legacy")) {
+            if (activity.getContentItems() != null) {
+                contentItem = activity.getContentItems().stream()
+                        .filter(c -> c.getContentId().equals(contentId))
+                        .findFirst();
+
+                if (contentItem.isPresent()) {
+                    contentToEvaluate = contentItem.get().getData();
+                    if (contentItem.get().getData() instanceof Map) {
+                        Map<String, Object> dataMap = (Map<String, Object>) contentItem.get().getData();
+                        if (dataMap.containsKey("explanation")) {
+                            explanation = (String) dataMap.get("explanation");
+                        }
+                    }
+                } else {
+                    contentToEvaluate = activity.getContent();
+                }
+            } else {
+                contentToEvaluate = activity.getContent();
+            }
+        } else {
+            contentToEvaluate = activity.getContent();
+        }
+
+        // Cast answer to Map to extract timeRemaining
+        Map<String, Object> answerData = (Map<String, Object>) answer;
+        int remainingTime = (int) answerData.getOrDefault("timeRemaining", 0);
+
+        // Calculate total duration
+        int totalDuration = contentItem.isPresent()
+                ? contentItem.get().getDuration()
+                : activity.getTimeLimit();
+        int timeSpent = Math.max(0, totalDuration - remainingTime);
+
+        boolean isCorrect = evaluateAnswer(activity.getType().toString(), contentToEvaluate, answer);
+        int pointsEarned = isCorrect ? calculatePoints(activity) : 0;
+        participant.setTotalScore(participant.getTotalScore() + pointsEarned);
+
+        if (participant.getActivityScores() == null) {
+            participant.setActivityScores(new HashMap<>());
+        }
+
+        String scoreKey = contentId != null && !contentId.equals("legacy")
+                ? activityId + ":" + contentId
+                : activityId;
+        participant.getActivityScores().put(scoreKey, pointsEarned);
+
+        // Validate content index if needed
+        if (session.getCurrentActivity() != null
+                && session.getCurrentActivity().getActivityId().equals(activityId)) {
+            if (activity.getContentItems() != null && !activity.getContentItems().isEmpty()) {
+                int currentContentIndex = session.getCurrentActivity().getCurrentContentIndex();
+                if (currentContentIndex < activity.getContentItems().size()) {
+                    String expectedContentId = activity.getContentItems().get(currentContentIndex).getContentId();
+                    if (!contentId.equals(expectedContentId) && !contentId.equals("legacy")) {
+                        return Map.of(
+                                "error", "You're answering a different question than the current one",
+                                "valid", false);
+                    }
+                }
+            }
+        }
+
+        // Create and populate the response
+        if (session.getCurrentActivity() != null
+                && activityId.equals(session.getCurrentActivity().getActivityId())) {
+            GameSession.ParticipantResponse response = new GameSession.ParticipantResponse();
+            response.setParticipantId(studentId);
+            response.setActivityId(activityId);
+            response.setContentId(contentId);
+            response.setAnswer(answer);
+            response.setCorrect(isCorrect);
+            response.setPointsEarned(pointsEarned);
+            response.setSubmittedAt(new Date());
+            response.setTimeSpent(timeSpent); // Set calculated timeSpent
+
+            if (session.getCurrentActivity().getResponses() == null) {
+                session.getCurrentActivity().setResponses(new ArrayList<>());
+            }
+            session.getCurrentActivity().getResponses().add(response);
+        }
+
+        updateActivityStatistics(session, activityId, isCorrect);
+        gameSessionRepository.save(session);
+
+        if (session.getCurrentActivity() != null
+                && activity.getContentItems() != null
+                && !activity.getContentItems().isEmpty()) {
+            int currentContentIndex = session.getCurrentActivity().getCurrentContentIndex();
+            String currentContentId = activity.getContentItems().get(currentContentIndex).getContentId();
+            String expectedScoreKey = activityId + ":" + currentContentId;
+            boolean allAnswered = session.getParticipants().stream()
+                    .allMatch(p -> p.getActivityScores().containsKey(expectedScoreKey));
+            if (allAnswered) {
+                advanceContentForActivity(session.getId(), activityId);
+            }
+        }
+        Map<String, Object> result = new HashMap<>();
+        result.put("correct", isCorrect);
+        result.put("pointsEarned", pointsEarned);
+        result.put("totalScore", participant.getTotalScore());
+
+        // Include explanation and correct answer if enabled
+        if (session.getSettings() != null && session.getSettings().isShowCorrectAnswers()) {
+            result.put("explanation", explanation != null ? explanation : activity.getExplanation());
+            if (contentToEvaluate instanceof Map) {
+                Map<String, Object> contentMap = (Map<String, Object>) contentToEvaluate;
+                result.put("correctAnswer", contentMap.getOrDefault("correctAnswer", activity.getCorrectAnswer()));
+            } else {
+                result.put("correctAnswer", activity.getCorrectAnswer());
+            }
+        }
+
+        // Update leaderboard
+        if (session.getSettings() != null && session.getSettings().isShowLeaderboard()) {
+            sendLeaderboardUpdate(session);
+        }
+
+        return result;
+    }
+
+    private boolean evaluateAnswer(String activityType, Object contentToEvaluate, Object answer) {
+        if (contentToEvaluate == null) {
+            return false;
+        }
+
+        try {
+            if (contentToEvaluate instanceof Activity.ActivityContent) {
+                contentToEvaluate = ((Activity.ActivityContent) contentToEvaluate).getData();
+            }
+
+            if (contentToEvaluate instanceof Map && ((Map<?, ?>) contentToEvaluate).containsKey("data")) {
+                contentToEvaluate = ((Map<?, ?>) contentToEvaluate).get("data");
+            }
+
+            Activity.ActivityType type = Activity.ActivityType.valueOf(activityType);
+
+            switch (type) {
+                case MULTIPLE_CHOICE:
+                    return evaluateMultipleChoice(contentToEvaluate, answer);
+                case OPEN_ENDED:
+                    return true;
+                case SORTING:
+                case FILL_IN_BLANK:
+                    return evaluateFillInBlank(contentToEvaluate, answer);
+                case MATCHING:
+                    return evaluateMatching(contentToEvaluate, answer);
+                default:
+                    return true;
+            }
+        } catch (Exception e) {
+            System.err.println("Error evaluating answer: " + e.getMessage());
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    private int calculatePoints(Activity activity) {
+        System.out.println("Calculating points for activity: " + activity.getId());
+        System.out.println("Activity points: " + activity.getPoints());
+        System.out.println("Difficulty: " + activity.getDifficulty());
+        if (activity == null) {
+            System.out.println("Activity is null, returning default points");
+            return 10;
+        }
+        int basePoints = activity.getPoints() > 0 ? activity.getPoints() : 10; // Default to 10
+        System.out.println("Base points: " + basePoints);
+        if (activity.getDifficulty() != null) {
+            switch (activity.getDifficulty()) {
+                case "HARD":
+                    basePoints *= 1.5;
+                    break;
+                case "MEDIUM":
+                    break;
+                case "EASY":
+                    basePoints *= 0.8;
+                    break;
+            }
+        }
+        return basePoints;
+    }
+
     private void sendLeaderboardUpdate(GameSession session) {
         List<Map<String, Object>> leaderboard = session.getParticipants().stream()
                 .map(p -> {
@@ -732,13 +810,26 @@ public class GameSessionService {
         if (!game.getSettings().isTeamBased()) {
             throw new RuntimeException("This game is not configured for team-based play");
         }
+
         Games.GameSettings.TeamGameSettings teamSettings = game.getSettings().getTeamSettings();
         if (teamSettings == null) {
             throw new RuntimeException("Team settings not configured for this game");
         }
-        int numberOfTeams = teamSettings.getMinTeamSize();
-        if (numberOfTeams <= 0) {
-            numberOfTeams = 2; // Default to 2 teams if not set
+        int numberOfTeams;
+        if (autoAssign) {
+            List<GameSession.Participant> participants = session.getParticipants();
+            if (participants.isEmpty()) {
+                throw new RuntimeException("No participants to assign to teams");
+            }
+            int participantCount = participants.size();
+            int maxTeamSize = teamSettings.getMaxTeamSize();
+            int minTeamSize = teamSettings.getMinTeamSize();
+            numberOfTeams = Math.max(2, participantCount / maxTeamSize);
+            if (participantCount / numberOfTeams < minTeamSize) {
+                numberOfTeams = Math.max(1, participantCount / minTeamSize);
+            }
+        } else {
+            numberOfTeams = 2;
         }
         session.setTeams(new ArrayList<>());
 
@@ -756,6 +847,7 @@ public class GameSessionService {
                 team.setTeamMembers(new ArrayList<>());
                 team.setTeamScore(0);
                 team.setNextDrawerIndex(0); // Initialize drawer index
+                team.setCurrentContentIndex(0); // 🚨 Move initialization HERE
                 session.getTeams().add(team);
             }
 
@@ -773,11 +865,254 @@ public class GameSessionService {
                 }
             }
         }
-
         gameSessionRepository.save(session);
         messagingTemplate.convertAndSend(
                 "/topic/session/" + session.getAccessCode() + "/teams",
                 session.getTeams());
+    }
+
+    private Map<String, Object> getTeamDrawerInfo(String userId, Activity.TeamChallengeContent.DrawingPrompt prompt) {
+        Map<String, Object> drawerInfo = new HashMap<>();
+        drawerInfo.put("userId", userId);
+        drawerInfo.put("prompt", prompt.getPrompt());
+        drawerInfo.put("category", prompt.getCategory());
+        drawerInfo.put("timeLimit", prompt.getTimeLimit());
+        return drawerInfo;
+    }
+
+    private boolean evaluateTeamGuess(
+            Activity.TeamChallengeContent teamChallengeContent,
+            Activity.TeamChallengeContent.DrawingPrompt currentPrompt,
+            String guess) {
+
+        if (guess == null || guess.trim().isEmpty())
+            return false;
+
+        String normalizedGuess = guess.trim().toLowerCase();
+        String normalizedPrompt = currentPrompt.getPrompt().trim().toLowerCase();
+
+        Activity.TeamChallengeContent.GuessValidation validationMethod = teamChallengeContent
+                .getPictionarySettings() != null ? teamChallengeContent.getPictionarySettings().getGuessValidation()
+                        : Activity.TeamChallengeContent.GuessValidation.EXACT_MATCH;
+
+        switch (validationMethod) {
+            case EXACT_MATCH:
+                return normalizedGuess.equals(normalizedPrompt);
+            case CONTAINS_KEYWORD:
+                return normalizedGuess.contains(normalizedPrompt) ||
+                        normalizedPrompt.contains(normalizedGuess);
+            case SYNONYM_MATCH:
+                if (normalizedGuess.equals(normalizedPrompt))
+                    return true;
+                return currentPrompt.getSynonyms().stream()
+                        .anyMatch(synonym -> synonym.trim().equalsIgnoreCase(normalizedGuess));
+            default:
+                return false;
+        }
+    }
+
+    private boolean advanceToNextPrompt(GameSession session, Activity activity, Team team) {
+        GameSession.SessionActivity currentActivity = session.getCurrentActivity();
+        if (currentActivity == null)
+            return false;
+
+        Activity.TeamChallengeContent teamChallengeContent = getTeamChallengeContent(activity);
+        if (teamChallengeContent == null || teamChallengeContent.getPrompts() == null)
+            return false;
+
+        int totalPrompts = teamChallengeContent.getPrompts().size();
+        int currentIndex = team.getCurrentContentIndex();
+
+        if (currentIndex >= totalPrompts - 1) {
+            team.setCurrentContentIndex(totalPrompts);
+            gameSessionRepository.save(session); 
+            boolean allTeamsCompleted = session.getTeams().stream()
+                    .allMatch(t -> t.getCurrentContentIndex() >= totalPrompts);
+
+            if (allTeamsCompleted) {
+                this.advanceActivity(session.getId());
+                Map<String, Object> completionMessage = new HashMap<>();
+                completionMessage.put("status", "COMPLETED");
+                completionMessage.put("totalPrompts", totalPrompts);
+                messagingTemplate.convertAndSend(
+                        "/topic/session/" + session.getAccessCode() + "/teamchallenge/status",
+                        completionMessage);
+                return false;
+            }
+            Map<String, Object> update = new HashMap<>();
+            update.put("teamId", team.getTeamId());
+            update.put("currentPromptIndex", totalPrompts);
+            update.put("status", "AWAITING_OTHERS");
+            messagingTemplate.convertAndSend(
+                    "/topic/session/" + session.getAccessCode() + "/teamchallenge/status",
+                    update);
+            return true;
+        } else {
+            int newIndex = currentIndex + 1;
+            team.setCurrentContentIndex(newIndex);
+            gameSessionRepository.save(session);
+
+            Activity.TeamChallengeContent.DrawingPrompt newPrompt = teamChallengeContent.getPrompts().get(newIndex);
+            Map<String, Object> promptUpdate = new HashMap<>();
+            promptUpdate.put("type", "PROMPT_ADVANCE");
+            promptUpdate.put("teamId", team.getTeamId());
+            promptUpdate.put("newPromptIndex", newIndex);
+            promptUpdate.put("newPrompt", newPrompt.getPrompt());
+            messagingTemplate.convertAndSend(
+                    "/topic/session/" + session.getAccessCode() + "/teamchallenge/prompts",
+                    promptUpdate);
+            return true;
+        }
+    }
+
+    private void rotateDrawer(GameSession session, GameSession.Team team) {
+        if (team.getTeamMembers() == null || team.getTeamMembers().isEmpty()) {
+            return;
+        }
+
+        String nextDrawer = team.getNextDrawer();
+        if (nextDrawer != null) {
+            team.setCurrentDrawerId(nextDrawer);
+        }
+    }
+
+    private boolean evaluateFillInBlank(Object content, Object answer) {
+        if (!(answer instanceof Map)) {
+            return false;
+        }
+        Map<String, Object> answerMap = (Map<String, Object>) answer;
+        
+        // Get question index and blank index
+        Object qIdxObj = answerMap.get("questionIndex");
+        Object bIdxObj = answerMap.get("blankIndex");
+        if (qIdxObj == null || bIdxObj == null) return false;
+        
+        int questionIndex = Integer.parseInt(String.valueOf(qIdxObj));
+        int blankIndex = Integer.parseInt(String.valueOf(bIdxObj));
+        
+        // Get user's answer
+        final String answerStr = answerMap.get("answer") != null
+            ? answerMap.get("answer").toString().trim().toLowerCase()
+            : "";
+
+        // Get acceptable answers from the answer data
+        Map<String, Map<String, List<String>>> acceptableAnswers = null;
+        if (answerMap.get("acceptableAnswers") instanceof Map) {
+            acceptableAnswers = (Map<String, Map<String, List<String>>>) answerMap.get("acceptableAnswers");
+        }
+
+        if (acceptableAnswers != null && 
+            acceptableAnswers.containsKey(String.valueOf(questionIndex)) && 
+            acceptableAnswers.get(String.valueOf(questionIndex)).containsKey(String.valueOf(blankIndex))) {
+            
+            List<String> answersForThisBlank = acceptableAnswers.get(String.valueOf(questionIndex)).get(String.valueOf(blankIndex));
+            if (answersForThisBlank != null) {
+                return answersForThisBlank.stream()
+                    .map(String::toLowerCase)
+                    .map(String::trim)
+                    .anyMatch(correctAns -> correctAns.equals(answerStr));
+            }
+        }
+        return false;
+    }
+
+    private Activity.TeamChallengeContent convertMapToTeamChallengeContent(Map<String, Object> contentMap) {
+        Activity.TeamChallengeContent teamChallengeContent = new Activity.TeamChallengeContent();
+        List<Activity.TeamChallengeContent.DrawingPrompt> prompts = new ArrayList<>();
+
+        if (contentMap.containsKey("prompts")) {
+            List<?> promptEntries = (List<?>) contentMap.get("prompts");
+            for (Object entry : promptEntries) {
+                Activity.TeamChallengeContent.DrawingPrompt prompt = new Activity.TeamChallengeContent.DrawingPrompt();
+
+                if (entry instanceof String) {
+                    // Handle simple string prompts
+                    prompt.setPrompt((String) entry);
+                    prompt.setPoints(100);
+                    prompt.setTimeLimit(60);
+                    prompt.setSynonyms(new ArrayList<>());
+                    prompt.setHints(new ArrayList<>());
+                } else if (entry instanceof Map) {
+                    // Handle full prompt objects
+                    Map<String, Object> promptMap = (Map<String, Object>) entry;
+                    prompt.setPrompt((String) promptMap.getOrDefault("prompt", ""));
+                    prompt.setPoints(((Number) promptMap.getOrDefault("points", 100)).intValue());
+                    prompt.setTimeLimit(((Number) promptMap.getOrDefault("timeLimit", 60)).intValue());
+                    prompt.setSynonyms((List<String>) promptMap.getOrDefault("synonyms", new ArrayList<>()));
+                    prompt.setHints((List<String>) promptMap.getOrDefault("hints", new ArrayList<>()));
+                }
+                prompts.add(prompt);
+            }
+        }
+
+        // Handle pictionary settings
+        if (contentMap.containsKey("pictionarySettings")) {
+            Map<String, Object> settingsMap = (Map<String, Object>) contentMap.get("pictionarySettings");
+            Activity.TeamChallengeContent.PictionarySettings settings = new Activity.TeamChallengeContent.PictionarySettings();
+
+            settings.setRotateDrawers((Boolean) settingsMap.getOrDefault("rotateDrawers", false));
+            settings.setRoundsPerPlayer(((Number) settingsMap.getOrDefault("roundsPerPlayer", 1)).intValue());
+            settings.setAllowPartialPoints((Boolean) settingsMap.getOrDefault("allowPartialPoints", false));
+            settings.setRevealAnswerOnFail((Boolean) settingsMap.getOrDefault("revealAnswerOnFail", true));
+            settings.setMaxGuessesPerTeam(((Number) settingsMap.getOrDefault("maxGuessesPerTeam", 3)).intValue());
+
+            try {
+                settings.setGuessValidation(Activity.TeamChallengeContent.GuessValidation.valueOf(
+                        (String) settingsMap.getOrDefault("guessValidation", "EXACT_MATCH")));
+            } catch (IllegalArgumentException e) {
+                settings.setGuessValidation(Activity.TeamChallengeContent.GuessValidation.EXACT_MATCH);
+            }
+
+            teamChallengeContent.setPictionarySettings(settings);
+        }
+
+        teamChallengeContent.setPrompts(prompts);
+        return teamChallengeContent;
+    }
+
+    public Map<String, Object> submitDrawing(String accessCode, String studentId, String teamId, String drawingData) {
+        GameSession session = gameSessionRepository.findByAccessCode(accessCode)
+                .orElseThrow(() -> new RuntimeException("Session not found"));
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("status", "DRAWING_SUBMITTED");
+        result.put("drawerId", studentId);
+
+        messagingTemplate.convertAndSend(
+                "/topic/session/" + accessCode + "/teamchallenge/drawing",
+                result);
+        return result;
+    }
+
+    public Map<String, Object> switchTeamDrawer(String accessCode, String teamId, String newDrawerId) {
+        GameSession session = gameSessionRepository.findByAccessCode(accessCode)
+                .orElseThrow(() -> new RuntimeException("Session not found"));
+
+        GameSession.Team team = session.getTeams().stream()
+                .filter(t -> t.getTeamId().equals(teamId))
+                .findFirst()
+                .orElseThrow(() -> new RuntimeException("Team not found"));
+
+        if (!team.getTeamMembers().contains(newDrawerId)) {
+            throw new RuntimeException("User is not a member of this team");
+        }
+        team.setCurrentDrawerId(newDrawerId);
+        Activity activity = activityRepository.findById(session.getCurrentActivity().getActivityId())
+                .orElseThrow(() -> new RuntimeException("Activity not found"));
+        Activity.TeamChallengeContent content = (Activity.TeamChallengeContent) activity.getContent();
+        int currentIndex = session.getCurrentActivity().getCurrentContentIndex();
+        Activity.TeamChallengeContent.DrawingPrompt currentPrompt = content.getPrompts().get(currentIndex);
+        Map<String, Object> drawerInfo = getTeamDrawerInfo(newDrawerId, currentPrompt);
+        gameSessionRepository.save(session);
+        Map<String, Object> result = new HashMap<>();
+        result.put("teamId", teamId);
+        result.put("newDrawerId", newDrawerId);
+        result.put("prompt", drawerInfo);
+        messagingTemplate.convertAndSend(
+                "/topic/session/" + session.getAccessCode() + "/teamchallenge/drawer/" + teamId,
+                result);
+
+        return result;
     }
 
     public Map<String, Object> startTeamChallenge(String accessCode, String activityId) {
@@ -803,7 +1138,7 @@ public class GameSessionService {
         sessionActivity.setResponses(new ArrayList<>());
         // Set this as the current activity in the session
         session.setCurrentActivity(sessionActivity);
-        
+
         // Get the first prompt
         Activity.TeamChallengeContent.DrawingPrompt firstPrompt = teamChallengeContent.getPrompts().get(0);
 
@@ -827,16 +1162,63 @@ public class GameSessionService {
         return roundInfo;
     }
 
-    private Map<String, Object> getTeamDrawerInfo(String userId, Activity.TeamChallengeContent.DrawingPrompt prompt) {
-        Map<String, Object> drawerInfo = new HashMap<>();
-        drawerInfo.put("userId", userId);
-        drawerInfo.put("prompt", prompt.getPrompt());
-        drawerInfo.put("category", prompt.getCategory());
-        drawerInfo.put("timeLimit", prompt.getTimeLimit());
-        return drawerInfo;
+    private Activity.TeamChallengeContent getTeamChallengeContent(Activity activity) {
+        if (activity == null)
+            return null;
+
+        // Check contentItems first
+        if (activity.getContentItems() != null && !activity.getContentItems().isEmpty()) {
+            for (Activity.ActivityContent content : activity.getContentItems()) {
+                if (content.getData() instanceof Map) {
+                    Map<String, Object> contentMap = (Map<String, Object>) content.getData();
+                    Activity.TeamChallengeContent teamContent = new Activity.TeamChallengeContent();
+
+                    // Handle prompts array
+                    List<?> promptEntries = (List<?>) contentMap.get("prompts");
+                    List<Activity.TeamChallengeContent.DrawingPrompt> prompts = new ArrayList<>();
+
+                    for (Object entry : promptEntries) {
+                        Activity.TeamChallengeContent.DrawingPrompt prompt = new Activity.TeamChallengeContent.DrawingPrompt();
+
+                        if (entry instanceof String) {
+                            // Handle string prompts like ["dog", "cat", "bird"]
+                            prompt.setPrompt((String) entry);
+                            prompt.setPoints(100); // Default value
+                            prompt.setTimeLimit(60); // Default value
+                        } else if (entry instanceof Map) {
+                            // Handle full prompt objects
+                            Map<String, Object> promptMap = (Map<String, Object>) entry;
+                            prompt.setPrompt((String) promptMap.get("prompt"));
+                            prompt.setPoints(((Number) promptMap.getOrDefault("points", 100)).intValue());
+                            prompt.setTimeLimit(((Number) promptMap.getOrDefault("timeLimit", 60)).intValue());
+                        }
+                        prompts.add(prompt);
+                    }
+                    teamContent.setPrompts(prompts);
+
+                    // Handle pictionarySettings
+                    if (contentMap.containsKey("pictionarySettings")) {
+                        Map<String, Object> settingsMap = (Map<String, Object>) contentMap.get("pictionarySettings");
+                        Activity.TeamChallengeContent.PictionarySettings settings = new Activity.TeamChallengeContent.PictionarySettings();
+
+                        settings.setGuessValidation(Activity.TeamChallengeContent.GuessValidation.valueOf(
+                                (String) settingsMap.getOrDefault("guessValidation", "EXACT_MATCH")));
+                        // Set other settings properties...
+
+                        teamContent.setPictionarySettings(settings);
+                    }
+
+                    return teamContent;
+                }
+            }
+        }
+
+        // Fallback to legacy content handling
+        return null;
     }
 
     public Map<String, Object> submitTeamGuess(String accessCode, String teamId, String guess) {
+        System.out.println("DEBUG: Received guess '" + guess + "' for team " + teamId);
         System.out.println("DEBUG: Submitting team guess - accessCode: " + accessCode +
                 ", teamId: " + teamId + ", guess: " + guess);
         GameSession session = gameSessionRepository.findByAccessCode(accessCode)
@@ -855,15 +1237,13 @@ public class GameSessionService {
         Activity activity = activityRepository.findById(currentActivity.getActivityId())
                 .orElseThrow(() -> new RuntimeException("Activity not found"));
 
-        logTeamChallengeContentDebug(activity);
-
         // Get the current prompt
         Activity.TeamChallengeContent teamChallengeContent = getTeamChallengeContent(activity);
         if (teamChallengeContent == null || teamChallengeContent.getPrompts() == null) {
             throw new RuntimeException("No prompts available for this team challenge");
         }
 
-        int currentContentIndex = currentActivity.getCurrentContentIndex();
+        int currentContentIndex = team.getCurrentContentIndex();
         if (currentContentIndex >= teamChallengeContent.getPrompts().size()) {
             throw new RuntimeException("Invalid prompt index: " + currentContentIndex);
         }
@@ -920,7 +1300,7 @@ public class GameSessionService {
                                     Integer::sum);
                         });
             }
-            boolean advancedToNextPrompt = advanceToNextPrompt(session, activity);
+            boolean advancedToNextPrompt = advanceToNextPrompt(session, activity, team);
             result.put("pointsEarned", pointsEarned);
             result.put("totalTeamScore", team.getTeamScore());
             result.put("advancedToNextPrompt", advancedToNextPrompt);
@@ -957,12 +1337,21 @@ public class GameSessionService {
                     result.put("correctAnswer", currentPrompt.getPrompt());
 
                     if (teamChallengeContent.getPictionarySettings().isRevealAnswerOnFail()) {
-                        boolean advancedToNextPrompt = advanceToNextPrompt(session, activity);
+                        boolean advancedToNextPrompt = advanceToNextPrompt(session, activity, team);
                         result.put("advancedToNextPrompt", advancedToNextPrompt);
                     }
                 }
             }
         }
+        System.out.println("DEBUG: Team challenge content: " + teamChallengeContent);
+        if (teamChallengeContent != null && teamChallengeContent.getPrompts() != null) {
+            System.out.println("DEBUG: Available prompts: " +
+                    teamChallengeContent.getPrompts().stream()
+                            .map(p -> p.getPrompt())
+                            .collect(Collectors.joining(", ")));
+        }
+        System.out.println("Current prompt: " + currentPrompt.getPrompt());
+        System.out.println("Team guess: " + guess);
 
         gameSessionRepository.save(session);
         messagingTemplate.convertAndSend(
@@ -972,300 +1361,47 @@ public class GameSessionService {
         return result;
     }
 
-    private Activity.TeamChallengeContent getTeamChallengeContent(Activity activity) {
-        if (activity == null || activity.getContent() == null) {
+    public Object getTeamDrawing(String accessCode, String teamId) {
+        GameSession session = gameSessionRepository.findByAccessCode(accessCode)
+                .orElseThrow(() -> new RuntimeException("Session not found"));
+
+        // Find the team
+        Team team = session.getTeams().stream()
+                .filter(t -> t.getTeamId().equals(teamId))
+                .findFirst()
+                .orElse(null);
+
+        if (team == null) {
             return null;
         }
 
-        // Check contentItems first
-        if (activity.getContentItems() != null && !activity.getContentItems().isEmpty()) {
-            for (Activity.ActivityContent content : activity.getContentItems()) {
-                if (content.getData() instanceof Activity.TeamChallengeContent) {
-                    return (Activity.TeamChallengeContent) content.getData();
-                } else if (content.getData() instanceof Map) {
-                    return convertMapToTeamChallengeContent((Map<String, Object>) content.getData());
-                }
-            }
-        }
-
-        // Fallback to legacy content
-        if (activity.getContent() instanceof Activity.TeamChallengeContent) {
-            return (Activity.TeamChallengeContent) activity.getContent();
-        } else if (activity.getContent() instanceof Map) {
-            return convertMapToTeamChallengeContent((Map<String, Object>) activity.getContent());
-        }
-
-        return null;
+        // Return the current drawing from the team
+        return team.getCurrentDrawing();
     }
 
-    private boolean evaluateTeamGuess(
-            Activity.TeamChallengeContent teamChallengeContent,
-            Activity.TeamChallengeContent.DrawingPrompt currentPrompt,
-            String guess) {
-
-        if (guess == null || guess.trim().isEmpty()) {
-            return false;
-        }
-
-        // Normalize the guess - trim and convert to lowercase
-        String normalizedGuess = guess.trim().toLowerCase();
-        String normalizedPrompt = currentPrompt.getPrompt().trim().toLowerCase();
-
-        // Get validation method from settings or default to EXACT_MATCH
-        Activity.TeamChallengeContent.GuessValidation validationMethod = (teamChallengeContent
-                .getPictionarySettings() != null &&
-                teamChallengeContent.getPictionarySettings().getGuessValidation() != null)
-                        ? teamChallengeContent.getPictionarySettings().getGuessValidation()
-                        : Activity.TeamChallengeContent.GuessValidation.EXACT_MATCH;
-
-        switch (validationMethod) {
-            case EXACT_MATCH:
-                return normalizedGuess.equals(normalizedPrompt);
-
-            case CONTAINS_KEYWORD:
-                return normalizedPrompt.contains(normalizedGuess) || normalizedGuess.contains(normalizedPrompt);
-
-            case SYNONYM_MATCH:
-                // Check exact match first
-                if (normalizedGuess.equals(normalizedPrompt)) {
-                    return true;
-                }
-
-                // Then check against synonyms if available
-                if (currentPrompt.getSynonyms() != null && !currentPrompt.getSynonyms().isEmpty()) {
-                    for (String synonym : currentPrompt.getSynonyms()) {
-                        if (normalizedGuess.equals(synonym.trim().toLowerCase())) {
-                            return true;
-                        }
-                    }
-                }
-                return false;
-
-            case MANUAL_TEACHER:
-                // For manual validation, we'll return false and let the teacher validate
-                // This would require additional UI/endpoint to handle teacher validation
-                return false;
-
-            default:
-                return normalizedGuess.equals(normalizedPrompt);
-        }
-    }
-
-    private boolean advanceToNextPrompt(GameSession session, Activity activity) {
-        GameSession.SessionActivity currentActivity = session.getCurrentActivity();
-        if (currentActivity == null) {
-            return false;
-        }
-
-        Activity.TeamChallengeContent teamChallengeContent = getTeamChallengeContent(activity);
-        if (teamChallengeContent == null || teamChallengeContent.getPrompts() == null) {
-            return false;
-        }
-
-        int currentIndex = currentActivity.getCurrentContentIndex();
-        int totalPrompts = teamChallengeContent.getPrompts().size();
-
-        if (currentIndex >= totalPrompts - 1) {
-            // End of prompts - notify clients
-            Map<String, Object> completionMessage = new HashMap<>();
-            completionMessage.put("status", "COMPLETED");
-            completionMessage.put("totalPrompts", totalPrompts);
-            messagingTemplate.convertAndSend(
-                    "/topic/session/" + session.getAccessCode() + "/teamchallenge/status",
-                    completionMessage);
-            return false;
-        }
-
-        // Advance to next prompt
-        int newIndex = currentIndex + 1;
-        currentActivity.setCurrentContentIndex(newIndex);
-
-        // Get the new prompt
-        Activity.TeamChallengeContent.DrawingPrompt newPrompt = teamChallengeContent.getPrompts().get(newIndex);
-
-        // Prepare update with prompt details
-        Map<String, Object> update = new HashMap<>();
-        update.put("currentPromptIndex", newIndex);
-        update.put("currentWord", newPrompt.getPrompt());
-        update.put("status", "ACTIVE");
-
-        // Add synonyms if available
-        if (newPrompt.getSynonyms() != null && !newPrompt.getSynonyms().isEmpty()) {
-            update.put("synonyms", newPrompt.getSynonyms());
-        }
-
-        // Add time limit if configured
-        if (newPrompt.getTimeLimit() > 0) {
-            update.put("timeLimit", newPrompt.getTimeLimit());
-        }
-
-        // Broadcast update to all clients
+    public void broadcastDrawingUpdate(String accessCode, String teamId, Object paths) {
         messagingTemplate.convertAndSend(
-                "/topic/session/" + session.getAccessCode() + "/teamchallenge/status",
-                update);
-
-        return true;
+                "/topic/session/" + accessCode + "/teamchallenge/drawing/" + teamId,
+                paths);
     }
 
-    private void rotateDrawer(GameSession session, GameSession.Team team) {
-        if (team.getTeamMembers() == null || team.getTeamMembers().isEmpty()) {
-            return;
-        }
+    // Modified saveTeamDrawing method in GameSessionService.java
+    public void saveTeamDrawing(String accessCode, String teamId, Object paths) {
+        Optional<GameSession> optionalSession = gameSessionRepository.findByAccessCode(accessCode);
 
-        String nextDrawer = team.getNextDrawer();
-        if (nextDrawer != null) {
-            team.setCurrentDrawerId(nextDrawer);
-        }
-    }
-
-    private Activity.TeamChallengeContent convertMapToTeamChallengeContent(Map<String, Object> contentMap) {
-        Activity.TeamChallengeContent teamChallengeContent = new Activity.TeamChallengeContent();
-        List<Activity.TeamChallengeContent.DrawingPrompt> prompts = new ArrayList<>();
-
-        if (contentMap.containsKey("prompts")) {
-            List<?> promptEntries = (List<?>) contentMap.get("prompts");
-            for (Object entry : promptEntries) {
-                Activity.TeamChallengeContent.DrawingPrompt prompt = new Activity.TeamChallengeContent.DrawingPrompt();
-
-                if (entry instanceof String) {
-                    prompt.setPrompt((String) entry);
-                    prompt.setPoints(100); // Default points
-                    prompt.setTimeLimit(60); // Default time limit
-                } else if (entry instanceof Map) {
-                    Map<String, Object> promptMap = (Map<String, Object>) entry;
-                    prompt.setPrompt((String) promptMap.get("prompt"));
-                    if (promptMap.containsKey("points")) {
-                        prompt.setPoints(((Number) promptMap.get("points")).intValue());
-                    }
-                    if (promptMap.containsKey("category")) {
-                        prompt.setCategory((String) promptMap.get("category"));
-                    }
-                    if (promptMap.containsKey("difficulty")) {
-                        prompt.setDifficulty((String) promptMap.get("difficulty"));
-                    }
-                    if (promptMap.containsKey("timeLimit")) {
-                        Object timeLimitObj = promptMap.get("timeLimit");
-                        if (timeLimitObj instanceof Number) {
-                            prompt.setTimeLimit(((Number) timeLimitObj).intValue());
-                        }
-                    }
-                    if (promptMap.containsKey("hints")) {
-                        prompt.setHints((List<String>) promptMap.get("hints"));
-                    }
-                    if (promptMap.containsKey("synonyms")) {
-                        prompt.setSynonyms((List<String>) promptMap.get("synonyms"));
-                    }
-                }
-                prompts.add(prompt);
-            }
-        }
-        teamChallengeContent.setPrompts(prompts);
-        if (contentMap.containsKey("pictionarySettings")) {
-            Map<String, Object> settingsMap = (Map<String, Object>) contentMap.get("pictionarySettings");
-            Activity.TeamChallengeContent.PictionarySettings settings = new Activity.TeamChallengeContent.PictionarySettings();
-            if (settingsMap.containsKey("rotateDrawers")) {
-                settings.setRotateDrawers((Boolean) settingsMap.get("rotateDrawers"));
-            }
-            if (settingsMap.containsKey("roundsPerPlayer")) {
-                Object roundsObj = settingsMap.get("roundsPerPlayer");
-                if (roundsObj instanceof Number) {
-                    settings.setRoundsPerPlayer(((Number) roundsObj).intValue());
-                }
-            }
-            if (settingsMap.containsKey("allowPartialPoints")) {
-                settings.setAllowPartialPoints((Boolean) settingsMap.get("allowPartialPoints"));
-            }
-            if (settingsMap.containsKey("revealAnswerOnFail")) {
-                settings.setRevealAnswerOnFail((Boolean) settingsMap.get("revealAnswerOnFail"));
-            }
-            if (settingsMap.containsKey("maxGuessesPerTeam")) {
-                Object maxGuessesObj = settingsMap.get("maxGuessesPerTeam");
-                if (maxGuessesObj instanceof Number) {
-                    settings.setMaxGuessesPerTeam(((Number) maxGuessesObj).intValue());
-                }
-            }
-            if (settingsMap.containsKey("guessValidation")) {
-                String validationType = (String) settingsMap.get("guessValidation");
-                try {
-                    settings.setGuessValidation(Activity.TeamChallengeContent.GuessValidation.valueOf(validationType));
-                } catch (IllegalArgumentException e) {
-                    settings.setGuessValidation(Activity.TeamChallengeContent.GuessValidation.EXACT_MATCH);
-                }
-            }
-
-            teamChallengeContent.setPictionarySettings(settings);
-        }
-
-        return teamChallengeContent;
-    }
-
-    public Map<String, Object> submitDrawing(String accessCode, String studentId, String teamId, String drawingData) {
-        GameSession session = gameSessionRepository.findByAccessCode(accessCode)
+        GameSession session = optionalSession
                 .orElseThrow(() -> new RuntimeException("Session not found"));
 
-        Map<String, Object> result = new HashMap<>();
-        result.put("status", "DRAWING_SUBMITTED");
-        result.put("drawerId", studentId);
-
-        messagingTemplate.convertAndSend(
-                "/topic/session/" + accessCode + "/teamchallenge/drawing",
-                result);
-        return result;
-    }
-
-    private void sendTeamLeaderboardUpdate(GameSession session) {
-        if (session == null || session.getTeams() == null) {
-            return;
-        }
-
-        List<Map<String, Object>> teamLeaderboard = session.getTeams().stream()
-                .map(team -> {
-                    Map<String, Object> teamData = new HashMap<>();
-                    teamData.put("teamId", team.getTeamId());
-                    teamData.put("teamName", team.getTeamName());
-                    teamData.put("score", team.getTeamScore());
-                    return teamData;
-                })
-                .sorted((t1, t2) -> Integer.compare((Integer) t2.get("score"), (Integer) t1.get("score")))
-                .collect(Collectors.toList());
-
-        Map<String, Object> leaderboardData = new HashMap<>();
-        leaderboardData.put("teams", teamLeaderboard);
-
-        messagingTemplate.convertAndSend(
-                "/topic/session/" + session.getAccessCode() + "/teamchallenge/leaderboard",
-                leaderboardData);
-    }
-
-    public Map<String, Object> switchTeamDrawer(String accessCode, String teamId, String newDrawerId) {
-        GameSession session = gameSessionRepository.findByAccessCode(accessCode)
-                .orElseThrow(() -> new RuntimeException("Session not found"));
-
-        GameSession.Team team = session.getTeams().stream()
+        session.getTeams().stream()
                 .filter(t -> t.getTeamId().equals(teamId))
                 .findFirst()
-                .orElseThrow(() -> new RuntimeException("Team not found"));
-
-        if (!team.getTeamMembers().contains(newDrawerId)) {
-            throw new RuntimeException("User is not a member of this team");
-        }
-        team.setCurrentDrawerId(newDrawerId);
-        Activity activity = activityRepository.findById(session.getCurrentActivity().getActivityId())
-                .orElseThrow(() -> new RuntimeException("Activity not found"));
-        Activity.TeamChallengeContent content = (Activity.TeamChallengeContent) activity.getContent();
-        int currentIndex = session.getCurrentActivity().getCurrentContentIndex();
-        Activity.TeamChallengeContent.DrawingPrompt currentPrompt = content.getPrompts().get(currentIndex);
-        Map<String, Object> drawerInfo = getTeamDrawerInfo(newDrawerId, currentPrompt);
-        gameSessionRepository.save(session);
-        Map<String, Object> result = new HashMap<>();
-        result.put("teamId", teamId);
-        result.put("newDrawerId", newDrawerId);
-        result.put("prompt", drawerInfo);
-        messagingTemplate.convertAndSend(
-                "/topic/session/" + session.getAccessCode() + "/teamchallenge/drawer/" + teamId,
-                result);
-
-        return result;
+                .ifPresent(team -> {
+                    team.setCurrentDrawing((List<Map<String, Object>>) paths);
+                    team.setLastDrawingUpdate(new Date());
+                    gameSessionRepository.save(session);
+                    // Make sure to broadcast after saving
+                    broadcastDrawingUpdate(accessCode, teamId, paths);
+                });
     }
 
     public Map<String, Object> getTeamChallengeStatus(String accessCode) {
@@ -1275,7 +1411,6 @@ public class GameSessionService {
         if (session.getCurrentActivity() == null) {
             throw new RuntimeException("No active team challenge");
         }
-
         Activity activity = activityRepository.findById(session.getCurrentActivity().getActivityId())
                 .orElseThrow(() -> new RuntimeException("Activity not found"));
         Map<String, Object> status = new HashMap<>();
@@ -1310,6 +1445,7 @@ public class GameSessionService {
                         info.put("id", team.getTeamId());
                         info.put("name", team.getTeamName());
                         info.put("score", team.getTeamScore());
+                        info.put("currentPromptIndex", team.getCurrentContentIndex());
                         info.put("currentDrawerId", team.getCurrentDrawerId());
                         List<Map<String, Object>> members = team.getTeamMembers().stream()
                                 .map(memberId -> {
@@ -1345,7 +1481,7 @@ public class GameSessionService {
 
             currentRound.put("guesses", guesses);
         }
-        
+
         if (session.getCurrentActivity().getResponses() != null) {
             Optional<GameSession.ParticipantResponse> lastDrawing = session.getCurrentActivity().getResponses().stream()
                     .filter(r -> r.getAnswer() != null && ((String) r.getAnswer()).startsWith("data:image/"))
@@ -1373,69 +1509,6 @@ public class GameSessionService {
         }
 
         return status;
-    }
-
-    private void logTeamChallengeContentDebug(Activity activity) {
-        if (activity == null) {
-            System.out.println("DEBUG: Activity is null");
-            return;
-        }
-
-        System.out.println("DEBUG: Activity ID: " + activity.getId());
-        System.out.println("DEBUG: Activity Type: " + activity.getType());
-
-        // Try to get team challenge content
-        Activity.TeamChallengeContent teamContent = getTeamChallengeContent(activity);
-
-        if (teamContent == null) {
-            System.out.println("DEBUG: TeamChallengeContent is null");
-            System.out.println("DEBUG: Raw content class: " +
-                    (activity.getContent() != null ? activity.getContent().getClass().getName() : "null"));
-
-            if (activity.getContentItems() != null) {
-                System.out.println("DEBUG: contentItems size: " + activity.getContentItems().size());
-                for (int i = 0; i < activity.getContentItems().size(); i++) {
-                    System.out.println("DEBUG: contentItem[" + i + "] class: " +
-                            activity.getContentItems().get(i).getClass().getName());
-                }
-            } else {
-                System.out.println("DEBUG: contentItems is null");
-            }
-            return;
-        }
-        if (teamContent.getPrompts() != null) {
-            System.out.println("DEBUG: Prompts count: " + teamContent.getPrompts().size());
-            for (int i = 0; i < teamContent.getPrompts().size(); i++) {
-                Activity.TeamChallengeContent.DrawingPrompt prompt = teamContent.getPrompts().get(i);
-                System.out.println("DEBUG: Prompt[" + i + "]: " + prompt.getPrompt());
-            }
-        }
-        // Log prompts
-        if (teamContent.getPrompts() == null) {
-            System.out.println("DEBUG: Prompts list is null");
-        } else {
-            System.out.println("DEBUG: Prompts count: " + teamContent.getPrompts().size());
-            for (int i = 0; i < teamContent.getPrompts().size(); i++) {
-                Activity.TeamChallengeContent.DrawingPrompt prompt = teamContent.getPrompts().get(i);
-                System.out.println("DEBUG: Prompt[" + i + "]: " +
-                        (prompt != null ? prompt.getPrompt() : "null"));
-
-                if (prompt != null && prompt.getSynonyms() != null) {
-                    System.out.println("DEBUG: Prompt[" + i + "] synonyms: " +
-                            String.join(", ", prompt.getSynonyms()));
-                }
-            }
-        }
-
-        // Log pictionary settings
-        if (teamContent.getPictionarySettings() == null) {
-            System.out.println("DEBUG: PictionarySettings is null");
-        } else {
-            System.out.println("DEBUG: PictionarySettings:");
-            System.out.println("  - rotateDrawers: " + teamContent.getPictionarySettings().isRotateDrawers());
-            System.out.println("  - maxGuessesPerTeam: " + teamContent.getPictionarySettings().getMaxGuessesPerTeam());
-            System.out.println("  - guessValidation: " + teamContent.getPictionarySettings().getGuessValidation());
-        }
     }
 
 }

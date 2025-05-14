@@ -34,7 +34,7 @@ const Index: React.FC = () => {
           </div>
 
           <div className="flex !space-x-8 relative left-125 flex-1">
-            <Link to="/signin" className="inline-block bg-[#4a8dff] !text-white !no-underline !px-9 !py-3 rounded-full font-semibold text-lg hover:bg-[#3a7dff] transition-colors cursor-pointer">
+            <Link to="/login" className="inline-block bg-[#4a8dff] !text-white !no-underline !px-9 !py-3 rounded-full font-semibold text-lg hover:bg-[#3a7dff] transition-colors cursor-pointer">
               Sign in
             </Link>
             <Link to="/signup" className="inline-block bg-[#4a8dff] !text-white !no-underline !px-9 !py-3 rounded-full font-semibold text-lg hover:bg-[#3a7dff] transition-colors cursor-pointer">

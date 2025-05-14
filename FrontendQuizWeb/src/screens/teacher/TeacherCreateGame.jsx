@@ -46,6 +46,23 @@ const TeacherCreateGame = () => {
   const [topics, setTopics] = useState([])
   const [currentTopic, setCurrentTopic] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [currentPage, setCurrentPage] = useState(1)
+  const [itemsPerPage] = useState(6) // 6 items per grid page
+
+  // Calculate pagination
+  const indexOfLastItem = currentPage * itemsPerPage
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage
+  const currentGames = games.slice(indexOfFirstItem, indexOfLastItem)
+  const totalPages = Math.ceil(games.length / itemsPerPage)
+
+  // Pagination controls
+  const handlePrevious = () => {
+    setCurrentPage(prev => Math.max(1, prev - 1))
+  }
+
+  const handleNext = () => {
+    setCurrentPage(prev => Math.min(totalPages, prev + 1))
+  }
 
   // Game settings
   const [gameSettings, setGameSettings] = useState({
@@ -184,20 +201,50 @@ const TeacherCreateGame = () => {
   return (
     <>
       <Header />
-        <div className="game-management-app">
+      <div className="game-management-app">
         <Sidebar />
-        
-        <div className="game-main-content">
-          <div className="game-card-grid">
 
-            <div className="card-header">
+        <div className="game-main-content">
+          <div className="flex flex-col gap-4">
+            {/* Header Section */}
+            <div className="flex justify-between items-center px-4">
+              <h1 className="text-2xl font-bold text-gray-800">My Games</h1>
               <button
                 onClick={() => setIsModalOpen(true)}
-                className="create-quiz-button"
+                className="create-quiz-button bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg flex items-center gap-2"
               >
-                Create Game <span className="plus-icon">+</span>
+                <Plus className="w-5 h-5" />
+                Create New Game
               </button>
             </div>
+
+            {/* Pagination Controls */}
+            {games.length > itemsPerPage && (
+              <div className="flex justify-between items-center px-4">
+                <span className="text-sm text-gray-600">
+                  Showing {(currentPage - 1) * itemsPerPage + 1} - {Math.min(currentPage * itemsPerPage, games.length)} of {games.length} games
+                </span>
+                <div className="flex gap-2">
+                  <button
+                    onClick={handlePrevious}
+                    disabled={currentPage === 1}
+                    className="px-3 py-1 rounded-md bg-gray-100 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Previous
+                  </button>
+                  <span className="px-3 py-1 text-gray-700">
+                    Page {currentPage} of {totalPages}
+                  </span>
+                  <button
+                    onClick={handleNext}
+                    disabled={currentPage === totalPages}
+                    className="px-3 py-1 rounded-md bg-gray-100 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Next
+                  </button>
+                </div>
+              </div>
+            )}
 
             {/* Games List Content */}
             {loading ? (
@@ -223,7 +270,7 @@ const TeacherCreateGame = () => {
             ) : (
               <div className="game-list-container">
                 <div className="game-card-grid">
-                  {games.map((game) => (
+                  {currentGames.map((game) => (
                     <div key={game.id} className="game-item-card bg-white rounded-lg shadow p-4">
                       {/* Title and Description - Top Left */}
                       <div className="game-header-section mb-2">
