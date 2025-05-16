@@ -795,8 +795,11 @@ public class GameSessionService {
     public GameSession getSessionByAccessCode(String accessCode) {
         String normalizedCode = accessCode.toUpperCase();
         Optional<GameSession> sessionOpt = gameSessionRepository.findByAccessCode(normalizedCode);
-        GameSession session = sessionOpt.get();
-        return session;
+        if (!sessionOpt.isPresent()) {
+            System.out.println("No session found for access code: " + normalizedCode);
+            return null;
+        }
+        return sessionOpt.get();
     }
 
     public void createTeams(String accessCode, boolean autoAssign) {
@@ -1523,6 +1526,10 @@ public class GameSessionService {
         }
 
         return status;
+    }
+
+    public List<GameSession> getRecentSessionsByStudentId(String studentId) {
+        return gameSessionRepository.findByParticipantsUserIdOrderByStartTimeDesc(studentId);
     }
 
 }

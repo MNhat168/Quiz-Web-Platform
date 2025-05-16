@@ -5,7 +5,7 @@ import SockJS from 'sockjs-client';
 import { Client } from '@stomp/stompjs';
 import { useNavigate } from 'react-router-dom';
 import '../../style/gameplay.css';
-import './StudentGameplay.css'; // Import CSS file for animations
+
 
 import MultipleChoiceActivity from './activities/MultipleChoice';
 import TrueFalseActivity from './activities/TrueFalse';
@@ -491,7 +491,6 @@ const StudentGamePlay = () => {
         return (
             <div className={`notification ${submissionResult.correct ? 'correct' : 'incorrect'}`}>
                 <div className="notification-content">
-                    {/* Icon based on result */}
                     <div className={`notification-icon ${submissionResult.correct ? 'correct' : 'incorrect'}`}>
                         {submissionResult.correct ? (
                             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -692,7 +691,16 @@ const StudentGamePlay = () => {
             case 'OPEN_ENDED':
                 return <TextInputActivity {...commonProps} />;
             case 'FILL_IN_BLANK':
-                return <FillInBlankGame {...commonProps} currentContentIndex={currentContentIndex} />;
+                return <FillInBlankGame 
+                    {...commonProps} 
+                    currentContentIndex={currentContentIndex}
+                    onComplete={() => {
+                        // Clear the timer when activity is completed
+                        clearContentTimer();
+                        // Advance to next content or activity
+                        advanceToNextContent();
+                    }}
+                />;
             case 'SORTING':
                 return <SortingActivity {...commonProps} />;
             case 'MATCHING':
@@ -788,44 +796,91 @@ const StudentGamePlay = () => {
             
             {/* Custom animations */}
             <style jsx>{`
-                @keyframes fade-in {
-                    0% { opacity: 0; }
-                    100% { opacity: 1; }
+                .notification {
+                    position: fixed;
+                    top: 1rem;
+                    right: 1rem;
+                    max-width: 24rem;
+                    padding: 1rem 1.5rem;
+                    border-radius: 0.75rem;
+                    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+                    z-index: 50;
+                    animation: slideInRight 0.3s ease-out forwards, fadeOut 1.5s ease-out forwards;
                 }
-                
-                @keyframes slide-up {
-                    0% { transform: translateY(10px); opacity: 0; }
-                    100% { transform: translateY(0); opacity: 1; }
+
+                .notification.correct {
+                    background: linear-gradient(to bottom right, #dcfce7, #bbf7d0);
+                    border: 2px solid #86efac;
+                    color: #166534;
                 }
-                
-                @keyframes slide-in-right {
-                    0% { transform: translateX(100%); opacity: 0; }
-                    100% { transform: translateX(0); opacity: 1; }
+
+                .notification.incorrect {
+                    background: linear-gradient(to bottom right, #fee2e2, #fecaca);
+                    border: 2px solid #fca5a5;
+                    color: #991b1b;
                 }
-                
-                @keyframes fade-out {
-                    0%, 80% { opacity: 1; }
-                    100% { opacity: 0; }
+
+                .notification-content {
+                    display: flex;
+                    align-items: center;
+                    gap: 0.75rem;
                 }
-                
-                @keyframes spin {
-                    0% { transform: rotate(0deg); }
-                    100% { transform: rotate(360deg); }
+
+                .notification-icon {
+                    width: 2.5rem;
+                    height: 2.5rem;
+                    border-radius: 9999px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
                 }
-                
-                @keyframes pulse {
-                    0%, 100% { opacity: 1; }
-                    50% { opacity: 0.7; }
+
+                .notification-icon.correct {
+                    background: linear-gradient(to bottom right, #bbf7d0, #86efac);
+                    color: #166534;
                 }
-                
-                .animate-fade-in { animation: fade-in 0.5s ease-out forwards; }
-                .animate-slide-up { animation: slide-up 0.5s ease-out forwards; }
-                .animate-slide-in-right { animation: slide-in-right 0.3s ease-out forwards; }
-                .animate-fade-out { animation: fade-out 1.5s ease-out forwards; }
-                .animate-spin { animation: spin 1s linear infinite; }
-                .animate-pulse { animation: pulse 1.5s infinite; }
-                
-                .delay-300 { animation-delay: 0.3s; }
+
+                .notification-icon.incorrect {
+                    background: linear-gradient(to bottom right, #fecaca, #fca5a5);
+                    color: #991b1b;
+                }
+
+                .notification-text {
+                    display: flex;
+                    flex-direction: column;
+                }
+
+                .notification-text h4 {
+                    font-size: 1.125rem;
+                    font-weight: 700;
+                    margin: 0;
+                }
+
+                .points-earned {
+                    font-weight: 700;
+                    font-size: 1rem;
+                    color: #059669;
+                }
+
+                @keyframes slideInRight {
+                    0% {
+                        transform: translateX(100%);
+                        opacity: 0;
+                    }
+                    100% {
+                        transform: translateX(0);
+                        opacity: 1;
+                    }
+                }
+
+                @keyframes fadeOut {
+                    0%, 80% {
+                        opacity: 1;
+                    }
+                    100% {
+                        opacity: 0;
+                    }
+                }
             `}</style>
         </div>
     );
