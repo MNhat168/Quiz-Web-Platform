@@ -356,372 +356,324 @@ const TeacherCreateRoom = () => {
   };
 
   const renderSetupPhase = () => (
-    <div className="!bg-white !rounded-2xl !shadow-lg !p-8 !max-w-md !w-full !mx-auto !border !border-gray-100 !animate-fade-in">
-      <h2 className="!text-2xl !font-bold !text-gray-800 !mb-6 !text-center !relative">
-        <span className="!relative !z-10">Create New Game Session</span>
-        <span className="!absolute !bottom-0 !left-0 !right-0 !h-3 !bg-emerald-100 !opacity-50 !-z-10 !transform !-rotate-1"></span>
-      </h2>
-  
-      {loading ? (
-        <div className="!flex !flex-col !items-center !justify-center !py-8 !animate-fade-in">
-          <svg
-            className="!w-12 !h-12 !text-emerald-600 !animate-spin !mb-4"
-            xmlns="http://www.w3.org/2000/svg"
-            fill="none"
-            viewBox="0 0 24 24"
-          >
-            <circle className="!opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-            <path
-              className="!opacity-75"
-              fill="currentColor"
-              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-            ></path>
-          </svg>
-          <p className="!text-gray-600 !animate-pulse">Loading games and classes...</p>
-        </div>
-      ) : error ? (
-        <div className="!bg-red-50 !border-l-4 !border-red-500 !p-4 !rounded-r-lg !mb-6 !animate-slide-up">
-          <div className="!flex !items-center">
-            <svg className="!w-6 !h-6 !text-red-500 !mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-            </svg>
-            <p className="!text-red-700">{error}</p>
-          </div>
-          <button 
-            onClick={fetchGamesAndClasses} 
-            className="!mt-3 !bg-red-100 !text-red-700 !px-4 !py-2 !rounded-lg !font-medium !hover:bg-red-200 !transition-colors !duration-300 !flex !items-center !text-sm"
-          >
-            <svg className="!w-4 !h-4 !mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
-            </svg>
-            Try Again
-          </button>
-        </div>
-      ) : (
-        <>
-          <div className="!mb-6 !animate-slide-up">
-            <label className="!block !text-gray-700 !font-medium !mb-2">Select Game:</label>
-            <div className="!relative">
-              <select 
-                value={selectedGame} 
-                onChange={(e) => setSelectedGame(e.target.value)}
-                className="!appearance-none !block !w-full !px-4 !py-3 !bg-gray-50 !border !border-gray-200 !rounded-lg !text-gray-700 !focus:outline-none !focus:ring-2 !focus:ring-emerald-500 !focus:border-transparent !transition-all !duration-300"
-              >
-                <option value="">-- Select a Game --</option>
-                {games.map(game => (
-                  <option key={game.id} value={game.id}>{game.title}</option>
-                ))}
-              </select>
-              <div className="!pointer-events-none !absolute !inset-y-0 !right-0 !flex !items-center !px-3 !text-gray-500">
-                <svg className="!w-5 !h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path>
-                </svg>
-              </div>
-            </div>
-            {games.length === 0 && (
-              <p className="!mt-2 !text-amber-600 !text-sm !flex !items-center">
-                <svg className="!w-4 !h-4 !mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                </svg>
-                No games available. Create games first.
-              </p>
+    <div className="!min-h-screen !flex !items-center !justify-center !p-6">
+        <div className="!bg-white !rounded-3xl !shadow-xl !p-10 !max-w-xl !w-full !mx-auto !border !border-gray-100 !animate-fade-in">
+            <h2 className="!text-3xl !font-bold !text-gray-800 !mb-6 !text-center !relative">
+                <span className="!relative !z-10">Create New Game Session</span>
+                <span className="!absolute !bottom-0 !left-0 !right-0 !h-3 !bg-emerald-100 !opacity-50 !-z-10 !transform !-rotate-1"></span>
+            </h2>
+    
+            {loading ? (
+                <div className="!flex !flex-col !items-center !justify-center !py-8 !animate-fade-in">
+                    <svg
+                        className="!w-14 !h-14 !text-emerald-600 !animate-spin !mb-4"
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                    >
+                        <circle className="!opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path
+                            className="!opacity-75"
+                            fill="currentColor"
+                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                        ></path>
+                    </svg>
+                    <p className="!text-lg !text-gray-600 !animate-pulse">Loading games and classes...</p>
+                </div>
+            ) : error ? (
+                <div className="!bg-red-50 !border-l-4 !border-red-500 !p-5 !rounded-r-lg !mb-6 !animate-slide-up">
+                    <div className="!flex !items-center">
+                        <svg className="!w-7 !h-7 !text-red-500 !mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        <p className="!text-base !text-red-700">{error}</p>
+                    </div>
+                    <button 
+                        onClick={fetchGamesAndClasses} 
+                        className="!mt-3 !bg-red-100 !text-red-700 !px-5 !py-2.5 !rounded-lg !font-medium !hover:bg-red-200 !transition-colors !duration-300 !flex !items-center !text-base"
+                    >
+                        <svg className="!w-5 !h-5 !mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                        </svg>
+                        Try Again
+                    </button>
+                </div>
+            ) : (
+                <>
+                    <div className="!mb-6 !animate-slide-up">
+                        <label className="!block !text-lg !text-gray-700 !font-medium !mb-2">Select Game:</label>
+                        <div className="!relative">
+                            <select 
+                                value={selectedGame} 
+                                onChange={(e) => setSelectedGame(e.target.value)}
+                                className="!appearance-none !block !w-full !px-5 !py-3.5 !text-base !bg-gray-50 !border !border-gray-200 !rounded-xl !text-gray-700 !focus:outline-none !focus:ring-2 !focus:ring-emerald-500 !focus:border-transparent !transition-all !duration-300"
+                            >
+                                <option value="">-- Select a Game --</option>
+                                {games.map(game => (
+                                    <option key={game.id} value={game.id}>{game.title}</option>
+                                ))}
+                            </select>
+                            <div className="!pointer-events-none !absolute !inset-y-0 !right-0 !flex !items-center !px-4 !text-gray-500">
+                                <svg className="!w-5 !h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path>
+                                </svg>
+                            </div>
+                        </div>
+                        {games.length === 0 && (
+                            <p className="!mt-2 !text-amber-600 !text-base !flex !items-center">
+                                <svg className="!w-5 !h-5 !mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
+                                No games available. Create games first.
+                            </p>
+                        )}
+                    </div>
+        
+                    <div className="!mb-8 !animate-slide-up !delay-100">
+                        <label className="!block !text-lg !text-gray-700 !font-medium !mb-2">Select Class:</label>
+                        <div className="!relative">
+                            <select 
+                                value={selectedClass} 
+                                onChange={(e) => setSelectedClass(e.target.value)}
+                                className="!appearance-none !block !w-full !px-5 !py-3.5 !text-base !bg-gray-50 !border !border-gray-200 !rounded-xl !text-gray-700 !focus:outline-none !focus:ring-2 !focus:ring-emerald-500 !focus:border-transparent !transition-all !duration-300"
+                            >
+                                <option value="">-- Select a Class --</option>
+                                {classes.map(cls => (
+                                    <option key={cls.id} value={cls.id}>{cls.name}</option>
+                                ))}
+                            </select>
+                            <div className="!pointer-events-none !absolute !inset-y-0 !right-0 !flex !items-center !px-4 !text-gray-500">
+                                <svg className="!w-5 !h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path>
+                                </svg>
+                            </div>
+                        </div>
+                        {classes.length === 0 && (
+                            <p className="!mt-2 !text-amber-600 !text-base !flex !items-center">
+                                <svg className="!w-5 !h-5 !mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
+                                No classes available. Create a class first.
+                            </p>
+                        )}
+                    </div>
+        
+                    <button
+                        onClick={createRoom}
+                        disabled={!selectedGame || !selectedClass || loading}
+                        className="!w-full !py-5 !text-lg !bg-gradient-to-r !from-emerald-500 !to-teal-500 !text-white !font-medium !rounded-xl !shadow-md !hover:shadow-lg !transform !transition-all !duration-300 !hover:-translate-y-1 !active:translate-y-0 !disabled:opacity-50 !disabled:cursor-not-allowed !disabled:hover:transform-none !animate-slide-up !delay-200 !relative !overflow-hidden"
+                    >
+                        <span className="!relative !z-10">
+                            {loading ? (
+                                <span className="!flex !items-center !justify-center">
+                                    <svg className="!animate-spin !-ml-1 !mr-2 !h-5 !w-5 !text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                        <circle className="!opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                        <path className="!opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                    </svg>
+                                    Creating...
+                                </span>
+                            ) : 'Create Game Session'}
+                        </span>
+                        <span className="!absolute !inset-0 !bg-gradient-to-r !from-emerald-400/0 !via-white/20 !to-emerald-400/0 !transform !translate-x-[-100%] !animate-shimmer"></span>
+                    </button>
+                </>
             )}
-          </div>
-  
-          <div className="!mb-8 !animate-slide-up !delay-100">
-            <label className="!block !text-gray-700 !font-medium !mb-2">Select Class:</label>
-            <div className="!relative">
-              <select 
-                value={selectedClass} 
-                onChange={(e) => setSelectedClass(e.target.value)}
-                className="!appearance-none !block !w-full !px-4 !py-3 !bg-gray-50 !border !border-gray-200 !rounded-lg !text-gray-700 !focus:outline-none !focus:ring-2 !focus:ring-emerald-500 !focus:border-transparent !transition-all !duration-300"
-              >
-                <option value="">-- Select a Class --</option>
-                {classes.map(cls => (
-                  <option key={cls.id} value={cls.id}>{cls.name}</option>
-                ))}
-              </select>
-              <div className="!pointer-events-none !absolute !inset-y-0 !right-0 !flex !items-center !px-3 !text-gray-500">
-                <svg className="!w-5 !h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path>
-                </svg>
-              </div>
-            </div>
-            {classes.length === 0 && (
-              <p className="!mt-2 !text-amber-600 !text-sm !flex !items-center">
-                <svg className="!w-4 !h-4 !mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                </svg>
-                No classes available. Create a class first.
-              </p>
-            )}
-          </div>
-  
-          <button
-            onClick={createRoom}
-            disabled={!selectedGame || !selectedClass || loading}
-            className="!w-full !py-4 !bg-gradient-to-r !from-emerald-500 !to-teal-500 !text-white !font-medium !rounded-xl !shadow-md !hover:shadow-lg !transform !transition-all !duration-300 !hover:-translate-y-1 !active:translate-y-0 !disabled:opacity-50 !disabled:cursor-not-allowed !disabled:hover:transform-none !animate-slide-up !delay-200 !relative !overflow-hidden"
-          >
-            <span className="!relative !z-10">
-              {loading ? (
-                <span className="!flex !items-center !justify-center">
-                  <svg className="!animate-spin !-ml-1 !mr-2 !h-5 !w-5 !text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="!opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="!opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                  Creating...
-                </span>
-              ) : 'Create Game Session'}
-            </span>
-            <span className="!absolute !inset-0 !bg-gradient-to-r !from-emerald-400/0 !via-white/20 !to-emerald-400/0 !transform !translate-x-[-100%] !animate-shimmer"></span>
-          </button>
-        </>
-      )}
-      
-   
-      
+        </div>
     </div>
   );
   const renderLobbyPhase = () => (
-    <div className="!min-h-screen !flex !items-center !justify-center !p-4">
-        <div className="!bg-white !rounded-2xl !shadow-lg !p-8 !max-w-md !w-full !mx-auto !border !border-gray-100 !animate-fade-in">
-            <h2 className="!text-2xl !font-bold !text-gray-800 !mb-6 !text-center !relative">
-                <span className="!relative !z-10">Game Lobby</span>
-                <span className="!absolute !bottom-0 !left-0 !right-0 !h-3 !bg-indigo-100 !opacity-50 !-z-10 !transform !-rotate-1"></span>
-            </h2>
-            
-            <div className="!bg-gradient-to-r !from-indigo-50 !to-purple-50 !rounded-xl !p-6 !mb-8 !text-center !animate-slide-up">
-                <h3 className="!text-gray-700 !mb-2 !font-medium">Access Code:</h3>
-                <div className="!flex !items-center !justify-center !mb-3">
-                    <span className="!bg-white !px-4 !py-3 !rounded-lg !text-2xl !font-bold !tracking-wider !text-indigo-700 !shadow-sm !border !border-indigo-100 !animate-pulse-slow">
-                        {accessCode}
-                    </span>
-                    <button 
-                        className="!ml-2 !p-2 !bg-indigo-100 !text-indigo-600 !rounded-lg !hover:bg-indigo-200 !transition-colors !duration-300"
-                        onClick={() => {
-                            navigator.clipboard.writeText(accessCode);
-                        }}
-                        title="Copy to clipboard"
-                    >
-                        <svg className="!w-5 !h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"></path>
-                        </svg>
-                    </button>
-                </div>
-                <p className="!text-gray-600 !text-sm !flex !items-center !justify-center">
-                    <svg className="!w-4 !h-4 !mr-1 !text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                    </svg>
-                    Share this code with your students to join the session
-                </p>
-            </div>
-        
-            <div className="!mb-8 !animate-slide-up !delay-100">
-                <div className="!flex !items-center !justify-between !mb-4">
-                    <h3 className="!text-lg !font-semibold !text-gray-800">Participants</h3>
-                    <span className="!bg-indigo-100 !text-indigo-800 !px-2.5 !py-0.5 !rounded-full !text-sm !font-medium">
-                        {participants.length}
-                    </span>
-                </div>
-                
-                {participants.length === 0 ? (
-                    <div className="!bg-gray-50 !rounded-xl !p-6 !flex !flex-col !items-center !justify-center !text-gray-500">
-                        <svg className="!w-12 !h-12 !text-gray-300 !mb-3 !animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
-                        </svg>
-                        <p className="!text-center">Waiting for students to join...</p>
-                    </div>
-                ) : (
-                    <div className="!max-h-60 !overflow-y-auto !pr-2 !scrollbar-thin !scrollbar-thumb-gray-300 !scrollbar-track-gray-100 !rounded-lg">
-                        <ul className="!space-y-2">
-                            {participants.map((p, index) => (
-                                <li 
-                                    key={p.userId} 
-                                    className="!flex !items-center !p-3 !bg-white !border !border-gray-100 !rounded-xl !shadow-sm !hover:shadow-md !transition-all !duration-300 !animate-slide-right"
-                                    style={{ animationDelay: `${index * 0.05}s` }}
-                                >
-                                    {p.avatarUrl ? (
-                                        <img src={p.avatarUrl || "/placeholder.svg"} alt="avatar" className="!w-10 !h-10 !rounded-full !mr-3 !border-2 !border-gray-200" />
-                                    ) : (
-                                        <div className="!w-10 !h-10 !rounded-full !bg-gradient-to-r !from-indigo-300 !to-purple-300 !mr-3 !flex !items-center !justify-center !text-white !font-bold">
-                                            {p.displayName.charAt(0).toUpperCase()}
-                                        </div>
-                                    )}
-                                    <span className="!text-gray-800 !font-medium !flex-1">{p.displayName}</span>
-                                    <span className={`!w-3 !h-3 !rounded-full ${p.active ? '!bg-green-500 !animate-pulse' : '!bg-gray-400'}`} />
-                                </li>
-                            ))}
-                        </ul>
-                    </div>
-                )}
-            </div>
-        
-            <button
-                onClick={startGame}
-                disabled={participants.length === 0}
-                className="!w-full !py-4 !bg-gradient-to-r !from-indigo-500 !to-purple-500 !text-white !font-medium !rounded-xl !shadow-md !hover:shadow-lg !transform !transition-all !duration-300 !hover:-translate-y-1 !active:translate-y-0 !disabled:opacity-50 !disabled:cursor-not-allowed !disabled:hover:transform-none !animate-slide-up !delay-200 !relative !overflow-hidden"
+    <div className="!min-h-screen !flex !flex-col !items-center !justify-center !bg-gray-50 !p-6">
+      {/* Card: Game Lobby + Access Code + Participants Counter + Start Game */}
+      <div className="!bg-white !rounded-3xl !shadow-xl !p-10 !max-w-xl !w-full !mx-auto !border !border-gray-100 !mb-10">
+        <h2 className="!text-4xl !font-bold !text-gray-800 !mb-8 !text-center">Game Lobby</h2>
+        <div className="!bg-gradient-to-r !from-indigo-50 !to-purple-50 !rounded-2xl !p-8 !mb-8 !text-center">
+          <h3 className="!text-2xl !text-gray-700 !mb-5 !font-semibold">Access Code:</h3>
+          <div className="!flex !items-center !justify-center !mb-6">
+            <span className="!bg-white !px-10 !py-5 !rounded-2xl !text-4xl !font-extrabold !tracking-widest !text-indigo-700 !shadow-md !border !border-indigo-200 !animate-pulse-slow">
+              {accessCode}
+            </span>
+            <button 
+              className="!ml-4 !p-3 !bg-indigo-100 !text-indigo-600 !rounded-xl !hover:bg-indigo-200 !transition-colors !duration-300"
+              onClick={() => navigator.clipboard.writeText(accessCode)}
+              title="Copy to clipboard"
             >
-                <span className="!relative !z-10">Start Game</span>
-                <span className="!absolute !inset-0 !bg-gradient-to-r !from-indigo-400/0 !via-white/20 !to-indigo-400/0 !transform !translate-x-[-100%] !animate-shimmer"></span>
+              <svg className="!w-7 !h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"></path>
+              </svg>
             </button>
+          </div>
+          <p className="!text-lg !text-gray-600 !flex !items-center !justify-center mb-8">
+            <svg className="!w-6 !h-6 !mr-2 !text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+            Share this code with your students to join the session
+          </p>
+          <div className="!flex !items-center !justify-between !gap-6">
+            <span className="!bg-indigo-100 !text-indigo-800 !px-6 !py-3 !rounded-full !text-xl !font-semibold">{participants.length}</span>
+            <button
+              onClick={startGame}
+              disabled={participants.length === 0}
+              className="!py-3 !px-10 !text-xl !bg-gradient-to-r !from-indigo-500 !to-purple-500 !text-white !font-bold !rounded-xl !shadow-lg !hover:shadow-xl !transition-all !duration-300 !hover:-translate-y-1 !active:translate-y-0 !disabled:opacity-50 !disabled:cursor-not-allowed"
+            >
+              Start Game
+            </button>
+          </div>
         </div>
+      </div>
+
+      {/* Participants List: Không căn giữa, tối ưu chiều ngang */}
+      <div className="!w-full !flex !flex-wrap !gap-6 !justify-start !items-start !max-w-5xl">
+        {participants.length === 0 ? (
+          <div className="!text-gray-500 !text-lg">Waiting for students to join...</div>
+        ) : (
+          participants.map((p, index) => (
+            <div
+              key={p.userId}
+              className="!flex !flex-col !items-center !p-5 !bg-white !rounded-xl !shadow-md !hover:shadow-lg !transition-all !duration-300 !animate-slide-right !w-[180px]"
+              style={{ animationDelay: `${index * 0.03}s` }}
+            >
+              <div className="!relative !mb-2">
+                {p.avatarUrl ? (
+                  <img src={p.avatarUrl || "/placeholder.svg"} alt="avatar" className="!w-16 !h-16 !rounded-full !border-2 !border-gray-200" />
+                ) : (
+                  <div className="!w-16 !h-16 !rounded-full !bg-gradient-to-r !from-green-300 !to-teal-300 !flex !items-center !justify-center !text-white !text-xl !font-bold">
+                    {p.displayName.charAt(0).toUpperCase()}
+                  </div>
+                )}
+                <span className={`!absolute !bottom-0 !right-0 !w-4 !h-4 !rounded-full !border-2 !border-white ${p.active ? '!bg-green-500 !animate-pulse' : '!bg-gray-400'}`} />
+              </div>
+              <span className="!text-base !text-gray-800 !font-medium !text-center !truncate !w-full !mb-2">{p.displayName}</span>
+              <div className="!flex !items-center !w-full !mb-1">
+                <div className="!w-full !bg-gray-200 !rounded-full !h-2.5">
+                  <div 
+                    className="!bg-gradient-to-r !from-green-500 !to-teal-500 !h-2.5 !rounded-full" 
+                    style={{ 
+                      width: `${Math.min(100, (p.totalScore / Math.max(...participants.map(p => p.totalScore || 1))) * 100)}%`,
+                      transition: 'width 1s ease-in-out'
+                    }}
+                  ></div>
+                </div>
+              </div>
+              <span className="!text-sm !font-bold !text-green-600">{p.totalScore || 0}</span>
+            </div>
+          ))
+        )}
+      </div>
     </div>
   );
   const renderActiveGamePhase = () => (
-    <div className="!min-h-screen !flex !items-center !justify-center !p-4">
-      <div className="!bg-white !rounded-2xl !shadow-lg !p-8 !max-w-md !w-full !mx-auto !border !border-gray-100 !animate-fade-in">
-        <div className="!flex !items-center !justify-center !mb-6">
+    <div className="!min-h-screen !flex !flex-col !items-center !p-6">
+      <div className="!bg-white !rounded-3xl !shadow-xl !p-10 !max-w-4xl !w-full !mx-auto !border !border-gray-100 !animate-fade-in !mb-8">
+        <div className="!flex !items-center !justify-center !mb-8">
           <div className="!relative">
-            <h2 className="!text-2xl !font-bold !text-gray-800 !relative !z-10">Game in Progress</h2>
+            <h2 className="!text-3xl !font-bold !text-gray-800 !relative !z-10">Game in Progress</h2>
             <span className="!absolute !bottom-0 !left-0 !right-0 !h-3 !bg-green-100 !opacity-50 !-z-10 !transform !-rotate-1"></span>
+          </div>
+        </div>
 
-          </div>
-        </div>
-        
-        <div className="!mb-8 !animate-slide-up">
-          <div className="!flex !items-center !justify-between !mb-4">
-            <h3 className="!text-lg !font-semibold !text-gray-800">Participants</h3>
-            <span className="!bg-green-100 !text-green-800 !px-2.5 !py-0.5 !rounded-full !text-sm !font-medium">
-              {participants.length}
-            </span>
-          </div>
-          
-          <div className="!max-h-80 !overflow-y-auto !pr-2 !scrollbar-thin !scrollbar-thumb-gray-300 !scrollbar-track-gray-100 !rounded-lg">
-            {participants.length === 0 ? (
-              <div className="!bg-gray-50 !rounded-xl !p-6 !flex !flex-col !items-center !justify-center !text-gray-500">
-                <p className="!text-center">No participants in the game.</p>
-              </div>
-            ) : (
-              <ul className="!space-y-3">
-                {participants.map((p, index) => (
-                  <li 
-                    key={p.userId} 
-                    className="!flex !items-center !p-3 !bg-white !border !border-gray-100 !rounded-xl !shadow-sm !hover:shadow-md !transition-all !duration-300 !animate-slide-right"
-                    style={{ animationDelay: `${index * 0.05}s` }}
-                  >
-                    <div className="!flex !items-center !flex-1">
-                      {p.avatarUrl ? (
-                        <img src={p.avatarUrl || "/placeholder.svg"} alt="avatar" className="!w-10 !h-10 !rounded-full !mr-3 !border-2 !border-gray-200" />
-                      ) : (
-                        <div className="!w-10 !h-10 !rounded-full !bg-gradient-to-r !from-green-300 !to-teal-300 !mr-3 !flex !items-center !justify-center !text-white !font-bold">
-                          {p.displayName.charAt(0).toUpperCase()}
-                        </div>
-                      )}
-                      <div className="!flex-1">
-                        <span className="!text-gray-800 !font-medium !block">{p.displayName}</span>
-                        <div className="!flex !items-center !mt-1">
-                          <div className="!w-full !max-w-[100px] !bg-gray-200 !rounded-full !h-2">
-                            <div 
-                              className="!bg-gradient-to-r !from-green-500 !to-teal-500 !h-2 !rounded-full" 
-                              style={{ 
-                                width: `${Math.min(100, (p.totalScore / Math.max(...participants.map(p => p.totalScore || 1))) * 100)}%`,
-                                transition: 'width 1s ease-in-out'
-                              }}
-                            ></div>
-                          </div>
-                          <span className="!text-sm !font-semibold !text-green-600 !ml-2">{p.totalScore}</span>
-                        </div>
-                      </div>
-                    </div>
-                    <span className={`!w-3 !h-3 !rounded-full !ml-2 ${p.active ? '!bg-green-500 !animate-pulse' : '!bg-gray-400'}`} />
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-        </div>
-    
         <button
           onClick={endGame}
-          className="!w-full !py-4 !bg-gradient-to-r !from-red-500 !to-pink-500 !text-white !font-medium !rounded-xl !shadow-md !hover:shadow-lg !transform !transition-all !duration-300 !hover:-translate-y-1 !active:translate-y-0 !animate-slide-up !delay-200 !relative !overflow-hidden !flex !items-center !justify-center"
+          className="!w-full !py-5 !text-lg !bg-gradient-to-r !from-red-500 !to-pink-500 !text-white !font-medium !rounded-xl !shadow-md !hover:shadow-lg !transform !transition-all !duration-300 !hover:-translate-y-1 !active:translate-y-0 !animate-slide-up !delay-200 !relative !overflow-hidden !flex !items-center !justify-center"
         >
-          <svg className="!w-5 !h-5 !mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <svg className="!w-6 !h-6 !mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 10v4m0 0h6m-6 0H9"></path>
           </svg>
           <span className="!relative !z-10">End Game</span>
           <span className="!absolute !inset-0 !bg-gradient-to-r !from-red-400/0 !via-white/20 !to-red-400/0 !transform !translate-x-[-100%] !animate-shimmer"></span>
         </button>
+      </div>
+
+      {/* Participants Section */}
+      <div className="!bg-white !rounded-3xl !shadow-xl !p-8 !max-w-7xl !w-full !mx-auto !border !border-gray-100 !animate-fade-in">
+        <div className="!flex !items-center !justify-between !mb-6">
+          <h3 className="!text-2xl !font-semibold !text-gray-800 !flex !items-center">
+            <svg className="!w-6 !h-6 !text-green-500 !mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+            </svg>
+            Participants
+          </h3>
+          <span className="!bg-green-100 !text-green-800 !px-4 !py-2 !rounded-full !text-base !font-medium">
+            {participants.length} Players
+          </span>
+        </div>
         
-        {/* Custom animations */}
-        <style jsx>{`
-          @keyframes fade-in {
-            0% { opacity: 0; }
-            100% { opacity: 1; }
-          }
-          
-          @keyframes slide-up {
-            0% { transform: translateY(10px); opacity: 0; }
-            100% { transform: translateY(0); opacity: 1; }
-          }
-          
-          @keyframes slide-right {
-            0% { transform: translateX(-10px); opacity: 0; }
-            100% { transform: translateX(0); opacity: 1; }
-          }
-          
-          @keyframes shimmer {
-            100% { transform: translateX(100%); }
-          }
-          
-          .animate-fade-in { animation: fade-in 0.5s ease-out forwards; }
-          .animate-slide-up { animation: slide-up 0.5s ease-out forwards; }
-          .animate-slide-right { animation: slide-right 0.4s ease-out forwards; }
-          .animate-shimmer { animation: shimmer 2s infinite; }
-          
-          .delay-100 { animation-delay: 0.1s; }
-          .delay-200 { animation-delay: 0.2s; }
-          
-          .scrollbar-thin::-webkit-scrollbar {
-            width: 6px;
-          }
-          
-          .scrollbar-thumb-gray-300::-webkit-scrollbar-thumb {
-            background-color: #d1d5db;
-            border-radius: 3px;
-          }
-          
-          .scrollbar-track-gray-100::-webkit-scrollbar-track {
-            background-color: #f3f4f6;
-            border-radius: 3px;
-          }
-        `}</style>
+        {participants.length === 0 ? (
+          <div className="!bg-gray-50 !rounded-xl !p-8 !flex !flex-col !items-center !justify-center !text-gray-500">
+            <p className="!text-lg !text-center">No participants in the game.</p>
+          </div>
+        ) : (
+          <div className="!flex !flex-wrap !gap-4 !justify-center !items-start !p-4">
+            {participants.map((p, index) => (
+              <div 
+                key={p.userId} 
+                className="!flex !flex-col !items-center !p-4 !bg-white !border !border-gray-100 !rounded-xl !shadow-sm !hover:shadow-md !transition-all !duration-300 !animate-slide-right !w-[180px]"
+                style={{ animationDelay: `${index * 0.03}s` }}
+              >
+                <div className="!relative !mb-2">
+                  {p.avatarUrl ? (
+                    <img src={p.avatarUrl || "/placeholder.svg"} alt="avatar" className="!w-16 !h-16 !rounded-full !border-2 !border-gray-200" />
+                  ) : (
+                    <div className="!w-16 !h-16 !rounded-full !bg-gradient-to-r !from-green-300 !to-teal-300 !flex !items-center !justify-center !text-white !text-xl !font-bold">
+                      {p.displayName.charAt(0).toUpperCase()}
+                    </div>
+                  )}
+                  <span className={`!absolute !bottom-0 !right-0 !w-4 !h-4 !rounded-full !border-2 !border-white ${p.active ? '!bg-green-500 !animate-pulse' : '!bg-gray-400'}`} />
+                </div>
+                
+                <span className="!text-base !text-gray-800 !font-medium !text-center !truncate !w-full !mb-2">{p.displayName}</span>
+                
+                <div className="!flex !items-center !w-full !mb-1">
+                  <div className="!w-full !bg-gray-200 !rounded-full !h-2.5">
+                    <div 
+                      className="!bg-gradient-to-r !from-green-500 !to-teal-500 !h-2.5 !rounded-full" 
+                      style={{ 
+                        width: `${Math.min(100, (p.totalScore / Math.max(...participants.map(p => p.totalScore || 1))) * 100)}%`,
+                        transition: 'width 1s ease-in-out'
+                      }}
+                    ></div>
+                  </div>
+                </div>
+                <span className="!text-sm !font-bold !text-green-600">{p.totalScore || 0}</span>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
   const renderCompletedPhase = () => (
     <div className="!min-h-screen !flex !items-center !justify-center !p-4">
-      <div className="!bg-white !rounded-2xl !shadow-lg !p-8 !max-w-md !w-full !mx-auto !border !border-gray-100 !animate-fade-in">
-        <div className="!flex !items-center !justify-center !mb-8">
+      <div className="!bg-white !rounded-2xl !shadow-lg !p-6 !max-w-xl !w-full !mx-auto !border !border-gray-100 !animate-fade-in">
+        <div className="!flex !items-center !justify-center !mb-6">
           <div className="!relative">
             <h2 className="!text-2xl !font-bold !text-gray-800 !relative !z-10 !flex !items-center">
-              <svg className="!w-7 !h-7 !text-yellow-500 !mr-2 !animate-bounce-slow" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+              <svg className="!w-6 !h-6 !text-yellow-500 !mr-2 !animate-bounce-slow" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
                 <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd"></path>
               </svg>
               Game Completed
-              <svg className="!w-7 !h-7 !text-yellow-500 !ml-2 !animate-bounce-slow" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+              <svg className="!w-6 !h-6 !text-yellow-500 !ml-2 !animate-bounce-slow" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
                 <path fillRule="evenodd" d="M5 2a1 1 0 011 1v1h1a1 1 0 010 2H6v1a1 1 0 01-2 0V6H3a1 1 0 010-2h1V3a1 1 0 011-1zm0 10a1 1 0 011 1v1h1a1 1 0 110 2H6v1a1 1 0 11-2 0v-1H3a1 1 0 110-2h1v-1a1 1 0 011-1zM12 2a1 1 0 01.967.744L14.146 7.2 17.5 9.134a1 1 0 010 1.732l-3.354 1.935-1.18 4.455a1 1 0 01-1.933 0L9.854 12.8 6.5 10.866a1 1 0 010-1.732l3.354-1.935 1.18-4.455A1 1 0 0112 2z" clipRule="evenodd"></path>
               </svg>
             </h2>
-            <span className="!absolute !bottom-0 !left-0 !right-0 !h-3 !bg-yellow-100 !opacity-50 !-z-10 !transform !-rotate-1"></span>
+            <span className="!absolute !bottom-0 !left-0 !right-0 !h-2 !bg-yellow-100 !opacity-50 !-z-10 !transform !-rotate-1"></span>
           </div>
         </div>
         
-        <div className="!bg-gradient-to-r !from-yellow-50 !to-amber-50 !rounded-xl !p-6 !mb-6 !animate-slide-up">
-          <h3 className="!text-lg !font-semibold !text-gray-800 !mb-4 !flex !items-center">
+        <div className="!bg-gradient-to-r !from-yellow-50 !to-amber-50 !rounded-xl !p-5 !mb-5 !animate-slide-up">
+          <h3 className="!text-lg !font-semibold !text-gray-800 !mb-3 !flex !items-center">
             <svg className="!w-5 !h-5 !text-yellow-500 !mr-2" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
               <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd"></path>
             </svg>
             Results Summary
           </h3>
           
-          {/* Display summary statistics here */}
           <div className="!grid !grid-cols-2 !gap-4">
-            <div className="!bg-white !rounded-lg !p-4 !text-center !shadow-sm">
+            <div className="!bg-white !rounded-lg !p-3 !text-center !shadow-sm">
               <p className="!text-gray-500 !text-sm !mb-1">Total Participants</p>
               <p className="!text-2xl !font-bold !text-gray-800">{participants.length}</p>
             </div>
-            <div className="!bg-white !rounded-lg !p-4 !text-center !shadow-sm">
+            <div className="!bg-white !rounded-lg !p-3 !text-center !shadow-sm">
               <p className="!text-gray-500 !text-sm !mb-1">Avg. Score</p>
               <p className="!text-2xl !font-bold !text-gray-800">
                 {participants.length > 0 
@@ -729,7 +681,7 @@ const TeacherCreateRoom = () => {
                   : 0}
               </p>
             </div>
-            <div className="!bg-white !rounded-lg !p-4 !text-center !shadow-sm">
+            <div className="!bg-white !rounded-lg !p-3 !text-center !shadow-sm">
               <p className="!text-gray-500 !text-sm !mb-1">Highest Score</p>
               <p className="!text-2xl !font-bold !text-yellow-600">
                 {participants.length > 0 
@@ -737,29 +689,28 @@ const TeacherCreateRoom = () => {
                   : 0}
               </p>
             </div>
-            <div className="!bg-white !rounded-lg !p-4 !text-center !shadow-sm">
+            <div className="!bg-white !rounded-lg !p-3 !text-center !shadow-sm">
               <p className="!text-gray-500 !text-sm !mb-1">Completion Time</p>
               <p className="!text-2xl !font-bold !text-gray-800">10:25</p>
             </div>
           </div>
         </div>
         
-        <div className="!mb-8 !animate-slide-up !delay-100">
-          <h3 className="!text-lg !font-semibold !text-gray-800 !mb-4 !flex !items-center">
+        <div className="!mb-6 !animate-slide-up !delay-100">
+          <h3 className="!text-lg !font-semibold !text-gray-800 !mb-3 !flex !items-center">
             <svg className="!w-5 !h-5 !text-yellow-500 !mr-2" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
               <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z"></path>
             </svg>
             Participant Results
           </h3>
           
-          <div className="!max-h-80 !overflow-y-auto !pr-2 !scrollbar-thin !scrollbar-thumb-gray-300 !scrollbar-track-gray-100 !rounded-lg">
+          <div className="!max-h-[280px] !overflow-y-auto !pr-2 !scrollbar-thin !scrollbar-thumb-gray-300 !scrollbar-track-gray-100 !rounded-lg">
             {participants.length === 0 ? (
-              <div className="!bg-gray-50 !rounded-xl !p-6 !flex !flex-col !items-center !justify-center !text-gray-500">
+              <div className="!bg-gray-50 !rounded-xl !p-5 !flex !flex-col !items-center !justify-center !text-gray-500">
                 <p className="!text-center">No participants in the game.</p>
               </div>
             ) : (
               <ul className="!space-y-3">
-                {/* Sort participants by score in descending order */}
                 {[...participants]
                   .sort((a, b) => (b.totalScore || 0) - (a.totalScore || 0))
                   .map((p, index) => (
@@ -844,62 +795,6 @@ const TeacherCreateRoom = () => {
             ></div>
           ))}
         </div>
-        
-        {/* Custom animations */}
-        <style jsx>{`
-          @keyframes fade-in {
-            0% { opacity: 0; }
-            100% { opacity: 1; }
-          }
-          
-          @keyframes slide-up {
-            0% { transform: translateY(10px); opacity: 0; }
-            100% { transform: translateY(0); opacity: 1; }
-          }
-          
-          @keyframes slide-right {
-            0% { transform: translateX(-10px); opacity: 0; }
-            100% { transform: translateX(0); opacity: 1; }
-          }
-          
-          @keyframes bounce-slow {
-            0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-5px); }
-          }
-          
-          @keyframes shimmer {
-            100% { transform: translateX(100%); }
-          }
-          
-          @keyframes confetti {
-            0% { transform: translateY(0) rotate(0deg); opacity: 1; }
-            100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
-          }
-          
-          .animate-fade-in { animation: fade-in 0.5s ease-out forwards; }
-          .animate-slide-up { animation: slide-up 0.5s ease-out forwards; }
-          .animate-slide-right { animation: slide-right 0.4s ease-out forwards; }
-          .animate-bounce-slow { animation: bounce-slow 2s infinite; }
-          .animate-shimmer { animation: shimmer 2s infinite; }
-          .animate-confetti { animation: confetti 3s ease-out forwards; }
-          
-          .delay-100 { animation-delay: 0.1s; }
-          .delay-200 { animation-delay: 0.2s; }
-          
-          .scrollbar-thin::-webkit-scrollbar {
-            width: 6px;
-          }
-          
-          .scrollbar-thumb-gray-300::-webkit-scrollbar-thumb {
-            background-color: #d1d5db;
-            border-radius: 3px;
-          }
-          
-          .scrollbar-track-gray-100::-webkit-scrollbar-track {
-            background-color: #f3f4f6;
-            border-radius: 3px;
-          }
-        `}</style>
       </div>
     </div>
   );

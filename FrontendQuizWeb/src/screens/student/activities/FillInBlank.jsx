@@ -84,18 +84,18 @@ const FillInBlankGame = ({
             
             // Format the answer data according to backend expectations
             const answerData = {
-                questionIndex: currentQuestionIndex,  // Changed from currentContentIndex
+                questionIndex: currentQuestionIndex,
                 blankIndex: blankIndex,
                 answer: currentAnswer.trim(),
                 acceptableAnswers: {
-                    [currentQuestionIndex]: {  // Changed from currentContentIndex
+                    [currentQuestionIndex]: {
                         [blankIndex]: [correctAnswer, ...alternatives].filter(Boolean)
                     }
                 }
             };
 
             setAnswered(true);
-            await submitAnswer(answerData);
+            const result = await submitAnswer(answerData);
             
             // Update user answers immediately
             const newAnswers = [...userAnswers];
@@ -155,9 +155,19 @@ const FillInBlankGame = ({
                         setActiveBlankIndex(null);
                         setFeedback({}); // Reset feedback when moving to next question
                     } else {
-                        onComplete();
+                        // Notify server that all questions are completed
+                        submitAnswer({
+                            completed: true,
+                            questionIndex: currentQuestionIndex,
+                            allAnswers: newAnswers
+                        }).then(() => {
+                            // Call onComplete after server is notified
+                            if (typeof onComplete === 'function') {
+                                onComplete();
+                            }
+                        });
                     }
-                }, 3000); // 3 seconds delay
+                }, 1500); // Reduced delay to 1.5 seconds
             } else {
                 // Clear feedback after 1.5 seconds for single blank
                 setTimeout(() => {
