@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 const MultipleChoiceActivity = ({ activity, submitting, submitAnswer, contentItem }) => {
     const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
     const [answered, setAnswered] = useState(false);
-    
+
     useEffect(() => {
         setCurrentQuestionIndex(0);
         setAnswered(false);
@@ -27,7 +27,7 @@ const MultipleChoiceActivity = ({ activity, submitting, submitAnswer, contentIte
         }
         return questions;
     };
-    
+
     const moveToNextQuestion = () => {
         const mcQuestions = extractQuestions(getContent());
         if (currentQuestionIndex < mcQuestions.length - 1) {
@@ -35,7 +35,7 @@ const MultipleChoiceActivity = ({ activity, submitting, submitAnswer, contentIte
             setAnswered(false);
         }
     };
-    
+
     const mcContent = getContent();
     const mcQuestions = extractQuestions(mcContent);
     if (mcQuestions.length === 0) {
@@ -51,7 +51,7 @@ const MultipleChoiceActivity = ({ activity, submitting, submitAnswer, contentIte
     }
     const currentQuestion = mcQuestions[currentQuestionIndex];
     let options = [];
-    
+
     if (currentQuestion) {
         if (Array.isArray(currentQuestion.options)) {
             options = currentQuestion.options;
@@ -63,11 +63,11 @@ const MultipleChoiceActivity = ({ activity, submitting, submitAnswer, contentIte
     const handleSubmitAnswer = (answer, index) => {
         if (answered) return;
         submitAnswer({
-          questionIndex: currentQuestionIndex,
-          selectedOption: index // Send the index instead of text
+            questionIndex: currentQuestionIndex,
+            selectedOption: index // Send the index instead of text
         });
         setAnswered(true);
-      };
+    };
 
     return (
         <div className="quiz-activity">
@@ -75,13 +75,17 @@ const MultipleChoiceActivity = ({ activity, submitting, submitAnswer, contentIte
             <p>{activity.instructions}</p>
 
             <h4>{currentQuestion.question || currentQuestion.text || "Question"}</h4>
-            <div className="quiz-options">
+            <div className="flex flex-row gap-2 py-2 overflow-x-auto">  {/* Removed overflow-x-auto */}
                 {options.length > 0 ? (
                     options.map((option, index) => (
                         <button
                             key={index}
                             onClick={() => handleSubmitAnswer(option, index)}
-                            className={`quiz-option ${answered ? 'answered' : ''}`}
+                            className={`flex-1 min-w-[120px] p-3 rounded-lg transition-colors whitespace-nowrap ${
+                                answered 
+                                    ? 'bg-gray-200 cursor-default text-gray-800' 
+                                    : 'bg-white hover:bg-blue-100 text-gray-800 border border-gray-300'
+                            } ${submitting ? 'opacity-50 cursor-not-allowed' : ''}`}
                             disabled={submitting || answered}
                         >
                             {typeof option === 'object' ? option.text : option}

@@ -34,6 +34,8 @@ const StudentGamePlay = () => {
     const [timeRemaining, setTimeRemaining] = useState(0);
     const [contentTransitioning, setContentTransitioning] = useState(false);
     const [gameCompleted, setGameCompleted] = useState(false);
+    const [countdown, setCountdown] = useState(null);
+    const [isCountdownDone, setIsCountdownDone] = useState(false);
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -91,14 +93,13 @@ const StudentGamePlay = () => {
             setGame(response.data);
             if (response.data.currentActivity) {
                 setCurrentActivity(response.data.currentActivity);
-                if (response.data.currentActivity.contentItems &&
-                    response.data.currentActivity.contentItems.length > 0) {
+                if (response.data.currentActivity.contentItems?.length > 0) {
                     setCurrentContentIndex(0);
                     setCurrentContentItem(response.data.currentActivity.contentItems[0]);
-                    startContentTimer(response.data.currentActivity.contentItems[0]);
+                    // Remove startContentTimer call here
                 } else {
                     setCurrentContentItem(null);
-                    startContentTimer(response.data.currentActivity);
+                    // Remove startContentTimer call here
                 }
             }
 
@@ -123,17 +124,20 @@ const StudentGamePlay = () => {
                     setCurrentContentItem(activityData.contentItems?.[0] || null);
                 });
 
-                client.subscribe(
-                    `/topic/session/${accessCode}/status`,
-                    (message) => {
-                        console.log('Received session status update:', message.body);
-                        const newStatus = message.body;
-                        setSessionStatus(newStatus);
-                        if (newStatus === 'COMPLETED') {
-                            setGameCompleted(true);
-                        }
+                client.subscribe(`/topic/session/${accessCode}/status`, (message) => {
+                    const newStatus = message.body;
+                    setSessionStatus(newStatus);
+                    if (newStatus === 'COMPLETED') {
+                        setGameCompleted(true);
+                        setIsCountdownDone(false);
+                        setCountdown(null);
+                        // Force a re-render by resetting current activity/content
+                        setCurrentActivity(null);
+                        setCurrentContentItem(null);
+                    } else if (newStatus === 'ACTIVE') {
+                        setIsCountdownDone(false);
                     }
-                );
+                });
 
                 client.subscribe(
                     `/topic/session/${accessCode}/leaderboard`,
@@ -325,6 +329,41 @@ const StudentGamePlay = () => {
         );
     };
 
+    useEffect(() => {
+        if (sessionStatus === 'ACTIVE' && !isCountdownDone) {
+            setCountdown(3);
+            const countdownInterval = setInterval(() => {
+                setCountdown(prev => {
+                    if (prev <= 1) {
+                        clearInterval(countdownInterval);
+                        setIsCountdownDone(true);
+                        return 0;
+                    }
+                    return prev - 1;
+                });
+            }, 1000);
+
+            return () => clearInterval(countdownInterval);
+        }
+    }, [sessionStatus, isCountdownDone]);
+
+    const renderCountdown = () => {
+        if (countdown === null || countdown === 0) return null;
+
+        return (
+            <div className="!fixed !inset-0 !bg-black/80 !flex !items-center !justify-center !z-[1000]">
+                <div className="!text-white !text-9xl !font-bold !animate-pulse">
+                    {countdown}
+                </div>
+            </div>
+        );
+    };
+
+    useEffect(() => {
+        if (isCountdownDone && currentContentItem) {
+            resetContentTimer();
+        }
+    }, [isCountdownDone, currentContentItem]);
 
     const handleActivityTransition = (newActivity) => {
         setTransitionActive(true);
@@ -671,11 +710,6 @@ const StudentGamePlay = () => {
                 <div className="content-counter">
                     {currentContentIndex + 1} / {currentActivity.contentItems.length}
                 </div>
-                {timeRemaining > 0 && (
-                    <div className="time-remaining">
-                        Time left: {timeRemaining}s
-                    </div>
-                )}
             </div>
         );
     };
@@ -725,8 +759,8 @@ const StudentGamePlay = () => {
             case 'OPEN_ENDED':
                 return <TextInputActivity {...commonProps} />;
             case 'FILL_IN_BLANK':
-                return <FillInBlankGame 
-                    {...commonProps} 
+                return <FillInBlankGame
+                    {...commonProps}
                     currentContentIndex={currentContentIndex}
                     onComplete={() => {
                         // Clear the timer when activity is completed
@@ -781,36 +815,50 @@ const StudentGamePlay = () => {
     }
 
     return (
-        <div className={`!min-h-screen !bg-gray-50 !p-4 !md:p-6 !transition-all !duration-500 ${transitionActive ? '!opacity-50' : '!opacity-100'}`}>
+        <div className={`background-container !min-h-screen !p-4 !md:p-6 !transition-all !duration-500 ${transitionActive ? '!opacity-50' : '!opacity-100'}`}>
+            {renderCountdown()}
+
             {gameCompleted ? (
                 renderFinalLeaderboard()
-            ) : (
+            ) : !isCountdownDone ? null : (
                 <div className="!max-w-6xl !mx-auto !space-y-6">
-                    <div className="!bg-white !rounded-xl !shadow-md !p-4 !mb-6 !animate-fade-in">
-                        <h2 className="!text-2xl !font-bold !text-gray-800 !mb-2">{game?.title}</h2>
-                        {currentActivity && (
-                            <div className="!flex !flex-col !sm:flex-row !items-start !sm:items-center !justify-between !mt-2">
-                                <span className="!px-3 !py-1 !bg-blue-100 !text-blue-800 !rounded-full !text-sm !font-medium !mb-2 !sm:mb-0">
-                                    Activity {(game?.currentActivityIndex || 0) + 1} of {game?.activities?.length || 1}
-                                </span>
-                                <div className="!flex !items-center !space-x-2">
-                                    {renderContentNavigation()}
-                                </div>
+                    {/* Header Section */}
+                    <div className="!bg-white !rounded-xl !shadow-md !p-4 !animate-fade-in">
+                        <div className="!flex !flex-col !md:flex-row !justify-between !items-start !md:items-center !gap-4">
+                            <div className="!space-y-2">
+                                <h2 className="!text-2xl !font-bold !text-gray-800">{game?.title}</h2>
+                                {currentActivity && (
+                                    <div className="!flex !items-center !gap-2">
+                                        <span className="!px-3 !py-1 !bg-blue-100 !text-blue-800 !rounded-full !text-sm !font-medium">
+                                            Activity {(game?.currentActivityIndex || 0) + 1} of {game?.activities?.length || 1}
+                                        </span>
+                                        {renderContentNavigation()}
+                                    </div>
+                                )}
                             </div>
-                        )}
+                            {timeRemaining > 0 && (
+                                <div className="!px-4 !py-2 !bg-purple-100 !text-purple-800 !rounded-full !text-sm !font-medium">
+                                    ⏳ Time Remaining: {timeRemaining}s
+                                </div>
+                            )}
+                        </div>
                     </div>
 
-                    <div className="!grid !grid-cols-1 !lg:grid-cols-3 !gap-6">
-                        <div className="!lg:col-span-2">
+                    <div className="!flex !flex-col !lg:flex-row !gap-6">
+                        {/* Left Column - Activity (3/4 width) */}
+                        <div className="!flex-1 lg:!w-3/4">
                             <div className="!bg-white !rounded-xl !shadow-md !p-4 !animate-slide-up">
                                 {renderActivity()}
                             </div>
                         </div>
 
-                        <div className="!lg:col-span-1">
-                            <div className="!sticky !top-6">
-                                {renderLeaderboard()}
-                            </div>
+                        {/* Right Column - Leaderboard (1/4 width) */}
+                        <div className="lg:!w-1/4 !lg:sticky !lg:top-6 !h-fit">
+                            {participantScores && participantScores.length > 0 ? (
+                                renderLeaderboard()
+                            ) : (
+                                <div className="lg:!w-1/4 !flex-shrink-0 !lg:sticky !lg:top-6 !h-fit">...</div>
+                            )}
                         </div>
                     </div>
 
@@ -830,92 +878,98 @@ const StudentGamePlay = () => {
 
             {/* Custom animations */}
             <style jsx>{`
-                .notification {
-                    position: fixed;
-                    top: 1rem;
-                    right: 1rem;
-                    max-width: 24rem;
-                    padding: 1rem 1.5rem;
-                    border-radius: 0.75rem;
-                    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-                    z-index: 50;
-                    animation: slideInRight 0.3s ease-out forwards, fadeOut 1.5s ease-out forwards;
-                }
+        .background-container {
+           background-image: url('../../../public/backgroundgame.jpg');
+           background-size: cover;
+           background-position: center;
+           background-attachment: fixed;
+        }
+            .notification {
+                position: fixed;
+                top: 1rem;
+                right: 1rem;
+                max-width: 24rem;
+                padding: 1rem 1.5rem;
+                border-radius: 0.75rem;
+                box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+                z-index: 50;
+                animation: slideInRight 0.3s ease-out forwards, fadeOut 1.5s ease-out forwards;
+            }
 
-                .notification.correct {
-                    background: linear-gradient(to bottom right, #dcfce7, #bbf7d0);
-                    border: 2px solid #86efac;
-                    color: #166534;
-                }
+            .notification.correct {
+                background: linear-gradient(to bottom right, #dcfce7, #bbf7d0);
+                border: 2px solid #86efac;
+                color: #166534;
+            }
 
-                .notification.incorrect {
-                    background: linear-gradient(to bottom right, #fee2e2, #fecaca);
-                    border: 2px solid #fca5a5;
-                    color: #991b1b;
-                }
+            .notification.incorrect {
+                background: linear-gradient(to bottom right, #fee2e2, #fecaca);
+                border: 2px solid #fca5a5;
+                color: #991b1b;
+            }
 
-                .notification-content {
-                    display: flex;
-                    align-items: center;
-                    gap: 0.75rem;
-                }
+            .notification-content {
+                display: flex;
+                align-items: center;
+                gap: 0.75rem;
+            }
 
-                .notification-icon {
-                    width: 2.5rem;
-                    height: 2.5rem;
-                    border-radius: 9999px;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                }
+            .notification-icon {
+                width: 2.5rem;
+                height: 2.5rem;
+                border-radius: 9999px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
 
-                .notification-icon.correct {
-                    background: linear-gradient(to bottom right, #bbf7d0, #86efac);
-                    color: #166534;
-                }
+            .notification-icon.correct {
+                background: linear-gradient(to bottom right, #bbf7d0, #86efac);
+                color: #166534;
+            }
 
-                .notification-icon.incorrect {
-                    background: linear-gradient(to bottom right, #fecaca, #fca5a5);
-                    color: #991b1b;
-                }
+            .notification-icon.incorrect {
+                background: linear-gradient(to bottom right, #fecaca, #fca5a5);
+                color: #991b1b;
+            }
 
-                .notification-text {
-                    display: flex;
-                    flex-direction: column;
-                }
+            .notification-text {
+                display: flex;
+                flex-direction: column;
+            }
 
-                .notification-text h4 {
-                    font-size: 1.125rem;
-                    font-weight: 700;
-                    margin: 0;
-                }
+            .notification-text h4 {
+                font-size: 1.125rem;
+                font-weight: 700;
+                margin: 0;
+            }
 
-                .points-earned {
-                    font-weight: 700;
-                    font-size: 1rem;
-                    color: #059669;
-                }
+            .points-earned {
+                font-weight: 700;
+                font-size: 1rem;
+                color: #059669;
+            }
 
-                @keyframes slideInRight {
-                    0% {
-                        transform: translateX(100%);
-                        opacity: 0;
-                    }
-                    100% {
-                        transform: translateX(0);
-                        opacity: 1;
-                    }
+            @keyframes slideInRight {
+                0% {
+                    transform: translateX(100%);
+                    opacity: 0;
                 }
+                100% {
+                    transform: translateX(0);
+                    opacity: 1;
+                }
+            }
 
-                @keyframes fadeOut {
-                    0%, 80% {
-                        opacity: 1;
-                    }
-                    100% {
-                        opacity: 0;
-                    }
+            @keyframes fadeOut {
+                0%, 80% {
+                    opacity: 1;
                 }
-            `}</style>
+                100% {
+                    opacity: 0;
+                }
+            }
+        `}</style>
         </div>
     );
 }
