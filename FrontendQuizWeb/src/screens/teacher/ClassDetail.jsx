@@ -36,6 +36,8 @@ const ClassDetail = () => {
     const [availableGames, setAvailableGames] = useState([]);
     const [selectedGame, setSelectedGame] = useState("");
     const [gameLoading, setGameLoading] = useState(false);
+    const [gameSessions, setGameSessions] = useState([]);
+    const [selectedSession, setSelectedSession] = useState(null);
 
     // Fetch class details
     useEffect(() => {
@@ -231,6 +233,88 @@ const ClassDetail = () => {
                 setError("");
             }, 3000);
         }
+    };
+
+    useEffect(() => {
+    const fetchAllGameSessionsWithGameNames = async () => {
+        setLoading(true);
+        try {
+        const sessionRes = await axios.post(
+            `http://localhost:8080/api/classes/${classId}/game-session`,
+            {},
+            {
+            headers: {
+                Authorization: `Bearer ${token}`,
+            },
+            }
+        );
+
+        const sessions = Array.isArray(sessionRes.data) ? sessionRes.data : [];
+
+        const sessionsWithGameNames = await Promise.all(
+            sessions.map(async (session) => {
+            try {
+                const gameRes = await axios.get(
+                `http://localhost:8080/api/games/${session.gameId}`,
+                {
+                    headers: {
+                    Authorization: `Bearer ${token}`,
+                    },
+                }
+                );
+                return {
+                ...session,
+                gameName: gameRes.data.title || "No Name",
+                };
+            } catch (error) {
+                console.warn(`Không lấy được gameId ${session.gameId}:`, error);
+                return {
+                ...session,
+                gameName: "Không truy cập được",
+                };
+            }
+            })
+        );
+
+        setGameSessions(sessionsWithGameNames);
+        } catch (error) {
+        console.error("Lỗi khi tải game sessions:", error);
+        setError("Không thể tải danh sách sessions.");
+        } finally {
+        setLoading(false);
+        }
+    };
+
+    if (classId && token) {
+        fetchAllGameSessionsWithGameNames();
+    }
+    }, [classId, token]);
+
+
+
+    const ITEMS_PER_PAGE = 9;
+    const [currentPage, setCurrentPage] = useState(1);
+
+    const totalPages = Math.ceil(gameSessions.length / ITEMS_PER_PAGE);
+
+    const paginatedSessions = gameSessions.slice(
+    (currentPage - 1) * ITEMS_PER_PAGE,
+    currentPage * ITEMS_PER_PAGE
+    );
+
+    const nextPage = () => {
+    if (currentPage < totalPages) setCurrentPage(prev => prev + 1);
+    };
+
+    const prevPage = () => {
+    if (currentPage > 1) setCurrentPage(prev => prev - 1);
+    };
+
+    const formatDateTime = (dateTimeString) => {
+        const date = new Date(dateTimeString);
+        return date.toLocaleString('en-US', {
+            dateStyle: 'short',
+        });
     };
 
     const markAttendance = () => {
@@ -469,13 +553,94 @@ const ClassDetail = () => {
                                 )}
 
                                 {activeTab === "attendance" && (
-                                    <div>
-                                        <div className="tab-header">
-                                            <h3>Attendance History</h3>
-                                            <button className="action-button">Take Attendance</button>
+                                    <div className="game-session-container">
+                                        <h2 className="game-session-title">Game Sessions</h2>
+
+                                        {loading ? (
+                                            <p className="game-session-loading">Đang tải dữ liệu...</p>
+                                        ) : error ? (
+                                            <p className="game-session-error">{error}</p>
+                                        ) : paginatedSessions.length === 0 ? (
+                                            <p className="game-session-empty">Không có phiên nào.</p>
+                                        ) : (
+                                            <div className="game-session-grid">
+                                            {paginatedSessions.map((session, index) => (
+                                                <div
+                                                key={index}
+                                                className="game-session-card"
+                                                onClick={() => setSelectedSession(session)}
+                                                >
+                                                <strong><p className="game-session-game">Game: {session.gameName}</p></strong>
+                                                <p className="game-session-status">Status: {session.status}</p>
+                                                <p className="game-session-date">Date: {formatDateTime(session.startTime)}</p>
+                                                <p className="game-session-participants">
+                                                    Participants: {session.participants?.length || 0}
+                                                </p>
+                                                </div>
+                                            ))}
+                                            </div>
+                                        )}
+
+                                        {totalPages > 1 && (
+                                            <div className="game-session-pagination">
+                                            <button
+                                                onClick={prevPage}
+                                                disabled={currentPage === 1}
+                                                className="pagination-button"
+                                            >
+                                                Prev
+                                            </button>
+                                            <span className="pagination-current">{currentPage} / {totalPages}</span>
+                                            <button
+                                                onClick={nextPage}
+                                                disabled={currentPage === totalPages}
+                                                className="pagination-button"
+                                            >
+                                                Next
+                                            </button>
+                                            </div>
+                                        )}
+
+
+                                        {/* Selected session detail */}
+                                            {selectedSession && (
+                                            <div className="session-modal-overlay">
+                                                <div className="session-modal-content">
+                                                <button
+                                                    className="session-modal-close"
+                                                    onClick={() => setSelectedSession(null)}
+                                                >
+                                                    &times;
+                                                </button>
+
+                                                <h3 className="session-modal-title">Students performance</h3>
+
+                                                {selectedSession.participants && selectedSession.participants.length > 0 ? (
+                                                    <ul className="session-modal-list">
+                                                    {selectedSession.participants.map((p, i) => (
+                                                        <li key={i} className="session-modal-item">
+                                                        <span className="participant-name">{p.displayName}</span>:{" "}
+                                                        <span className="participant-score">{p.totalScore}</span> points
+                                                        </li>
+                                                    ))}
+                                                    </ul>
+                                                ) : (
+                                                    <p className="session-modal-empty">Không có người tham gia.</p>
+                                                )}
+
+                                                <div className="session-modal-footer">
+                                                    <button
+                                                    onClick={() => setSelectedSession(null)}
+                                                    className="session-modal-button"
+                                                    >
+                                                    Đóng
+                                                    </button>
+                                                </div>
+                                                </div>
+                                            </div>
+                                            )}
                                         </div>
-                                        <div className="empty-message">Attendance reports will be shown here</div>
-                                    </div>
+
                                 )}
 
                                 {activeTab === "quiz" && (

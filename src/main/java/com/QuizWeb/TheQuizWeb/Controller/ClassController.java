@@ -1,7 +1,9 @@
 package com.QuizWeb.TheQuizWeb.Controller;
 
 import com.QuizWeb.TheQuizWeb.Model.Class;
+import com.QuizWeb.TheQuizWeb.Model.GameSession;
 import com.QuizWeb.TheQuizWeb.Model.User;
+import com.QuizWeb.TheQuizWeb.Repository.GameSessionRepository;
 import com.QuizWeb.TheQuizWeb.Service.ClassService;
 import com.QuizWeb.TheQuizWeb.Service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,6 +27,9 @@ public class ClassController {
 
     @Autowired
     private UserService userService;
+
+    @Autowired
+    public GameSessionRepository gameSessionRepository;
 
     /**
      * Create a new class (Teacher only)
@@ -211,6 +216,12 @@ public class ClassController {
         response.put("classCode", newCode);
 
         return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/{classId}/game-session")
+    public ResponseEntity<List<GameSession>> getGameSessionsByClassId(@PathVariable String classId) {
+        List<GameSession> sessions = gameSessionRepository.findByClassId(classId);
+        return ResponseEntity.ok(sessions);
     }
 }
 

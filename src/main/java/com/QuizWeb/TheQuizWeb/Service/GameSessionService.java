@@ -331,25 +331,44 @@ public class GameSessionService {
             Map<String, Object> answerMap = (Map<String, Object>) answer;
             Map<String, Object> studentAnswer = (Map<String, Object>) answerMap.get("answer");
 
+            // Lấy danh sách cặp đúng từ content
             List<Map<String, Object>> pairs = (List<Map<String, Object>>) contentMap.get("pairs");
-            List<Map<String, String>> studentConnections = (List<Map<String, String>>) studentAnswer.get("connections");
 
-            Set<String> correctConnections = new HashSet<>();
-            for (int i = 0; i < pairs.size(); i++) {
-                correctConnections.add("left-" + i + "-right-" + i);
+            // Lấy matchedPairs từ câu trả lời của học sinh (dữ liệu bạn gửi)
+            List<Map<String, Object>> matchedPairs = (List<Map<String, Object>>) studentAnswer.get("matchedPairs");
+
+            if (matchedPairs == null || matchedPairs.size() != pairs.size()) {
+                // Số cặp trả lời không bằng số cặp đúng
+                return false;
             }
 
-            Set<String> userConnections = studentConnections.stream()
-                    .map(conn -> conn.get("leftId") + "-" + conn.get("rightId"))
-                    .collect(Collectors.toSet());
+            // Duyệt từng cặp trong matchedPairs
+            for (Map<String, Object> pair : matchedPairs) {
+                Map<String, Object> left = (Map<String, Object>) pair.get("left");
+                Map<String, Object> right = (Map<String, Object>) pair.get("right");
 
-            // So sánh
-            return correctConnections.equals(userConnections);
+                if (left == null || right == null) {
+                    return false;
+                }
+
+                String leftPairId = (String) left.get("pairId");
+                String rightPairId = (String) right.get("pairId");
+
+                // Nếu pairId không trùng => sai
+                if (leftPairId == null || rightPairId == null || !leftPairId.equals(rightPairId)) {
+                    return false;
+                }
+            }
+
+            // Nếu tất cả cặp pairId đều khớp => đúng
+            return true;
+
         } catch (Exception e) {
             e.printStackTrace();
             return false;
         }
     }
+
 
     private boolean evaluateMultipleChoice(Object content, Object answer) {
         try {

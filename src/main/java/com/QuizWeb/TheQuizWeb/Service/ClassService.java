@@ -22,6 +22,7 @@ public class ClassService {
 
     @Autowired
     private UserRepository userRepository;
+    
 
     public Class createClass(Class newClass, String classCode) {
         // Initialize empty lists if null

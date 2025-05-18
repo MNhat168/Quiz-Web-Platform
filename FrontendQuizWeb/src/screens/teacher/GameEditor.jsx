@@ -76,7 +76,7 @@ const GameActivityEditor = () => {
         }
     })
 
-    const [sortingContent, setSortingContent] = useState({
+    const [sortingContent,  setSortingContent] = useState({
         instructions: "",
         items: [
             { text: "", imageUrl: "", correctPosition: 1 },
@@ -195,10 +195,16 @@ const GameActivityEditor = () => {
                                 duration: item.data.duration
                             }
                         case "MATCHING":
+                            const pairs = item.pairs || item.data.pairs || [];
+                            const firstPairTitle = pairs[0]?.item1 || 'Matching Pairs';
                             return {
                                 ...baseItem,
-                                title: `Matching - ${item.data.item1 || 'Pair'}`,
-                                duration: item.duration  // Correct reference
+                                title: `Matching - ${firstPairTitle.substring(0, 30)}`,
+                                duration: item.duration,
+                                data: {
+                                    pairs: pairs, // Sử dụng mảng pairs đã được kiểm tra
+                                    shuffleOptions: newActivity.shuffleOptions
+                                }
                             };
                         default:
                             return {

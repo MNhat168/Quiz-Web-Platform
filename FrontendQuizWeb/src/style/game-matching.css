@@ -45,6 +45,7 @@
   }
   
   .match-pair-item {
+    position: relative; 
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
@@ -146,6 +147,7 @@
     opacity: 0;
     cursor: pointer;
     transition: opacity 0.3s ease;
+    z-index: 2;
   }
   
   .match-pair-item .thumbnail-container:hover .trash-icon {
@@ -266,7 +268,7 @@
   }
   
   .thumbnail-container {
-    position: relative;
+    position: relative; 
     display: inline-block;
     margin-top: 8px;
     transition: all 0.3s ease;
@@ -281,6 +283,11 @@
     border: 1px solid #e2e8f0;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
     transition: transform 0.2s ease;
+    width: 200px; /* hoặc chiều rộng phù hợp */
+    height: auto;
+    display: block;
+    margin: 0 auto; /* căn giữa ngang */
+    border-radius: 6px;  
   }
   
   

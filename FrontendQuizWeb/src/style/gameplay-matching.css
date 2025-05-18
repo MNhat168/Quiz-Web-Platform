@@ -35,8 +35,8 @@
     position: relative;
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     box-sizing: border-box;
-    /* Thêm flex-shrink để ngăn co nhỏ */
     flex-shrink: 0;
+    text-align: center;
 }
 
 .card.selected {
@@ -48,20 +48,28 @@
     border-color: #4a90e2;
 }
 
-/* Đảm bảo hình ảnh và text có kích thước phù hợp */
+/* Hiển thị hình ảnh */
 .matching-image {
     max-width: 100%;
     max-height: 65px;
     display: block;
     margin: 0 auto;
+    object-fit: contain;
 }
 
-.card span {
-    text-align: center;
+/* Hiển thị chữ */
+.matching-text {
+    font-size: 1.05rem;
+    font-weight: 500;
+    color: #333;
+    line-height: 1.4;
     word-break: break-word;
     padding: 5px;
+    display: block;
+    width: 100%;
 }
 
+/* Đường nối */
 .connection-line {
     position: absolute;
     height: 2px;
@@ -78,6 +86,7 @@
     border-radius: 50%;
 }
 
+/* Nút gửi */
 .submit-btn {
     background-color: #5cb85c;
     color: white;
@@ -109,12 +118,12 @@
         flex-direction: column;
         min-height: auto;
     }
-    
+
     .column {
         width: 100%;
         margin-bottom: 20px;
     }
-    
+
     .connection-line {
         display: none;
     }
