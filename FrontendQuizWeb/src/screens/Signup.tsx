@@ -108,7 +108,7 @@ const Signup = () => {
     };
     
     validateTouchedFields();
-  }, [formData, touched, errors]);
+  }, [formData, touched]);
 
   const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -131,6 +131,18 @@ const Signup = () => {
     setTouched(prev => ({
       ...prev,
       [name as keyof FormTouched]: true
+    }));
+  };
+
+  const handleRoleChange = (role: string) => {
+    setFormData(prev => ({
+      ...prev,
+      role: role
+    }));
+    
+    setTouched(prev => ({
+      ...prev,
+      role: true
     }));
   };
 
@@ -192,165 +204,185 @@ const Signup = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8 bg-white p-10 rounded-xl shadow-2xl">
-        <div className="text-center">
-          <h2 className="mt-6 text-4xl font-bold text-gray-900">
-            Create your account
-          </h2>
-          <p className="mt-2 text-sm text-gray-600">
-            Sign up to get started
-          </p>
-        </div>
-
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit} noValidate>
-          <div className="space-y-4">
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-                Email address
-              </label>
+    <div className="!min-h-screen !w-full !relative !flex !items-center !justify-center !overflow-hidden">
+      {/* Background image */}
+      <div className="!absolute !inset-0 !bg-purple-900">
+        <img 
+          src='/bg-login.jpg' 
+          alt="Background" 
+          className="!w-full !h-full !object-cover "
+          style={{
+            transform: 'scale(1.0)',
+            transformOrigin: 'center'
+          }}
+        />
+        <div className="!absolute !inset-0 !bg-black/10"></div>
+      </div>
+  
+      {/* Signup Form */}
+      <div className="!relative !z-10 !w-full !max-w-md !mx-auto">
+        <div className="!backdrop-blur-md !bg-white/20 !rounded-2xl !border !border-white/30 !shadow-xl !p-8 !text-center">
+          <h2 className="!text-3xl !font-bold !text-white !mb-8">Sign Up</h2>
+  
+          <form onSubmit={handleSubmit} className="!space-y-6" noValidate>
+            <div className="!relative">
               <input
-                id="email"
-                name="email"
                 type="email"
-                required
-                className={`mt-1 block w-full px-4 py-3 border ${
-                  touched.email && errors.email ? 'border-red-500' : 'border-gray-300'
-                } rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500`}
-                placeholder="Enter your email"
+                name="email"
                 value={formData.email}
                 onChange={handleChange}
                 onBlur={handleBlur}
+                placeholder="Email"
+                className="!w-full !bg-white/30 !backdrop-blur-sm !text-white !font-semibold !placeholder-white/100 !px-4 !py-3 !rounded-lg !border !border-white/40 !focus:outline-none !focus:ring-2 !focus:ring-white/50 !pr-10"
+                required
               />
               {touched.email && errors.email && (
-                <p className="text-red-500 text-xs mt-1">{errors.email}</p>
+                <p className="!text-red-400 !text-xs !mt-1 !text-left">{errors.email}</p>
               )}
             </div>
-
-            <div>
-              <label htmlFor="username" className="block text-sm font-medium text-gray-700">
-                Username
-              </label>
+  
+            <div className="!relative">
               <input
-                id="username"
-                name="username"
                 type="text"
-                required
-                className={`mt-1 block w-full px-4 py-3 border ${
-                  touched.username && errors.username ? 'border-red-500' : 'border-gray-300'
-                } rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500`}
-                placeholder="Enter your username"
+                name="username"
                 value={formData.username}
                 onChange={handleChange}
                 onBlur={handleBlur}
+                placeholder="Username"
+                className="!w-full !bg-white/30 !backdrop-blur-sm !text-white !font-semibold !placeholder-white/100 !px-4 !py-3 !rounded-lg !border !border-white/40 !focus:outline-none !focus:ring-2 !focus:ring-white/50 !pr-10"
+                required
               />
               {touched.username && errors.username && (
-                <p className="text-red-500 text-xs mt-1">{errors.username}</p>
+                <p className="!text-red-400 !text-xs !mt-1 !text-left">{errors.username}</p>
               )}
             </div>
-
-            <div>
-              <label htmlFor="displayName" className="block text-sm font-medium text-gray-700">
-                Display Name
-              </label>
+  
+            <div className="!relative">
               <input
-                id="displayName"
-                name="displayName"
                 type="text"
-                required
-                className={`mt-1 block w-full px-4 py-3 border ${
-                  touched.displayName && errors.displayName ? 'border-red-500' : 'border-gray-300'
-                } rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500`}
-                placeholder="Enter your display name"
+                name="displayName"
                 value={formData.displayName}
                 onChange={handleChange}
                 onBlur={handleBlur}
+                placeholder="Display Name"
+                className="!w-full !bg-white/30 !backdrop-blur-sm !text-white !font-semibold !placeholder-white/100 !px-4 !py-3 !rounded-lg !border !border-white/40 !focus:outline-none !focus:ring-2 !focus:ring-white/50 !pr-10"
+                required
               />
               {touched.displayName && errors.displayName && (
-                <p className="text-red-500 text-xs mt-1">{errors.displayName}</p>
+                <p className="!text-red-400 !text-xs !mt-1 !text-left">{errors.displayName}</p>
               )}
             </div>
-
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700">
-                Password
-              </label>
+  
+            <div className="!relative">
               <input
-                id="password"
-                name="password"
                 type="password"
-                required
-                className={`mt-1 block w-full px-4 py-3 border ${
-                  touched.password && errors.password ? 'border-red-500' : 'border-gray-300'
-                } rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500`}
-                placeholder="Enter your password"
+                name="password"
                 value={formData.password}
                 onChange={handleChange}
                 onBlur={handleBlur}
+                placeholder="Password"
+                className="!w-full !bg-white/30 !backdrop-blur-sm !text-white !font-semibold !placeholder-white/100 !px-4 !py-3 !rounded-lg !border !border-white/40 !focus:outline-none !focus:ring-2 !focus:ring-white/50 !pr-10"
+                required
               />
               {touched.password && errors.password && (
-                <p className="text-red-500 text-xs mt-1">{errors.password}</p>
+                <p className="!text-red-400 !text-xs !mt-1 !text-left">{errors.password}</p>
               )}
             </div>
-
-            <div>
-              <label htmlFor="role" className="block text-sm font-medium text-gray-700">
-                Role
-              </label>
+  
+            {/* Creative Role Selection */}
+            <div className="!relative">
+              <p className="!text-white !text-sm !mb-2 !text-left">Choose your role:</p>
+              <div className="!flex !space-x-4 !w-full">
+                <div 
+                  onClick={() => handleRoleChange('STUDENT')}
+                  className={`!flex-1 !relative !overflow-hidden !bg-white/10 !backdrop-blur-sm !rounded-xl !border !transition-all !duration-300 !cursor-pointer !group ${formData.role === 'STUDENT' ? '!border-blue-400 !shadow-lg !shadow-blue-500/20 !scale-105' : '!border-white/30 !hover:border-white/50'}`}
+                >
+                  <div className="!absolute !inset-0 !bg-gradient-to-br !from-blue-500/20 !to-purple-500/20 !opacity-0 !group-hover:opacity-100 !transition-opacity !duration-300"></div>
+                  <div className="!relative !z-10 !p-4 !flex !flex-col !items-center">
+                    <div className="!w-16 !h-16 !rounded-full !bg-blue-500/20 !flex !items-center !justify-center !mb-3">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="!h-8 !w-8 !text-blue-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                      </svg>
+                    </div>
+                    <span className="!text-white !font-medium">Student</span>
+                    <div className={`!w-full !h-1 !bg-blue-400 !mt-2 !transform !scale-x-0 !transition-transform !duration-300 ${formData.role === 'STUDENT' ? '!scale-x-100' : ''}`}></div>
+                    
+                    {/* Animated stars */}
+                    <div className={`!absolute !top-1 !left-1 !w-2 !h-2 !rounded-full !bg-blue-300 !opacity-0 !transition-opacity !duration-500 ${formData.role === 'STUDENT' ? '!opacity-70' : ''}`} style={{ animationDelay: '0.2s' }}></div>
+                    <div className={`!absolute !bottom-2 !right-3 !w-1.5 !h-1.5 !rounded-full !bg-purple-300 !opacity-0 !transition-opacity !duration-500 ${formData.role === 'STUDENT' ? '!opacity-70' : ''}`} style={{ animationDelay: '0.5s' }}></div>
+                  </div>
+                </div>
+                
+                <div 
+                  onClick={() => handleRoleChange('TEACHER')}
+                  className={`!flex-1 !relative !overflow-hidden !bg-white/10 !backdrop-blur-sm !rounded-xl !border !transition-all !duration-300 !cursor-pointer !group ${formData.role === 'TEACHER' ? '!border-green-400 !shadow-lg !shadow-green-500/20 !scale-105' : '!border-white/30 !hover:border-white/50'}`}
+                >
+                  <div className="!absolute !inset-0 !bg-gradient-to-br !from-green-500/20 !to-teal-500/20 !opacity-0 !group-hover:opacity-100 !transition-opacity !duration-300"></div>
+                  <div className="!relative !z-10 !p-4 !flex !flex-col !items-center">
+                    <div className="!w-16 !h-16 !rounded-full !bg-green-500/20 !flex !items-center !justify-center !mb-3">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="!h-8 !w-8 !text-green-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" />
+                      </svg>
+                    </div>
+                    <span className="!text-white !font-medium">Teacher</span>
+                    <div className={`!w-full !h-1 !bg-green-400 !mt-2 !transform !scale-x-0 !transition-transform !duration-300 ${formData.role === 'TEACHER' ? '!scale-x-100' : ''}`}></div>
+                    
+                    {/* Animated stars */}
+                    <div className={`!absolute !top-2 !right-2 !w-2 !h-2 !rounded-full !bg-green-300 !opacity-0 !transition-opacity !duration-500 ${formData.role === 'TEACHER' ? '!opacity-70' : ''}`} style={{ animationDelay: '0.3s' }}></div>
+                    <div className={`!absolute !bottom-3 !left-2 !w-1.5 !h-1.5 !rounded-full !bg-teal-300 !opacity-0 !transition-opacity !duration-500 ${formData.role === 'TEACHER' ? '!opacity-70' : ''}`} style={{ animationDelay: '0.6s' }}></div>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Hidden select for form submission */}
               <select
-                id="role"
                 name="role"
-                className={`mt-1 block w-full px-4 py-3 border ${
-                  touched.role && errors.role ? 'border-red-500' : 'border-gray-300'
-                } rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500`}
                 value={formData.role}
                 onChange={handleChange}
-                onBlur={handleBlur}
+                className="!hidden"
+                required
               >
-                <option value="">Select a role</option>
-                <option value="STUDENT">Student</option>
-                <option value="TEACHER">Teacher</option>
+                <option value="" className="!bg-purple-900">Select a role</option>
+                <option value="STUDENT" className="!bg-purple-900">Student</option>
+                <option value="TEACHER" className="!bg-purple-900">Teacher</option>
               </select>
+              
               {touched.role && errors.role && (
-                <p className="text-red-500 text-xs mt-1">{errors.role}</p>
+                <p className="!text-red-400 !text-xs !mt-1 !text-left">{errors.role}</p>
               )}
             </div>
-          </div>
-
-          <div>
+  
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition duration-150 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed"
+              className="!w-full !bg-white !text-purple-900 !font-medium !py-3 !px-4 !rounded-full !hover:bg-purple-100 !transition !duration-300 !focus:outline-none !focus:ring-2 !focus:ring-white/50 disabled:!opacity-50 disabled:!cursor-not-allowed"
             >
-              {isLoading ? 'Đang xử lý...' : 'Sign up'}
+              {isLoading ? 'Đang xử lý...' : 'Sign Up'}
             </button>
-          </div>
-        </form>
-
-        <div className="mt-6 text-center">
-          <p className="text-sm text-gray-600">
-            Already have an account?{' '}
-            <button
+          </form>
+  
+          <div className="!mt-6 !text-white !text-sm">
+            Already have an account?{" "}
+            <span
               onClick={() => navigate('/login')}
-              className="font-medium text-indigo-600 hover:text-indigo-500 transition duration-150 ease-in-out"
+              className="!font-medium !text-white !hover:text-purple-200 !cursor-pointer"
             >
               Sign in
-            </button>
-          </p>
-        </div>
-
-        {message && (
-          <div className="mt-4 text-center">
-            <p className={`text-sm font-medium ${
-              message.includes('OTP') 
-                ? 'text-green-600 bg-green-50 p-2 rounded-lg' 
-                : 'text-red-600 bg-red-50 p-2 rounded-lg'
-            }`}>
-              {message}
-            </p>
+            </span>
           </div>
-        )}
+  
+          {message && (
+            <div className="!mt-4 !text-center">
+              <p className={`!text-sm !font-medium ${
+                message.includes('OTP') 
+                  ? '!text-green-400 !bg-green-900/30 !p-2 !rounded-lg' 
+                  : '!text-red-400 !bg-red-900/30 !p-2 !rounded-lg'
+              }`}>
+                {message}
+              </p>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

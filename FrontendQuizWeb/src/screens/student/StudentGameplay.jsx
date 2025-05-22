@@ -65,7 +65,7 @@ const StudentGamePlay = () => {
 
     useEffect(() => {
         if (!accessCode) {
-            navigate('/student/join');
+            navigate('/student');
             return;
         }
         fetchGameContent();
@@ -170,7 +170,7 @@ const StudentGamePlay = () => {
     const handleReturnToLobby = () => {
         localStorage.removeItem('studentSessionAccessCode');
         localStorage.removeItem('studentJoinedStatus');
-        navigate('/student/join');
+        navigate('/student');
     };
 
     const renderFinalLeaderboard = () => {
@@ -592,105 +592,80 @@ const StudentGamePlay = () => {
         );
     };
 
-
-
     const renderLeaderboard = () => {
         if (!participantScores || participantScores.length === 0) {
             return null;
         }
 
-        return (
-            <div className="!bg-white !rounded-2xl !shadow-lg !p-5 !border !border-purple-100 !overflow-hidden !relative !animate-slide-in">
-                {/* Decorative elements */}
-                <div className="!absolute !-top-6 !-right-6 !w-12 !h-12 !rounded-full !bg-pink-100 !opacity-70"></div>
-                <div className="!absolute !-bottom-6 !-left-6 !w-12 !h-12 !rounded-full !bg-blue-100 !opacity-70"></div>
+        const currentStudentId = getStudentId();
+        const currentStudentRank = participantScores.findIndex(entry => entry.userId === currentStudentId) + 1;
+        const currentStudentScore = participantScores.find(entry => entry.userId === currentStudentId)?.score || 0;
 
-                <h3 className="!text-xl !font-bold !text-purple-700 !mb-4 !text-center !relative !z-10 !flex !items-center !justify-center !gap-2">
-                    <svg className="!w-5 !h-5 !text-yellow-500 !animate-spin-slow" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+        return (
+            <div className="!w-full">
+                <h3 className="!text-purple-600 !text-lg !font-bold !mb-3 !text-center !flex !items-center !justify-center !gap-2">
+                    <svg className="!w-5 !h-5 !text-yellow-500" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
                         <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd"></path>
                     </svg>
                     Leaderboard
-                    <svg className="!w-5 !h-5 !text-yellow-500 !animate-spin-slow" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd"></path>
-                    </svg>
                 </h3>
 
-                <ul className="!space-y-2">
-                    {participantScores.slice(0, 5).map((entry, index) => (
-                        <li
+                {/* Enhanced Current Student's Rank Display */}
+                <div className="!mb-4 !p-3 !bg-gradient-to-r !from-purple-50 !to-pink-50 !rounded-xl !border !border-purple-200 !shadow-sm">
+                    <div className="!flex !items-center !justify-between !mb-2">
+                        <div className="!flex !items-center !gap-2">
+                            <div className="!w-8 !h-8 !flex !items-center !justify-center !rounded-full !bg-gradient-to-r !from-purple-500 !to-pink-500 !text-white !font-bold !text-sm">
+                                #{currentStudentRank}
+                            </div>
+                            <span className="!text-sm !font-medium !text-purple-700">Your Position</span>
+                        </div>
+                        <div className="!flex !items-center !gap-1 !text-yellow-500">
+                            <svg className="!w-5 !h-5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path>
+                            </svg>
+                        </div>
+                    </div>
+                    <div className="!flex !items-center !justify-between !mt-2">
+                        <div className="!flex !items-center !gap-1">
+                            <svg className="!w-4 !h-4 !text-purple-500" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M2 10.5a1.5 1.5 0 113 0v6a1.5 1.5 0 01-3 0v-6zM6 10.333v5.43a2 2 0 001.106 1.79l.05.025A4 4 0 008.943 18h5.416a2 2 0 001.962-1.608l1.2-6A2 2 0 0015.56 8H12V4a2 2 0 00-2-2 1 1 0 00-1 1v.667a4 4 0 01-.8 2.4L6.8 7.933a4 4 0 00-.8 2.4z"></path>
+                            </svg>
+                            <span className="!text-sm !font-bold !text-purple-600">{currentStudentScore} points</span>
+                        </div>
+                        <div className="!text-xs !text-purple-500 !font-medium">
+                            {currentStudentRank === 1 ? '🏆 Leading!' : 
+                             currentStudentRank <= 3 ? '🔥 Top 3!' : 
+                             currentStudentRank <= 5 ? '⭐ Top 5!' : 'Keep going!'}
+                        </div>
+                    </div>
+                </div>
+
+                <div className="!space-y-2 !max-h-[300px] !overflow-y-auto !pr-1">
+                    {participantScores.slice(0, 5).map((entry, idx) => (
+                        <div
                             key={entry.userId}
-                            className={`!flex !items-center !p-3 !rounded-xl !transition-all !duration-300 !animate-slide-up !shadow-sm !hover:shadow-md !hover:translate-x-1
-                                ${index === 0
-                                    ? '!bg-gradient-to-r !from-yellow-50 !to-yellow-100 !border-l-4 !border-yellow-400'
-                                    : index === 1
-                                        ? '!bg-gradient-to-r !from-gray-50 !to-gray-100 !border-l-4 !border-gray-400'
-                                        : index === 2
-                                            ? '!bg-gradient-to-r !from-amber-50 !to-amber-100 !border-l-4 !border-amber-600'
-                                            : '!bg-gradient-to-r !from-purple-50 !to-pink-50'}`}
-                            style={{ animationDelay: `${index * 0.1}s` }}
+                            className={`!flex !items-center !p-2 !rounded-lg !transition-all !duration-300 ${
+                                entry.userId === currentStudentId
+                                    ? '!bg-purple-100 !border !border-purple-200'
+                                    : '!bg-gray-50'
+                            }`}
                         >
-                            <span className={`!w-8 !h-8 !flex !items-center !justify-center !rounded-full !mr-3 !font-bold !text-sm !shadow-inner
-                                ${index === 0
-                                    ? '!bg-yellow-400 !text-yellow-900'
-                                    : index === 1
-                                        ? '!bg-gray-300 !text-gray-800'
-                                        : index === 2
-                                            ? '!bg-amber-600 !text-white'
-                                            : '!bg-purple-200 !text-purple-800'}`}
-                            >
-                                {index + 1}
+                            <span className="!w-6 !h-6 !flex !items-center !justify-center !rounded-full !mr-2 !text-sm !font-medium !bg-purple-100 !text-purple-600">
+                                {idx + 1}
                             </span>
-
-                            <span className="!flex-1 !font-medium !text-gray-800 !truncate">
+                            <span className="!flex-1 !text-sm !font-medium !text-gray-700 !truncate">
                                 {entry.displayName}
-                                {index === 0 && (
-                                    <span className="!inline-block !ml-2 !animate-bounce-slow">👑</span>
-                                )}
+                                {idx === 0 && <span className="!inline-block !ml-1">👑</span>}
                             </span>
-
-                            <span className={`!font-bold !px-3 !py-1 !rounded-full !text-sm
-                                ${index === 0
-                                    ? '!bg-yellow-200 !text-yellow-800'
-                                    : index === 1
-                                        ? '!bg-gray-200 !text-gray-800'
-                                        : index === 2
-                                            ? '!bg-amber-200 !text-amber-800'
-                                            : '!bg-purple-100 !text-purple-800'}`}
-                            >
+                            <span className="!text-sm !font-bold !text-purple-600">
                                 {entry.score}
                             </span>
-                        </li>
+                        </div>
                     ))}
-                </ul>
-
-                {/* Custom animations */}
-                <style jsx>{`
-                    @keyframes slide-in {
-                        0% { transform: translateY(-20px); opacity: 0; }
-                        100% { transform: translateY(0); opacity: 1; }
-                    }
-                    
-                    @keyframes slide-up {
-                        0% { transform: translateY(10px); opacity: 0; }
-                        100% { transform: translateY(0); opacity: 1; }
-                    }
-                    
-                    @keyframes spin-slow {
-                        0% { transform: rotate(0deg); }
-                        100% { transform: rotate(360deg); }
-                    }
-                    
-                    @keyframes bounce-slow {
-                        0%, 100% { transform: translateY(0); }
-                        50% { transform: translateY(-5px); }
-                    }
-                    
-                   
-                `}</style>
+                </div>
             </div>
         );
     };
-
 
     const renderContentNavigation = () => {
         if (!currentActivity || !currentActivity.contentItems || currentActivity.contentItems.length <= 1) {
@@ -815,21 +790,45 @@ const StudentGamePlay = () => {
     }
 
     return (
-        <div className={`background-container !min-h-screen !p-4 !md:p-6 !transition-all !duration-500 ${transitionActive ? '!opacity-50' : '!opacity-100'}`}>
+        <div className={`background-container !min-h-screen !p-4 !md:p-6 !transition-all !duration-500 !relative !overflow-hidden ${transitionActive ? '!opacity-50' : '!opacity-100'}`}>
+            {/* Floating game elements */}
+            <div className="!absolute !w-20 !h-20 !bg-yellow-200 !rounded-full !opacity-20 !top-[10%] !left-[5%] !animate-float-slow"></div>
+            <div className="!absolute !w-16 !h-16 !bg-blue-200 !rounded-full !opacity-20 !top-[30%] !right-[8%] !animate-float-medium"></div>
+            <div className="!absolute !w-12 !h-12 !bg-purple-200 !rounded-full !opacity-20 !bottom-[15%] !left-[15%] !animate-float-fast"></div>
+            <div className="!absolute !w-24 !h-24 !bg-pink-200 !rounded-full !opacity-20 !bottom-[25%] !right-[12%] !animate-float-slow"></div>
+            
+            {/* Decorative game elements */}
+            <div className="!absolute !top-10 !left-10 !transform !rotate-12 !hidden !lg:block">
+                <div className="!w-10 !h-10 !text-yellow-400 !opacity-30 !animate-spin-very-slow">✦</div>
+            </div>
+            <div className="!absolute !bottom-10 !right-20 !transform !-rotate-12 !hidden !lg:block">
+                <div className="!w-10 !h-10 !text-purple-400 !opacity-30 !animate-spin-very-slow">✦</div>
+            </div>
+            
             {renderCountdown()}
 
             {gameCompleted ? (
                 renderFinalLeaderboard()
             ) : !isCountdownDone ? null : (
-                <div className="!max-w-6xl !mx-auto !space-y-6">
+                <div className="!max-w-6xl !mx-auto !space-y-6 !relative !z-10">
                     {/* Header Section */}
-                    <div className="!bg-white !rounded-xl !shadow-md !p-4 !animate-fade-in">
-                        <div className="!flex !flex-col !md:flex-row !justify-between !items-start !md:items-center !gap-4">
+                    <div className="!bg-white !bg-opacity-95 !backdrop-blur-sm !rounded-2xl !shadow-lg !p-5 !animate-drop-in !border-2 !border-indigo-100">
+                        <div className="!flex !flex-row !items-center !justify-between !gap-4">
                             <div className="!space-y-2">
-                                <h2 className="!text-2xl !font-bold !text-gray-800">{game?.title}</h2>
+                                <h2 className="!text-2xl !font-bold !text-gray-800 !flex !items-center">
+                                    <span className="!w-8 !h-8 !mr-2 !bg-indigo-100 !rounded-full !flex !items-center !justify-center !animate-pulse-slow !leading-none">
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="!h-5 !w-5 !text-indigo-600 !align-middle" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                                        </svg>
+                                    </span>
+                                    <span className="!animate-text-glow">{game?.title}</span>
+                                </h2>
                                 {currentActivity && (
                                     <div className="!flex !items-center !gap-2">
-                                        <span className="!px-3 !py-1 !bg-blue-100 !text-blue-800 !rounded-full !text-sm !font-medium">
+                                        <span className="!px-4 !py-1.5 !bg-gradient-to-r !from-blue-500 !to-indigo-500 !text-white !rounded-full !text-sm !font-medium !shadow-sm !animate-pulse-subtle !flex !items-center">
+                                            <span className="!w-5 !h-5 !bg-white !bg-opacity-20 !rounded-full !flex !items-center !justify-center !mr-2">
+                                                {(game?.currentActivityIndex || 0) + 1}
+                                            </span>
                                             Activity {(game?.currentActivityIndex || 0) + 1} of {game?.activities?.length || 1}
                                         </span>
                                         {renderContentNavigation()}
@@ -837,28 +836,50 @@ const StudentGamePlay = () => {
                                 )}
                             </div>
                             {timeRemaining > 0 && (
-                                <div className="!px-4 !py-2 !bg-purple-100 !text-purple-800 !rounded-full !text-sm !font-medium">
-                                    ⏳ Time Remaining: {timeRemaining}s
+                                <div className="!px-5 !py-2.5 !bg-gradient-to-r !from-purple-500 !to-pink-500 !text-white !rounded-full !text-sm !font-medium !shadow-md !flex !items-center !animate-pulse-subtle">
+                                    <div className="!w-6 !h-6 !mr-2 !relative">
+                                        <div className="!absolute !inset-0 !border-3 !border-white !border-opacity-30 !rounded-full"></div>
+                                        <div 
+                                            className="!absolute !inset-0 !border-3 !border-transparent !border-t-white !rounded-full !animate-spin"
+                                            style={{ animationDuration: '2s' }}
+                                        ></div>
+                                    </div>
+                                    <span className="!animate-text-pulse">Time Remaining: {timeRemaining}s</span>
                                 </div>
                             )}
                         </div>
                     </div>
 
-                    <div className="!flex !flex-col !lg:flex-row !gap-6">
+                    {/* Main Content Area with Flexbox Layout */}
+                    <div className="!flex !flex-row !gap-6">
                         {/* Left Column - Activity (3/4 width) */}
                         <div className="!flex-1 lg:!w-3/4">
-                            <div className="!bg-white !rounded-xl !shadow-md !p-4 !animate-slide-up">
-                                {renderActivity()}
+                            <div className="!bg-white !bg-opacity-95 !backdrop-blur-sm !rounded-2xl !shadow-lg !p-5 !animate-slide-up !border-2 !border-indigo-100 !relative !overflow-hidden">
+                                {/* Decorative corner elements */}
+                                <div className="!absolute !top-0 !left-0 !w-16 !h-16 !overflow-hidden">
+                                    <div className="!absolute !top-0 !left-0 !w-20 !h-20 !bg-indigo-100 !rounded-full !-translate-x-10 !-translate-y-10"></div>
+                                </div>
+                                <div className="!absolute !bottom-0 !right-0 !w-16 !h-16 !overflow-hidden">
+                                    <div className="!absolute !bottom-0 !right-0 !w-20 !h-20 !bg-indigo-100 !rounded-full !translate-x-10 !translate-y-10"></div>
+                                </div>
+                                
+                                <div className="!relative !z-10">
+                                    {renderActivity()}
+                                </div>
                             </div>
                         </div>
 
                         {/* Right Column - Leaderboard (1/4 width) */}
-                        <div className="lg:!w-1/4 !lg:sticky !lg:top-6 !h-fit">
-                            {participantScores && participantScores.length > 0 ? (
-                                renderLeaderboard()
-                            ) : (
-                                <div className="lg:!w-1/4 !flex-shrink-0 !lg:sticky !lg:top-6 !h-fit">...</div>
-                            )}
+                        <div className="!w-full lg:!w-1/4 !flex-shrink-0 !sticky !top-6 !h-fit">
+                            <div className="!bg-white !bg-opacity-95 !backdrop-blur-sm !rounded-2xl !shadow-lg !p-5 !animate-slide-left !border-2 !border-indigo-100 !relative">
+                                {/* Decorative element */}
+                                <div className="!absolute !top-0 !right-0 !w-20 !h-20 !bg-gradient-to-br !from-yellow-200 !to-yellow-100 !opacity-50 !rounded-full !-translate-y-10 !translate-x-10"></div>
+                                
+                                {/* Leaderboard content with margin instead of padding */}
+                                <div className="!relative !z-20 ">
+                                    {renderLeaderboard()}
+                                </div>
+                            </div>
                         </div>
                     </div>
 
@@ -868,110 +889,214 @@ const StudentGamePlay = () => {
 
             {/* Activity transition overlay */}
             {transitionActive && (
-                <div className="!fixed !inset-0 !bg-white !bg-opacity-70 !flex !items-center !justify-center !z-50 !animate-fade-in">
-                    <div className="!w-16 !h-16 !relative">
-                        <div className="!absolute !inset-0 !border-4 !border-blue-200 !rounded-full"></div>
-                        <div className="!absolute !inset-0 !border-4 !border-transparent !border-t-blue-500 !rounded-full !animate-spin"></div>
+                <div className="!fixed !inset-0 !bg-gradient-to-br !from-indigo-500/70 !to-purple-600/70 !backdrop-blur-sm !flex !items-center !justify-center !z-50 !animate-fade-in">
+                    <div className="!relative">
+                        <div className="!w-24 !h-24 !relative">
+                            <div className="!absolute !inset-0 !border-4 !border-indigo-200 !rounded-full"></div>
+                            <div className="!absolute !inset-0 !border-4 !border-transparent !border-t-indigo-500 !rounded-full !animate-spin"></div>
+                        </div>
+                        
+                        {/* Cute loading character */}
+                        <div className="!absolute !top-1/2 !left-1/2 !transform !-translate-x-1/2 !-translate-y-1/2 !w-12 !h-12">
+                            <div className="!w-12 !h-12 !bg-white !rounded-full !flex !items-center !justify-center !animate-bounce-slow">
+                                <div className="!relative !w-8 !h-8">
+                                    <div className="!absolute !w-2 !h-2 !bg-indigo-600 !rounded-full !top-1 !left-1.5 !animate-blink"></div>
+                                    <div className="!absolute !w-2 !h-2 !bg-indigo-600 !rounded-full !top-1 !right-1.5 !animate-blink" style={{ animationDelay: '0.3s' }}></div>
+                                    <div className="!absolute !w-4 !h-2 !bg-indigo-600 !rounded-full !bottom-1.5 !left-2 !animate-smile"></div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             )}
 
             {/* Custom animations */}
             <style jsx>{`
-        .background-container {
-           background-image: url('../../../public/backgroundgame.jpg');
-           background-size: cover;
-           background-position: center;
-           background-attachment: fixed;
-        }
-            .notification {
-                position: fixed;
-                top: 1rem;
-                right: 1rem;
-                max-width: 24rem;
-                padding: 1rem 1.5rem;
-                border-radius: 0.75rem;
-                box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-                z-index: 50;
-                animation: slideInRight 0.3s ease-out forwards, fadeOut 1.5s ease-out forwards;
-            }
-
-            .notification.correct {
-                background: linear-gradient(to bottom right, #dcfce7, #bbf7d0);
-                border: 2px solid #86efac;
-                color: #166534;
-            }
-
-            .notification.incorrect {
-                background: linear-gradient(to bottom right, #fee2e2, #fecaca);
-                border: 2px solid #fca5a5;
-                color: #991b1b;
-            }
-
-            .notification-content {
-                display: flex;
-                align-items: center;
-                gap: 0.75rem;
-            }
-
-            .notification-icon {
-                width: 2.5rem;
-                height: 2.5rem;
-                border-radius: 9999px;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-            }
-
-            .notification-icon.correct {
-                background: linear-gradient(to bottom right, #bbf7d0, #86efac);
-                color: #166534;
-            }
-
-            .notification-icon.incorrect {
-                background: linear-gradient(to bottom right, #fecaca, #fca5a5);
-                color: #991b1b;
-            }
-
-            .notification-text {
-                display: flex;
-                flex-direction: column;
-            }
-
-            .notification-text h4 {
-                font-size: 1.125rem;
-                font-weight: 700;
-                margin: 0;
-            }
-
-            .points-earned {
-                font-weight: 700;
-                font-size: 1rem;
-                color: #059669;
-            }
-
-            @keyframes slideInRight {
-                0% {
-                    transform: translateX(100%);
-                    opacity: 0;
+                .background-container {
+                    background-image: url('../../../public/backgroundgame.jpg');
+                    background-size: cover;
+                    background-position: center;
+                    background-attachment: fixed;
                 }
-                100% {
-                    transform: translateX(0);
-                    opacity: 1;
+                
+                @keyframes float-slow {
+                    0%, 100% { transform: translateY(0); }
+                    50% { transform: translateY(-15px); }
                 }
-            }
+                @keyframes float-medium {
+                    0%, 100% { transform: translateY(0); }
+                    50% { transform: translateY(-10px); }
+                }
+                @keyframes float-fast {
+                    0%, 100% { transform: translateY(0); }
+                    50% { transform: translateY(-5px); }
+                }
+                @keyframes bounce-slow {
+                    0%, 100% { transform: translateY(0); }
+                    50% { transform: translateY(-8px); }
+                }
+                @keyframes blink {
+                    0%, 90%, 100% { transform: scaleY(1); }
+                    95% { transform: scaleY(0.1); }
+                }
+                @keyframes smile {
+                    0%, 100% { transform: scaleX(1); }
+                    50% { transform: scaleX(1.2) translateY(-1px); }
+                }
+                @keyframes pulse-slow {
+                    0%, 100% { opacity: 1; transform: scale(1); }
+                    50% { opacity: 0.8; transform: scale(0.95); }
+                }
+                @keyframes pulse-subtle {
+                    0%, 100% { opacity: 1; transform: scale(1); }
+                    50% { opacity: 0.95; transform: scale(0.98); }
+                }
+                @keyframes text-pulse {
+                    0%, 100% { opacity: 1; }
+                    50% { opacity: 0.8; }
+                }
+                @keyframes text-glow {
+                    0%, 100% { text-shadow: 0 0 0 rgba(79, 70, 229, 0); }
+                    50% { text-shadow: 0 0 10px rgba(79, 70, 229, 0.3); }
+                }
+                @keyframes drop-in {
+                    0% { transform: translateY(-20px); opacity: 0; }
+                    100% { transform: translateY(0); opacity: 1; }
+                }
+                @keyframes slide-left {
+                    0% { transform: translateX(20px); opacity: 0; }
+                    100% { transform: translateX(0); opacity: 1; }
+                }
+                @keyframes spin-very-slow {
+                    0% { transform: rotate(0deg); }
+                    100% { transform: rotate(360deg); }
+                }
+                
+                .animate-float-slow { animation: float-slow 6s ease-in-out infinite; }
+                .animate-float-medium { animation: float-medium 4s ease-in-out infinite; }
+                .animate-float-fast { animation: float-fast 3s ease-in-out infinite; }
+                .animate-bounce-slow { animation: bounce-slow 3s ease-in-out infinite; }
+                .animate-blink { animation: blink 4s ease-in-out infinite; }
+                .animate-smile { animation: smile 3s ease-in-out infinite; }
+                .animate-pulse-slow { animation: pulse-slow 2s ease-in-out infinite; }
+                .animate-pulse-subtle { animation: pulse-subtle 3s ease-in-out infinite; }
+                .animate-text-pulse { animation: text-pulse 2s ease-in-out infinite; }
+                .animate-text-glow { animation: text-glow 2s ease-in-out infinite; }
+                .animate-drop-in { animation: drop-in 0.5s ease-out forwards; }
+                .animate-slide-left { animation: slide-left 0.5s ease-out forwards; }
+                .animate-spin-very-slow { animation: spin-very-slow 15s linear infinite; }
+                
+                .notification {
+                    position: fixed;
+                    top: 1rem;
+                    right: 1rem;
+                    max-width: 24rem;
+                    padding: 1.2rem 1.5rem;
+                    border-radius: 1rem;
+                    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+                    z-index: 50;
+                    animation: slideInRight 0.4s ease-out forwards, fadeOut 2s ease-out forwards;
+                    transform-origin: center right;
+                }
 
-            @keyframes fadeOut {
-                0%, 80% {
-                    opacity: 1;
+                .notification.correct {
+                    background: linear-gradient(135deg, #dcfce7, #bbf7d0);
+                    border: 2px solid #86efac;
+                    color: #166534;
                 }
-                100% {
-                    opacity: 0;
+
+                .notification.incorrect {
+                    background: linear-gradient(135deg, #fee2e2, #fecaca);
+                    border: 2px solid #fca5a5;
+                    color: #991b1b;
                 }
-            }
-        `}</style>
+
+                .notification-content {
+                    display: flex;
+                    align-items: center;
+                    gap: 1rem;
+                }
+
+                .notification-icon {
+                    width: 3rem;
+                    height: 3rem;
+                    border-radius: 9999px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    animation: pulse 1.5s infinite;
+                }
+
+                .notification-icon.correct {
+                    background: linear-gradient(135deg, #bbf7d0, #86efac);
+                    color: #166534;
+                }
+
+                .notification-icon.incorrect {
+                    background: linear-gradient(135deg, #fecaca, #fca5a5);
+                    color: #991b1b;
+                }
+
+                .notification-text {
+                    display: flex;
+                    flex-direction: column;
+                }
+
+                .notification-text h4 {
+                    font-size: 1.25rem;
+                    font-weight: 700;
+                    margin: 0;
+                }
+
+                .points-earned {
+                    font-weight: 700;
+                    font-size: 1.125rem;
+                    color: #059669;
+                    animation: bounce 1s infinite;
+                }
+
+                @keyframes slideInRight {
+                    0% {
+                        transform: translateX(100%) scale(0.8);
+                        opacity: 0;
+                    }
+                    100% {
+                        transform: translateX(0) scale(1);
+                        opacity: 1;
+                    }
+                }
+
+                @keyframes fadeOut {
+                    0%, 70% {
+                        opacity: 1;
+                        transform: translateX(0) scale(1);
+                    }
+                    100% {
+                        opacity: 0;
+                        transform: translateX(10%) scale(0.9);
+                    }
+                }
+                
+                @keyframes pulse {
+                    0%, 100% {
+                        transform: scale(1);
+                    }
+                    50% {
+                        transform: scale(1.1);
+                    }
+                }
+                
+                @keyframes bounce {
+                    0%, 100% {
+                        transform: translateY(0);
+                    }
+                    50% {
+                        transform: translateY(-5px);
+                    }
+                }
+            `}</style>
         </div>
     );
-}
+};
 
 export default StudentGamePlay;
