@@ -38,6 +38,13 @@ const StudentGamePlay = () => {
     const [isCountdownDone, setIsCountdownDone] = useState(false);
     const navigate = useNavigate();
 
+    const rankColors = [
+        '!bg-yellow-100 !text-yellow-800',  // 1st
+        '!bg-gray-100 !text-gray-800',      // 2nd
+        '!bg-orange-100 !text-orange-800',  // 3rd
+        '!bg-blue-50 !text-blue-800',       // others
+    ];
+
     useEffect(() => {
         setTextAnswer('');
         resetContentTimer();
@@ -174,161 +181,184 @@ const StudentGamePlay = () => {
     };
 
     const renderFinalLeaderboard = () => {
+        // Sắp xếp top 3 đúng thứ tự: top1 ở giữa, top2 trái, top3 phải
+        const sortedTop3 = [...participantScores]
+          .sort((a, b) => b.score - a.score)
+          .slice(0, 3);
+        while (sortedTop3.length < 3) sortedTop3.push({ displayName: '', score: 0, userId: `empty${sortedTop3.length}` });
+        const podiumOrder = [1, 0, 2];
+        const podiumHeights = ['!h-24', '!h-32', '!h-20'];
+        const borderColors = ['!border-gray-300', '!border-yellow-400', '!border-amber-700'];
+        const bgPodium = ['!bg-gray-200', '!bg-yellow-300', '!bg-amber-200'];
+        const medalIcons = [
+          <span className="!text-2xl">🥈</span>,
+          <span className="!text-3xl">🏆</span>,
+          <span className="!text-xl">🥉</span>
+        ];
+        
         return (
-            <div className="!fixed !inset-0 !flex !items-center !justify-center !z-50">
-                {/* Confetti Animation */}
-                <div className="!fixed !inset-0 !pointer-events-none !overflow-hidden !z-[100]">
-                    {Array.from({ length: 30 }).map((_, i) => {
-                        const duration = 2 + Math.random() * 1;    // 2-3s
-                        const delay = Math.random() * 0.5;         // 0-0.5s
-                        const sway = Math.random() * 40 - 20;      // ±20px horizontal
-                        const color = ['#ff4e91', '#ffa638', '#38caff', '#52ff38', '#ff38e7'][i % 5];
-                        const startX = Math.random() * 100;        // start position %
-                        const size = 12 + Math.random() * 12;      // 12-24px
-                        const rotation = Math.random() * 360;      // random initial rotation
-
-                        return (
-                            <div
-                                key={i}
-                                className="confetti"
-                                style={{
-                                    left: `${startX}%`,
-                                    backgroundColor: color,
-                                    width: `${size}px`,
-                                    height: `${size / 2}px`,
-                                    animation: `confetti ${duration}s cubic-bezier(0.4, 0, 0.2, 1) ${delay}s forwards`,
-                                    '--sway': `${sway}px`,
-                                    '--rotation': `${rotation}deg`
-                                }}
-                            />
-                        );
-                    })}
-                </div>
-
-                <div className="!absolute !inset-0 !bg-gradient-to-br !from-pink-200/90 !to-purple-200/90 !flex !items-center !justify-center animate-fadeIn">
-                    <div className="!relative !bg-white !rounded-3xl !p-8 !w-[90%] !max-w-[500px] !shadow-2xl !overflow-hidden animate-popIn">
-                        <h2 className="!text-purple-600 !text-3xl !text-center !mb-1 !font-bold animate-float">
-                            Game Complete!
-                        </h2>
-                        <h3 className="!text-pink-500 !text-xl !text-center !mb-6 !font-medium">
-                            Final Results
-                        </h3>
-                        <div className="!mb-6 !max-h-[300px] !overflow-y-auto !pr-2">
-                            {participantScores.slice(0, 10).map((entry, idx) => {
-                                const totalAnswers = entry.correctCount + entry.incorrectCount;
-                                const correctPercentage = totalAnswers > 0
-                                    ? (entry.correctCount / totalAnswers) * 100
-                                    : 0;
-
-                                return (
-                                    <div
-                                        key={entry.userId}
-                                        className={`!flex !flex-col !p-3 !mb-2 !rounded-xl !transition-all !duration-300 animate-slideIn delay-${idx}`}
-                                        style={{ /* existing styles */ }}
-                                    >
-                                        <div className="!flex !items-center">
-                                            {/* Rank number */}
-                                            <span className="!w-8 !h-8 !flex !items-center !justify-center !rounded-full !mr-3 !font-bold !text-sm">
-                                                {idx + 1}
-                                            </span>
-
-                                            {/* Name and Score */}
-                                            <span className="!flex-1 !font-medium !text-gray-800 !truncate">
-                                                {entry.displayName}
-                                                {idx === 0 && <span className="!inline-block !ml-2 !animate-bounce-slow">👑</span>}
-                                            </span>
-                                            <span className="!font-bold !text-purple-600">
-                                                {entry.score} points
-                                            </span>
-                                        </div>
-
-                                        {/* Accuracy Section */}
-                                        <div className="!ml-11 !mt-2">
-                                            <div className="!text-sm !text-gray-600">
-                                                Correct: {entry.correctCount} ({correctPercentage.toFixed(1)}%)
-                                                | Incorrect: {entry.incorrectCount}
-                                            </div>
-                                            <div className="!w-full !bg-gray-200 !rounded-full !h-2 !mt-1">
-                                                <div
-                                                    className="!h-full !bg-green-500 !rounded-full !transition-all !duration-500"
-                                                    style={{ width: `${correctPercentage}%` }}
-                                                />
-                                            </div>
-                                        </div>
-                                    </div>
-                                );
-                            })}
-                        </div>
-                        <button
-                            className="!bg-gradient-to-r !from-purple-500 !to-pink-500 !text-white !font-semibold !py-3 !px-6 !rounded-full !block !mx-auto !shadow-lg !transition-all !duration-300 !hover:-translate-y-1 !hover:shadow-xl !active:translate-y-0"
-                            onClick={handleReturnToLobby}
-                        >
-                            Return to Lobby
-                        </button>
+          <div className="!relative !min-h-screen !flex !items-center !justify-center !z-10 !overflow-hidden">
+            {/* SHAPE NỀN với animation Tailwind */}
+            <div className="!absolute !top-0 !left-0 !w-96 !h-96 !bg-blue-400 !rounded-full !opacity-20 !-translate-x-1/2 !-translate-y-1/2 !z-0 !animate-[float-slow_8s_ease-in-out_infinite]" />
+            <div className="!absolute !bottom-0 !right-0 !w-96 !h-96 !bg-orange-300 !rounded-full !opacity-20 !translate-x-1/2 !translate-y-1/2 !z-0 !animate-[float-medium_7s_ease-in-out_infinite]" />
+            
+            {/* CARD CHÍNH */}
+            <div className="!relative !w-[95%] !max-w-[1200px] !bg-white !rounded-3xl !shadow-xl !p-6 !z-10 !animate-fadeIn">
+              {/* HEADER */}
+              <div className="!flex !items-center !justify-between !mb-8">
+                <div className="!flex !items-center !gap-4">
+                  <button
+                    className="!flex !items-center !gap-2 !px-4 !py-2 !rounded-full !bg-gray-100 !hover:bg-gray-200 !text-gray-700 !font-semibold !shadow !transition-all !duration-200 !group"
+                    onClick={handleReturnToLobby}
+                  >
+                    <svg
+                      className="!w-5 !h-5 !text-purple-600 !group-hover:-translate-x-1 !transition-transform !duration-200"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth={2}
+                      viewBox="0 0 24 24"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <path d="M15 18l-6-6 6-6" />
+                    </svg>
+                    <span className="!hidden sm:!inline">Back to Lobby</span>
+                  </button>
+                  <div className="!flex !items-center !gap-2">
+                    <div className="!flex !items-center !justify-center !w-10 !h-10 !rounded-full !bg-purple-600 !text-white !font-bold !text-lg !animate-pulse">
+                      {game?.currentActivityIndex + 1}/{game?.activities?.length || 1}
                     </div>
+                    <div>
+                      <h2 className="!font-bold !text-xl">{game?.title}</h2>
+                      <p className="!text-gray-500 !text-sm">Activity</p>
+                    </div>
+                  </div>
                 </div>
-
-                <style jsx>{`
-                    .confetti {
-                        position: absolute;
-                        top: 0;
-                        transform: translate3d(0, -20px, 0) rotate(0deg);
-                        border-radius: 20%;
-                        will-change: transform, opacity;
-                        backface-visibility: hidden;
-                        transform-style: preserve-3d;
-                        perspective: 1000px;
-                    }
-
-                    @keyframes confetti {
-                        0% {
-                            transform: translate3d(0, -20px, 0) rotate(var(--rotation));
-                            opacity: 1;
+                
+                <div className="!flex !items-center !gap-3">
+                  <div className="!bg-orange-300 !text-orange-800 !rounded-xl !px-4 !py-2 !font-semibold !animate-bounce">
+                    Code: {accessCode}
+                  </div>
+                  <div className="!bg-purple-700 !text-white !rounded-xl !px-4 !py-2 !font-bold !flex !items-center !gap-1 !animate-pulse">
+                    <svg className="!w-5 !h-5 !inline-block" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 17.75V6.25" strokeWidth="2" strokeLinecap="round"/><path d="M18.25 12L12 17.75L5.75 12" strokeWidth="2" strokeLinecap="round"/></svg>
+                    {participantScores.findIndex(entry => entry.userId === getStudentId()) + 1}st
+                  </div>
+                  <div className="!bg-purple-700 !text-white !rounded-xl !px-4 !py-2 !font-bold !animate-pulse">
+                    {participantScores.find(entry => entry.userId === getStudentId())?.score || 0} Points
+                  </div>
+                </div>
+              </div>
+              
+              {/* PODIUM TOP 3 */}
+              <div className="!flex !justify-center !items-end !gap-8 !mb-12">
+                {podiumOrder.map((orderIdx, idx) => {
+                  const entry = sortedTop3[orderIdx];
+                  return (
+                    <div
+                      key={entry.userId}
+                      className={`!flex !flex-col !items-center !relative !transition-all !duration-500 ${
+                        idx === 1 ? '!z-10 !scale-110' : '!z-0'
+                      } !animate-slideUp`}
+                      style={{ animationDelay: `${idx * 0.1 + 0.2}s` }}
+                    >
+                      <div
+                        className={`!relative !rounded-full !border-4 ${borderColors[idx]} !bg-gray-100 !flex !items-center !justify-center !overflow-hidden !shadow-lg ${
+                          idx === 1 ? '!w-28 !h-28' : idx === 0 ? '!w-24 !h-24' : '!w-20 !h-20'
+                        } !animate-popIn`}
+                        style={{ animationDelay: `${idx * 0.1 + 0.3}s` }}
+                      >
+                        {entry.avatar
+                          ? <img src={entry.avatar} className="!w-full !h-full !object-cover" />
+                          : <span className="!text-3xl !font-bold !text-gray-500">{entry.displayName?.charAt(0) || ''}</span>
                         }
-                        15% {
-                            transform: translate3d(calc(var(--sway) * 0.5), 15vh, 0) rotate(calc(var(--rotation) + 90deg));
-                            opacity: 0.9;
+                      </div>
+                      {/* Podium base */}
+                      <div className="!mt-2 !flex !flex-col !items-center">
+                        <div className={`!w-16 ${podiumHeights[idx]} ${bgPodium[idx]} !rounded-t-lg !flex !items-center !justify-center !mb-1 !animate-shine`}>
+                          {medalIcons[idx]}
+                        </div>
+                        <div className="!font-bold !text-center">{entry.displayName}</div>
+                        <div className="!text-gray-500 !text-sm">{entry.score} pts</div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+              
+              {/* LEADERBOARD TABLE */}
+              <div className="!bg-white !rounded-2xl !shadow-lg !p-6 !border !border-purple-100 !animate-slide-up !delay-300">
+                <h3 className="!text-xl !font-bold !text-gray-800 !mb-4 !flex !items-center !gap-2">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="!w-6 !h-6 !text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                  </svg>
+                  Leaderboard
+                </h3>
+                <div className="!grid !grid-cols-4 !gap-4 !text-gray-600 !border-b !pb-3 !font-semibold !text-sm !md:text-base">
+                  <div>Rank</div>
+                  <div>Player</div>
+                  <div>Correct Answers</div>
+                  <div>Accuracy</div>
+                </div>
+                {participantScores.slice(0, 10).map((entry, idx) => {
+                  const totalAnswers = entry.correctCount + entry.incorrectCount;
+                  const correctPercentage = totalAnswers > 0
+                    ? (entry.correctCount / totalAnswers) * 100
+                    : 0;
+                  const isCurrentUser = entry.userId === getStudentId();
+                  return (
+                    <div 
+                      key={entry.userId} 
+                      className={`!grid !grid-cols-4 !gap-4 !py-3 !items-center !border-b !transition-all !duration-300 ${isCurrentUser ? '!bg-purple-50' : idx % 2 === 0 ? '!bg-gray-50' : ''} !hover:bg-purple-50 !rounded-lg !my-1 !animate-fade-in`} 
+                      style={{ animationDelay: `${0.1 + idx * 0.05}s` }}
+                    >
+                      <div className="!flex !items-center !gap-2">
+                        <div className={`!w-8 !h-8 !rounded-full ${idx < 3 ? rankColors[idx] : rankColors[3]} !flex !items-center !justify-center !font-bold !shadow-sm`}>
+                          {idx + 1}
+                        </div>
+                      </div>
+                      <div className="!flex !items-center !gap-3">
+                        {entry.avatar
+                          ? <img src={entry.avatar || "/placeholder.svg"} className="!w-10 !h-10 !rounded-full !border-2 !border-gray-200 !shadow-sm" />
+                          : <div className="!w-10 !h-10 !rounded-full !bg-gradient-to-br !from-purple-100 !to-blue-100 !flex !items-center !justify-center !shadow-sm">
+                              <span className="!text-purple-500 !font-bold">{entry.displayName.charAt(0)}</span>
+                            </div>
                         }
-                        30% {
-                            transform: translate3d(var(--sway), 30vh, 0) rotate(calc(var(--rotation) + 180deg));
-                            opacity: 0.8;
-                        }
-                        45% {
-                            transform: translate3d(calc(var(--sway) * -0.5), 45vh, 0) rotate(calc(var(--rotation) + 270deg));
-                            opacity: 0.7;
-                        }
-                        60% {
-                            transform: translate3d(calc(var(--sway) * -1), 60vh, 0) rotate(calc(var(--rotation) + 360deg));
-                            opacity: 0.6;
-                        }
-                        75% {
-                            transform: translate3d(calc(var(--sway) * -0.5), 75vh, 0) rotate(calc(var(--rotation) + 450deg));
-                            opacity: 0.4;
-                        }
-                        90% {
-                            transform: translate3d(calc(var(--sway) * 0.5), 90vh, 0) rotate(calc(var(--rotation) + 540deg));
-                            opacity: 0.2;
-                        }
-                        100% {
-                            transform: translate3d(0, 100vh, 0) rotate(calc(var(--rotation) + 720deg));
-                            opacity: 0;
-                        }
-                    }
-
-                    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-                    @keyframes popIn  { 0% { transform: scale(0.8); opacity:0; } 100% { transform: scale(1); opacity:1; } }
-                    @keyframes slideIn{ from { opacity:0; transform:translateX(-20px);} to{opacity:1; transform:translateX(0);} }
-                    @keyframes float  { 0%,100%{transform:translateY(0);} 50%{transform:translateY(-5px);} }
-
-                    .animate-fadeIn { animation: fadeIn 0.5s ease-out; }
-                    .animate-popIn  { animation: popIn 0.5s cubic-bezier(0.175,0.885,0.32,1.275); }
-                    .animate-slideIn{ animation: slideIn 0.5s ease-out both; }
-                    .animate-float  { animation: float 3s ease-in-out infinite; }
-                `}</style>
+                        <span className={`!font-medium ${isCurrentUser ? '!text-purple-700' : ''}`}>{entry.displayName}</span>
+                        {isCurrentUser && (
+                          <span className="!bg-purple-200 !text-purple-800 !text-xs !px-2 !py-0.5 !rounded-full">You</span>
+                        )}
+                      </div>
+                      <div className="!flex !items-center !gap-2">
+                        <div className="!w-6 !h-6 !rounded-full !bg-green-100 !flex !items-center !justify-center">
+                          <svg xmlns="http://www.w3.org/2000/svg" className="!w-4 !h-4 !text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                          </svg>
+                        </div>
+                        <span className="!font-medium">{entry.correctCount}</span>
+                      </div>
+                      <div>
+                        <div className="!w-full !bg-gray-200 !rounded-full !h-2.5 !mb-1 !max-w-[120px]">
+                          <div 
+                            className="!h-2.5 !rounded-full !bg-gradient-to-r !from-green-400 !to-green-500" 
+                            style={{ width: `${correctPercentage}%` }}
+                          ></div>
+                        </div>
+                        <span className={`!text-xs !font-semibold !px-2 !py-1 !rounded-full ${
+                          correctPercentage >= 80 ? '!bg-green-100 !text-green-700' : 
+                          correctPercentage >= 50 ? '!bg-yellow-100 !text-yellow-700' : 
+                          '!bg-red-100 !text-red-700'
+                        }`}>
+                          {correctPercentage.toFixed(1)}%
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
+          </div>
         );
-    };
-
+      };
     useEffect(() => {
         if (sessionStatus === 'ACTIVE' && !isCountdownDone) {
             setCountdown(3);
@@ -913,7 +943,7 @@ const StudentGamePlay = () => {
             {/* Custom animations */}
             <style jsx>{`
                 .background-container {
-                    background-image: url('../../../public/backgroundgame.jpg');
+                    background-image: url('/backgroundgame.jpg');
                     background-size: cover;
                     background-position: center;
                     background-attachment: fixed;
