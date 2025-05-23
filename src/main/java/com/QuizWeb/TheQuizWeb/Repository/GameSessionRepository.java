@@ -15,4 +15,5 @@ public interface GameSessionRepository extends MongoRepository<GameSession, Stri
     List<GameSession> findByClassId(String classId);
     List<GameSession> findByTeacherId(String teacherId);
     List<GameSession> findByClassIdAndStatus(String classId, GameSession.SessionStatus status);
+    List<GameSession> findByParticipantsUserIdOrderByStartTimeDesc(String userId);
 }

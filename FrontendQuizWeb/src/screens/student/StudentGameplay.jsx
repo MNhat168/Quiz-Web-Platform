@@ -5,7 +5,7 @@ import SockJS from 'sockjs-client';
 import { Client } from '@stomp/stompjs';
 import { useNavigate } from 'react-router-dom';
 import '../../style/gameplay.css';
-import './StudentGameplay.css'; // Import CSS file for animations
+
 
 import MultipleChoiceActivity from './activities/MultipleChoice';
 import TrueFalseActivity from './activities/TrueFalse';
@@ -34,6 +34,8 @@ const StudentGamePlay = () => {
     const [timeRemaining, setTimeRemaining] = useState(0);
     const [contentTransitioning, setContentTransitioning] = useState(false);
     const [gameCompleted, setGameCompleted] = useState(false);
+    const [countdown, setCountdown] = useState(null);
+    const [isCountdownDone, setIsCountdownDone] = useState(false);
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -91,14 +93,13 @@ const StudentGamePlay = () => {
             setGame(response.data);
             if (response.data.currentActivity) {
                 setCurrentActivity(response.data.currentActivity);
-                if (response.data.currentActivity.contentItems &&
-                    response.data.currentActivity.contentItems.length > 0) {
+                if (response.data.currentActivity.contentItems?.length > 0) {
                     setCurrentContentIndex(0);
                     setCurrentContentItem(response.data.currentActivity.contentItems[0]);
-                    startContentTimer(response.data.currentActivity.contentItems[0]);
+                    // Remove startContentTimer call here
                 } else {
                     setCurrentContentItem(null);
-                    startContentTimer(response.data.currentActivity);
+                    // Remove startContentTimer call here
                 }
             }
 
@@ -123,17 +124,20 @@ const StudentGamePlay = () => {
                     setCurrentContentItem(activityData.contentItems?.[0] || null);
                 });
 
-                client.subscribe(
-                    `/topic/session/${accessCode}/status`,
-                    (message) => {
-                        console.log('Received session status update:', message.body);
-                        const newStatus = message.body;
-                        setSessionStatus(newStatus);
-                        if (newStatus === 'COMPLETED') {
-                            setGameCompleted(true);
-                        }
+                client.subscribe(`/topic/session/${accessCode}/status`, (message) => {
+                    const newStatus = message.body;
+                    setSessionStatus(newStatus);
+                    if (newStatus === 'COMPLETED') {
+                        setGameCompleted(true);
+                        setIsCountdownDone(false);
+                        setCountdown(null);
+                        // Force a re-render by resetting current activity/content
+                        setCurrentActivity(null);
+                        setCurrentContentItem(null);
+                    } else if (newStatus === 'ACTIVE') {
+                        setIsCountdownDone(false);
                     }
-                );
+                });
 
                 client.subscribe(
                     `/topic/session/${accessCode}/leaderboard`,
@@ -166,7 +170,7 @@ const StudentGamePlay = () => {
     const handleReturnToLobby = () => {
         localStorage.removeItem('studentSessionAccessCode');
         localStorage.removeItem('studentJoinedStatus');
-        navigate('/student');
+        navigate('/student/join');
     };
 
     const renderFinalLeaderboard = () => {
@@ -178,7 +182,7 @@ const StudentGamePlay = () => {
                         const duration = 2 + Math.random() * 1;    // 2-3s
                         const delay = Math.random() * 0.5;         // 0-0.5s
                         const sway = Math.random() * 40 - 20;      // ±20px horizontal
-                        const color = ['#ff4e91','#ffa638','#38caff','#52ff38','#ff38e7'][i % 5];
+                        const color = ['#ff4e91', '#ffa638', '#38caff', '#52ff38', '#ff38e7'][i % 5];
                         const startX = Math.random() * 100;        // start position %
                         const size = 12 + Math.random() * 12;      // 12-24px
                         const rotation = Math.random() * 360;      // random initial rotation
@@ -191,7 +195,7 @@ const StudentGamePlay = () => {
                                     left: `${startX}%`,
                                     backgroundColor: color,
                                     width: `${size}px`,
-                                    height: `${size/2}px`,
+                                    height: `${size / 2}px`,
                                     animation: `confetti ${duration}s cubic-bezier(0.4, 0, 0.2, 1) ${delay}s forwards`,
                                     '--sway': `${sway}px`,
                                     '--rotation': `${rotation}deg`
@@ -210,27 +214,50 @@ const StudentGamePlay = () => {
                             Final Results
                         </h3>
                         <div className="!mb-6 !max-h-[300px] !overflow-y-auto !pr-2">
-                            {participantScores.slice(0, 10).map((entry, idx) => (
-                                <div
-                                    key={entry.userId}
-                                    className={`!flex !items-center !p-3 !mb-2 !rounded-xl !transition-all !duration-300 animate-slideIn delay-${idx}`}
-                                    style={{
-                                        border: `2px solid ${idx === 0 ? '#FFD700' : '#C0C0C0'}`,
-                                        backgroundColor: idx === 0 ? '#FFFAE1' : 'transparent',
-                                        boxShadow: idx === 0 ? '0 0 10px 5px rgba(255,223,0,0.7)' : 'none'
-                                    }}
-                                >
-                                    <span className="!w-8 !h-8 !flex !items-center !justify-center !rounded-full !mr-3 !font-bold !text-sm">
-                                        {idx + 1}
-                                    </span>
-                                    <span className="!flex-1 !font-medium !text-gray-800 !truncate">
-                                        {entry.displayName}
-                                    </span>
-                                    <span className="!font-bold !text-purple-600">
-                                        {entry.score} points
-                                    </span>
-                                </div>
-                            ))}
+                            {participantScores.slice(0, 10).map((entry, idx) => {
+                                const totalAnswers = entry.correctCount + entry.incorrectCount;
+                                const correctPercentage = totalAnswers > 0
+                                    ? (entry.correctCount / totalAnswers) * 100
+                                    : 0;
+
+                                return (
+                                    <div
+                                        key={entry.userId}
+                                        className={`!flex !flex-col !p-3 !mb-2 !rounded-xl !transition-all !duration-300 animate-slideIn delay-${idx}`}
+                                        style={{ /* existing styles */ }}
+                                    >
+                                        <div className="!flex !items-center">
+                                            {/* Rank number */}
+                                            <span className="!w-8 !h-8 !flex !items-center !justify-center !rounded-full !mr-3 !font-bold !text-sm">
+                                                {idx + 1}
+                                            </span>
+
+                                            {/* Name and Score */}
+                                            <span className="!flex-1 !font-medium !text-gray-800 !truncate">
+                                                {entry.displayName}
+                                                {idx === 0 && <span className="!inline-block !ml-2 !animate-bounce-slow">👑</span>}
+                                            </span>
+                                            <span className="!font-bold !text-purple-600">
+                                                {entry.score} points
+                                            </span>
+                                        </div>
+
+                                        {/* Accuracy Section */}
+                                        <div className="!ml-11 !mt-2">
+                                            <div className="!text-sm !text-gray-600">
+                                                Correct: {entry.correctCount} ({correctPercentage.toFixed(1)}%)
+                                                | Incorrect: {entry.incorrectCount}
+                                            </div>
+                                            <div className="!w-full !bg-gray-200 !rounded-full !h-2 !mt-1">
+                                                <div
+                                                    className="!h-full !bg-green-500 !rounded-full !transition-all !duration-500"
+                                                    style={{ width: `${correctPercentage}%` }}
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
+                                );
+                            })}
                         </div>
                         <button
                             className="!bg-gradient-to-r !from-purple-500 !to-pink-500 !text-white !font-semibold !py-3 !px-6 !rounded-full !block !mx-auto !shadow-lg !transition-all !duration-300 !hover:-translate-y-1 !hover:shadow-xl !active:translate-y-0"
@@ -302,6 +329,41 @@ const StudentGamePlay = () => {
         );
     };
 
+    useEffect(() => {
+        if (sessionStatus === 'ACTIVE' && !isCountdownDone) {
+            setCountdown(3);
+            const countdownInterval = setInterval(() => {
+                setCountdown(prev => {
+                    if (prev <= 1) {
+                        clearInterval(countdownInterval);
+                        setIsCountdownDone(true);
+                        return 0;
+                    }
+                    return prev - 1;
+                });
+            }, 1000);
+
+            return () => clearInterval(countdownInterval);
+        }
+    }, [sessionStatus, isCountdownDone]);
+
+    const renderCountdown = () => {
+        if (countdown === null || countdown === 0) return null;
+
+        return (
+            <div className="!fixed !inset-0 !bg-black/80 !flex !items-center !justify-center !z-[1000]">
+                <div className="!text-white !text-9xl !font-bold !animate-pulse">
+                    {countdown}
+                </div>
+            </div>
+        );
+    };
+
+    useEffect(() => {
+        if (isCountdownDone && currentContentItem) {
+            resetContentTimer();
+        }
+    }, [isCountdownDone, currentContentItem]);
 
     const handleActivityTransition = (newActivity) => {
         setTransitionActive(true);
@@ -397,7 +459,7 @@ const StudentGamePlay = () => {
         } else {
             advanceToNextActivity();
         }
-    },  [currentActivity, contentTransitioning, accessCode, token, currentContentIndex]);
+    }, [currentActivity, contentTransitioning, accessCode, token, currentContentIndex]);
 
     const resetContentTimer = () => {
         if (currentContentItem) {
@@ -498,11 +560,10 @@ const StudentGamePlay = () => {
 
     const renderSubmissionResult = () => {
         if (!submissionResult) return null;
-    
+
         return (
             <div className={`notification ${submissionResult.correct ? 'correct' : 'incorrect'}`}>
                 <div className="notification-content">
-                    {/* Icon based on result */}
                     <div className={`notification-icon ${submissionResult.correct ? 'correct' : 'incorrect'}`}>
                         {submissionResult.correct ? (
                             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -514,12 +575,12 @@ const StudentGamePlay = () => {
                             </svg>
                         )}
                     </div>
-                    
+
                     <div className="notification-text">
                         <h4 className={submissionResult.correct ? 'text-green-700' : 'text-red-700'}>
                             {submissionResult.correct ? 'Correct!' : 'Incorrect'}
                         </h4>
-                        
+
                         {submissionResult.pointsEarned && (
                             <span className="points-earned">
                                 +{submissionResult.pointsEarned} points
@@ -537,13 +598,13 @@ const StudentGamePlay = () => {
         if (!participantScores || participantScores.length === 0) {
             return null;
         }
-    
+
         return (
             <div className="!bg-white !rounded-2xl !shadow-lg !p-5 !border !border-purple-100 !overflow-hidden !relative !animate-slide-in">
                 {/* Decorative elements */}
                 <div className="!absolute !-top-6 !-right-6 !w-12 !h-12 !rounded-full !bg-pink-100 !opacity-70"></div>
                 <div className="!absolute !-bottom-6 !-left-6 !w-12 !h-12 !rounded-full !bg-blue-100 !opacity-70"></div>
-                
+
                 <h3 className="!text-xl !font-bold !text-purple-700 !mb-4 !text-center !relative !z-10 !flex !items-center !justify-center !gap-2">
                     <svg className="!w-5 !h-5 !text-yellow-500 !animate-spin-slow" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
                         <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd"></path>
@@ -553,47 +614,47 @@ const StudentGamePlay = () => {
                         <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd"></path>
                     </svg>
                 </h3>
-                
+
                 <ul className="!space-y-2">
                     {participantScores.slice(0, 5).map((entry, index) => (
-                        <li 
-                            key={entry.userId} 
+                        <li
+                            key={entry.userId}
                             className={`!flex !items-center !p-3 !rounded-xl !transition-all !duration-300 !animate-slide-up !shadow-sm !hover:shadow-md !hover:translate-x-1
-                                ${index === 0 
-                                    ? '!bg-gradient-to-r !from-yellow-50 !to-yellow-100 !border-l-4 !border-yellow-400' 
-                                    : index === 1 
-                                        ? '!bg-gradient-to-r !from-gray-50 !to-gray-100 !border-l-4 !border-gray-400' 
-                                        : index === 2 
-                                            ? '!bg-gradient-to-r !from-amber-50 !to-amber-100 !border-l-4 !border-amber-600' 
+                                ${index === 0
+                                    ? '!bg-gradient-to-r !from-yellow-50 !to-yellow-100 !border-l-4 !border-yellow-400'
+                                    : index === 1
+                                        ? '!bg-gradient-to-r !from-gray-50 !to-gray-100 !border-l-4 !border-gray-400'
+                                        : index === 2
+                                            ? '!bg-gradient-to-r !from-amber-50 !to-amber-100 !border-l-4 !border-amber-600'
                                             : '!bg-gradient-to-r !from-purple-50 !to-pink-50'}`}
                             style={{ animationDelay: `${index * 0.1}s` }}
                         >
                             <span className={`!w-8 !h-8 !flex !items-center !justify-center !rounded-full !mr-3 !font-bold !text-sm !shadow-inner
-                                ${index === 0 
-                                    ? '!bg-yellow-400 !text-yellow-900' 
-                                    : index === 1 
-                                        ? '!bg-gray-300 !text-gray-800' 
-                                        : index === 2 
-                                            ? '!bg-amber-600 !text-white' 
+                                ${index === 0
+                                    ? '!bg-yellow-400 !text-yellow-900'
+                                    : index === 1
+                                        ? '!bg-gray-300 !text-gray-800'
+                                        : index === 2
+                                            ? '!bg-amber-600 !text-white'
                                             : '!bg-purple-200 !text-purple-800'}`}
                             >
                                 {index + 1}
                             </span>
-                            
+
                             <span className="!flex-1 !font-medium !text-gray-800 !truncate">
                                 {entry.displayName}
                                 {index === 0 && (
                                     <span className="!inline-block !ml-2 !animate-bounce-slow">👑</span>
                                 )}
                             </span>
-                            
+
                             <span className={`!font-bold !px-3 !py-1 !rounded-full !text-sm
-                                ${index === 0 
-                                    ? '!bg-yellow-200 !text-yellow-800' 
-                                    : index === 1 
-                                        ? '!bg-gray-200 !text-gray-800' 
-                                        : index === 2 
-                                            ? '!bg-amber-200 !text-amber-800' 
+                                ${index === 0
+                                    ? '!bg-yellow-200 !text-yellow-800'
+                                    : index === 1
+                                        ? '!bg-gray-200 !text-gray-800'
+                                        : index === 2
+                                            ? '!bg-amber-200 !text-amber-800'
                                             : '!bg-purple-100 !text-purple-800'}`}
                             >
                                 {entry.score}
@@ -601,7 +662,7 @@ const StudentGamePlay = () => {
                         </li>
                     ))}
                 </ul>
-                
+
                 {/* Custom animations */}
                 <style jsx>{`
                     @keyframes slide-in {
@@ -629,7 +690,7 @@ const StudentGamePlay = () => {
             </div>
         );
     };
-    
+
 
     const renderContentNavigation = () => {
         if (!currentActivity || !currentActivity.contentItems || currentActivity.contentItems.length <= 1) {
@@ -649,11 +710,6 @@ const StudentGamePlay = () => {
                 <div className="content-counter">
                     {currentContentIndex + 1} / {currentActivity.contentItems.length}
                 </div>
-                {timeRemaining > 0 && (
-                    <div className="time-remaining">
-                        Time left: {timeRemaining}s
-                    </div>
-                )}
             </div>
         );
     };
@@ -703,7 +759,16 @@ const StudentGamePlay = () => {
             case 'OPEN_ENDED':
                 return <TextInputActivity {...commonProps} />;
             case 'FILL_IN_BLANK':
-                return <FillInBlankGame {...commonProps} currentContentIndex={currentContentIndex} />;
+                return <FillInBlankGame
+                    {...commonProps}
+                    currentContentIndex={currentContentIndex}
+                    onComplete={() => {
+                        // Clear the timer when activity is completed
+                        clearContentTimer();
+                        // Advance to next content or activity
+                        advanceToNextContent();
+                    }}
+                />;
             case 'SORTING':
                 return <SortingActivity {...commonProps} />;
             case 'MATCHING':
@@ -748,45 +813,59 @@ const StudentGamePlay = () => {
             </div>
         );
     }
-    
+
     return (
-        <div className={`!min-h-screen !bg-gray-50 !p-4 !md:p-6 !transition-all !duration-500 ${transitionActive ? '!opacity-50' : '!opacity-100'}`}>
+        <div className={`background-container !min-h-screen !p-4 !md:p-6 !transition-all !duration-500 ${transitionActive ? '!opacity-50' : '!opacity-100'}`}>
+            {renderCountdown()}
+
             {gameCompleted ? (
                 renderFinalLeaderboard()
-            ) : (
+            ) : !isCountdownDone ? null : (
                 <div className="!max-w-6xl !mx-auto !space-y-6">
-                    <div className="!bg-white !rounded-xl !shadow-md !p-4 !mb-6 !animate-fade-in">
-                        <h2 className="!text-2xl !font-bold !text-gray-800 !mb-2">{game?.title}</h2>
-                        {currentActivity && (
-                            <div className="!flex !flex-col !sm:flex-row !items-start !sm:items-center !justify-between !mt-2">
-                                <span className="!px-3 !py-1 !bg-blue-100 !text-blue-800 !rounded-full !text-sm !font-medium !mb-2 !sm:mb-0">
-                                    Activity {(game?.currentActivityIndex || 0) + 1} of {game?.activities?.length || 1}
-                                </span>
-                                <div className="!flex !items-center !space-x-2">
-                                    {renderContentNavigation()}
-                                </div>
+                    {/* Header Section */}
+                    <div className="!bg-white !rounded-xl !shadow-md !p-4 !animate-fade-in">
+                        <div className="!flex !flex-col !md:flex-row !justify-between !items-start !md:items-center !gap-4">
+                            <div className="!space-y-2">
+                                <h2 className="!text-2xl !font-bold !text-gray-800">{game?.title}</h2>
+                                {currentActivity && (
+                                    <div className="!flex !items-center !gap-2">
+                                        <span className="!px-3 !py-1 !bg-blue-100 !text-blue-800 !rounded-full !text-sm !font-medium">
+                                            Activity {(game?.currentActivityIndex || 0) + 1} of {game?.activities?.length || 1}
+                                        </span>
+                                        {renderContentNavigation()}
+                                    </div>
+                                )}
                             </div>
-                        )}
+                            {timeRemaining > 0 && (
+                                <div className="!px-4 !py-2 !bg-purple-100 !text-purple-800 !rounded-full !text-sm !font-medium">
+                                    ⏳ Time Remaining: {timeRemaining}s
+                                </div>
+                            )}
+                        </div>
                     </div>
-            
-                    <div className="!grid !grid-cols-1 !lg:grid-cols-3 !gap-6">
-                        <div className="!lg:col-span-2">
+
+                    <div className="!flex !flex-col !lg:flex-row !gap-6">
+                        {/* Left Column - Activity (3/4 width) */}
+                        <div className="!flex-1 lg:!w-3/4">
                             <div className="!bg-white !rounded-xl !shadow-md !p-4 !animate-slide-up">
                                 {renderActivity()}
                             </div>
                         </div>
-                        
-                        <div className="!lg:col-span-1">
-                            <div className="!sticky !top-6">
-                                {renderLeaderboard()}
-                            </div>
+
+                        {/* Right Column - Leaderboard (1/4 width) */}
+                        <div className="lg:!w-1/4 !lg:sticky !lg:top-6 !h-fit">
+                            {participantScores && participantScores.length > 0 ? (
+                                renderLeaderboard()
+                            ) : (
+                                <div className="lg:!w-1/4 !flex-shrink-0 !lg:sticky !lg:top-6 !h-fit">...</div>
+                            )}
                         </div>
                     </div>
 
                     {renderSubmissionResult()}
                 </div>
             )}
-            
+
             {/* Activity transition overlay */}
             {transitionActive && (
                 <div className="!fixed !inset-0 !bg-white !bg-opacity-70 !flex !items-center !justify-center !z-50 !animate-fade-in">
@@ -796,48 +875,101 @@ const StudentGamePlay = () => {
                     </div>
                 </div>
             )}
-            
+
             {/* Custom animations */}
             <style jsx>{`
-                @keyframes fade-in {
-                    0% { opacity: 0; }
-                    100% { opacity: 1; }
+        .background-container {
+           background-image: url('../../../public/backgroundgame.jpg');
+           background-size: cover;
+           background-position: center;
+           background-attachment: fixed;
+        }
+            .notification {
+                position: fixed;
+                top: 1rem;
+                right: 1rem;
+                max-width: 24rem;
+                padding: 1rem 1.5rem;
+                border-radius: 0.75rem;
+                box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+                z-index: 50;
+                animation: slideInRight 0.3s ease-out forwards, fadeOut 1.5s ease-out forwards;
+            }
+
+            .notification.correct {
+                background: linear-gradient(to bottom right, #dcfce7, #bbf7d0);
+                border: 2px solid #86efac;
+                color: #166534;
+            }
+
+            .notification.incorrect {
+                background: linear-gradient(to bottom right, #fee2e2, #fecaca);
+                border: 2px solid #fca5a5;
+                color: #991b1b;
+            }
+
+            .notification-content {
+                display: flex;
+                align-items: center;
+                gap: 0.75rem;
+            }
+
+            .notification-icon {
+                width: 2.5rem;
+                height: 2.5rem;
+                border-radius: 9999px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+
+            .notification-icon.correct {
+                background: linear-gradient(to bottom right, #bbf7d0, #86efac);
+                color: #166534;
+            }
+
+            .notification-icon.incorrect {
+                background: linear-gradient(to bottom right, #fecaca, #fca5a5);
+                color: #991b1b;
+            }
+
+            .notification-text {
+                display: flex;
+                flex-direction: column;
+            }
+
+            .notification-text h4 {
+                font-size: 1.125rem;
+                font-weight: 700;
+                margin: 0;
+            }
+
+            .points-earned {
+                font-weight: 700;
+                font-size: 1rem;
+                color: #059669;
+            }
+
+            @keyframes slideInRight {
+                0% {
+                    transform: translateX(100%);
+                    opacity: 0;
                 }
-                
-                @keyframes slide-up {
-                    0% { transform: translateY(10px); opacity: 0; }
-                    100% { transform: translateY(0); opacity: 1; }
+                100% {
+                    transform: translateX(0);
+                    opacity: 1;
                 }
-                
-                @keyframes slide-in-right {
-                    0% { transform: translateX(100%); opacity: 0; }
-                    100% { transform: translateX(0); opacity: 1; }
+            }
+
+            @keyframes fadeOut {
+                0%, 80% {
+                    opacity: 1;
                 }
-                
-                @keyframes fade-out {
-                    0%, 80% { opacity: 1; }
-                    100% { opacity: 0; }
+                100% {
+                    opacity: 0;
                 }
-                
-                @keyframes spin {
-                    0% { transform: rotate(0deg); }
-                    100% { transform: rotate(360deg); }
-                }
-                
-                @keyframes pulse {
-                    0%, 100% { opacity: 1; }
-                    50% { opacity: 0.7; }
-                }
-                
-                .animate-fade-in { animation: fade-in 0.5s ease-out forwards; }
-                .animate-slide-up { animation: slide-up 0.5s ease-out forwards; }
-                .animate-slide-in-right { animation: slide-in-right 0.3s ease-out forwards; }
-                .animate-fade-out { animation: fade-out 1.5s ease-out forwards; }
-                .animate-spin { animation: spin 1s linear infinite; }
-                .animate-pulse { animation: pulse 1.5s infinite; }
-                
-                .delay-300 { animation-delay: 0.3s; }
-            `}</style>
+            }
+        `}</style>
         </div>
     );
 }
