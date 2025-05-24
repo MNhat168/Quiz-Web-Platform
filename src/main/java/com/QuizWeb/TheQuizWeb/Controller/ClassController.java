@@ -1,6 +1,8 @@
 package com.QuizWeb.TheQuizWeb.Controller;
 
 import com.QuizWeb.TheQuizWeb.Model.Class;
+import com.QuizWeb.TheQuizWeb.Model.Class.ClassGameHistory;
+import com.QuizWeb.TheQuizWeb.Model.Class.SubjectProgress;
 import com.QuizWeb.TheQuizWeb.Model.GameSession;
 import com.QuizWeb.TheQuizWeb.Model.User;
 import com.QuizWeb.TheQuizWeb.Repository.GameSessionRepository;
@@ -16,6 +18,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/classes")
@@ -222,6 +225,34 @@ public class ClassController {
     public ResponseEntity<List<GameSession>> getGameSessionsByClassId(@PathVariable String classId) {
         List<GameSession> sessions = gameSessionRepository.findByClassId(classId);
         return ResponseEntity.ok(sessions);
+    }
+
+    @GetMapping("/class-game-history/{id}")
+    public ResponseEntity<ClassGameHistory> getClassGameHistory(@PathVariable String id) {
+        Optional<GameSession> sessionOpt = gameSessionRepository.findById(id);
+
+        if (sessionOpt.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+
+        ClassGameHistory history = classService.analyzeGameSession(sessionOpt.get());
+
+        return ResponseEntity.ok(history);
+    }
+
+    @GetMapping("/subject-progress/{id}")
+    public ResponseEntity<SubjectProgress> getSubjectProgress(@PathVariable String id) {
+        Optional<GameSession> sessionOpt = gameSessionRepository.findById(id);
+
+        if (sessionOpt.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+
+        SubjectProgress progress = classService.calculateSubjectProgress(sessionOpt.get());
+        if (progress == null) {
+            return ResponseEntity.notFound().build();
+        }
+        return ResponseEntity.ok(progress);
     }
 }
 

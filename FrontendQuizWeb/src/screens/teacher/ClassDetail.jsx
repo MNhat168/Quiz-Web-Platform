@@ -38,6 +38,10 @@ const ClassDetail = () => {
     const [gameLoading, setGameLoading] = useState(false);
     const [gameSessions, setGameSessions] = useState([]);
     const [selectedSession, setSelectedSession] = useState(null);
+    const [selectedHistory, setSelectedHistory] = useState(null);
+    const [loadingHistory, setLoadingHistory] = useState(false);
+    const [subjectProgress, setSubjectProgress] = useState(null);
+    const [loadingProgress, setLoadingProgress] = useState(false);
 
     // Fetch class details
     useEffect(() => {
@@ -290,7 +294,38 @@ const ClassDetail = () => {
     }
     }, [classId, token]);
 
+    const handleSelectSession = async (session) => {
+        setSelectedSession(session);
+        setLoadingHistory(true);
+        setLoadingProgress(true); // nếu muốn có loading riêng cho progress
 
+        try {
+            // Gọi API lịch sử lớp
+            const historyRes = await axios.get(
+            `http://localhost:8080/api/classes/class-game-history/${session.id}`,
+            {
+                headers: { Authorization: `Bearer ${token}` },
+            }
+            );
+            setSelectedHistory(historyRes.data);
+
+            // Gọi API tiến độ môn học
+            const progressRes = await axios.get(
+            `http://localhost:8080/api/classes/subject-progress/${session.id}`,
+            {
+                headers: { Authorization: `Bearer ${token}` },
+            }
+            );
+            setSubjectProgress(progressRes.data);
+        } catch (err) {
+            console.error("Lỗi khi tải dữ liệu:", err);
+            setSelectedHistory(null);
+            setSubjectProgress(null);
+        } finally {
+            setLoadingHistory(false);
+            setLoadingProgress(false);
+        }
+    };
 
     const ITEMS_PER_PAGE = 9;
     const [currentPage, setCurrentPage] = useState(1);
@@ -310,11 +345,14 @@ const ClassDetail = () => {
     if (currentPage > 1) setCurrentPage(prev => prev - 1);
     };
 
-    const formatDateTime = (dateTimeString) => {
-        const date = new Date(dateTimeString);
-        return date.toLocaleString('en-US', {
-            dateStyle: 'short',
-        });
+    const formatDateTime = (dateString) => {
+    const date = new Date(dateString);
+    return new Intl.DateTimeFormat('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+        timeZone: 'UTC'  // hoặc bỏ nếu muốn giờ địa phương
+    }).format(date);
     };
 
     const markAttendance = () => {
@@ -348,12 +386,13 @@ const ClassDetail = () => {
     }
 
     const formatDate = (dateString) => {
-        const date = new Date(dateString);
-        return date.toLocaleDateString('en-US', {
-            month: 'short',
-            day: 'numeric',
-            year: 'numeric'
-        });
+    const date = new Date(dateString);
+    return new Intl.DateTimeFormat('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+        timeZone: 'UTC'  // hoặc bỏ nếu muốn giờ địa phương
+    }).format(date);
     };
 
     return (
@@ -568,7 +607,7 @@ const ClassDetail = () => {
                                                 <div
                                                 key={index}
                                                 className="game-session-card"
-                                                onClick={() => setSelectedSession(session)}
+                                                onClick={() => handleSelectSession(session)}
                                                 >
                                                 <strong><p className="game-session-game">Game: {session.gameName}</p></strong>
                                                 <p className="game-session-status">Status: {session.status}</p>
@@ -604,41 +643,102 @@ const ClassDetail = () => {
 
                                         {/* Selected session detail */}
                                             {selectedSession && (
-                                            <div className="session-modal-overlay">
-                                                <div className="session-modal-content">
-                                                <button
-                                                    className="session-modal-close"
-                                                    onClick={() => setSelectedSession(null)}
-                                                >
-                                                    &times;
-                                                </button>
-
-                                                <h3 className="session-modal-title">Students performance</h3>
-
-                                                {selectedSession.participants && selectedSession.participants.length > 0 ? (
-                                                    <ul className="session-modal-list">
-                                                    {selectedSession.participants.map((p, i) => (
-                                                        <li key={i} className="session-modal-item">
-                                                        <span className="participant-name">{p.displayName}</span>:{" "}
-                                                        <span className="participant-score">{p.totalScore}</span> points
-                                                        </li>
-                                                    ))}
-                                                    </ul>
-                                                ) : (
-                                                    <p className="session-modal-empty">Không có người tham gia.</p>
-                                                )}
-
-                                                <div className="session-modal-footer">
-                                                    <button
-                                                    onClick={() => setSelectedSession(null)}
-                                                    className="session-modal-button"
+                                            <div className="game-session-modal">
+                                                <div className="game-session-modal__overlay">
+                                                    <div className="game-session-modal__content">
+                                                    <button 
+                                                        onClick={() => setSelectedSession(null)} 
+                                                        className="game-session-modal__close-btn"
                                                     >
-                                                    Đóng
+                                                        ×
                                                     </button>
-                                                </div>
+                                                    
+                                                    {loadingHistory ? (
+                                                        <div className="game-session-modal__loading">
+                                                        <div className="game-session-modal__spinner"></div>
+                                                        <p>Đang tải chi tiết phiên học...</p>
+                                                        </div>
+                                                    ) : selectedHistory ? (
+                                                        <div className="game-session-details">
+                                                        {/* Header Section */}
+                                                        <div className="game-session-header">
+                                                            <h2 className="game-session-title">
+                                                            <span>Game:</span> {selectedSession.gameName}
+                                                            </h2>
+                                                            <div className="game-session-stats">
+                                                            <div className="stat-card">
+                                                                <span className="stat-card__label">Điểm trung bình lớp</span>
+                                                                <span className="stat-card__value">{selectedHistory.classAverageScore}</span>
+                                                            </div>
+                                                            <div className="stat-card">
+                                                                <span className="stat-card__label">Tỷ lệ tham gia</span>
+                                                                <span className="stat-card__value">{selectedHistory.participationPercentage}%</span>
+                                                            </div>
+                                                            </div>
+                                                        </div>
+
+                                                        {/* Subject Progress Section */}
+                                                        {subjectProgress && (
+                                                            <div className="subject-progress">
+                                                            <h4 className="section-title">
+                                                                Tiến độ môn học
+                                                            </h4>
+                                                            
+                                                            <div className="subject-progress__grid">
+                                                                <div>
+                                                                <p className="info-item"><span>Môn học:</span> {subjectProgress.subject}</p>
+                                                                <p className="info-item"><span>Điểm trung bình:</span> {subjectProgress.averageScore.toFixed(2)}</p>
+                                                                </div>
+                                                                <div>
+                                                                <p className="info-item"><span>Hoạt động hoàn thành:</span> {subjectProgress.totalActivitiesCompleted}</p>
+                                                                <p className="info-item"><span>Lần hoạt động cuối:</span> {formatDateTime(subjectProgress.lastActivity)}</p>
+                                                                </div>
+                                                            </div>
+
+                                                            {subjectProgress.topicScores && (
+                                                                <div className="topics-section">
+                                                                <h5 className="sub-section-title">Điểm theo chủ đề:</h5>
+                                                                <div className="topics-container">
+                                                                    {Object.entries(subjectProgress.topicScores).map(([topic, score]) => (
+                                                                    <div key={topic} className="topic-item">
+                                                                        <span className="topic-item__name">{topic}</span>
+                                                                        <span className="topic-item__score">{score.toFixed(2)}</span>
+                                                                    </div>
+                                                                    ))}
+                                                                </div>
+                                                                </div>
+                                                            )}
+                                                            </div>
+                                                        )}
+
+                                                        {/* Student Performance Section */}
+                                                        <div className="student-performance">
+                                                            <h4 className="section-title">
+                                                            Kết quả học sinh
+                                                            </h4>
+                                                            <div className="students-list">
+                                                            {Object.entries(selectedHistory.studentPerformance).map(([studentId, perf]) => (
+                                                                <div key={studentId} className="student-card">
+                                                                <h5 className="student-card__id">{studentId}</h5>
+                                                                <div className="student-card__stats">
+                                                                    <p><span>Điểm:</span> {perf.totalScore}</p>
+                                                                    <p><span>Đúng/Sai:</span> {perf.correctAnswers}/{perf.incorrectAnswers}</p>
+                                                                    <p><span>Thời gian TB:</span> {perf.averageResponseTime}s</p>
+                                                                    <p><span>Hoạt động:</span> Hoàn thành: {perf.completedActivities}, Bỏ qua: {perf.skippedActivities}</p>
+                                                                </div>
+                                                                </div>
+                                                            ))}
+                                                            </div>
+                                                        </div>
+                                                        </div>
+                                                    ) : (
+                                                        <p className="game-session-modal__empty">Không có dữ liệu chi tiết.</p>
+                                                    )}
+                                                    </div>
                                                 </div>
                                             </div>
                                             )}
+
                                         </div>
 
                                 )}
