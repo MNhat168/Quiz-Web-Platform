@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
+import { ChevronDown, Gauge, Flag, Globe } from "lucide-react";
 import axios from "axios";
 import {
   Gamepad,
@@ -56,11 +57,11 @@ const GameActivityEditor = () => {
   const filteredActivities = activities.filter((activity) => {
     const typeMatch =
       activeTypeFilter === "ALL" || activity.type === activeTypeFilter;
-    const searchMatch =
-      searchQuery === "" ||
-      activity.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (activity.subject &&
-        activity.subject.toLowerCase().includes(searchQuery.toLowerCase()));
+    const normalizedSearch = searchQuery.toLowerCase();
+    const titleMatch = activity.title?.toLowerCase().includes(normalizedSearch) ?? false;
+    const subjectMatch = (activity.subject || "").toLowerCase().includes(normalizedSearch);
+
+    const searchMatch = searchQuery === "" || titleMatch || subjectMatch;
 
     return typeMatch && searchMatch;
   });
@@ -207,25 +208,21 @@ const GameActivityEditor = () => {
             case "TEAM_CHALLENGE":
               return {
                 ...baseItem,
-                title: `Team Challenge - ${
-                  item.data.prompts[0]?.substring(0, 20) || "Untitled"
-                }`, // Truncate long prompts
+                title: `Team Challenge - ${item.data.prompts[0]?.text?.substring(0, 20) || "Untitled"}`, // Access .text
                 duration: item.data.roundTime,
               };
             case "FILL_IN_BLANK":
               return {
                 ...baseItem,
-                title: `Fill-in-Blank - ${
-                  item.data.questionText?.substring(0, 30) || "Untitled"
-                }`,
+                title: `Fill-in-Blank - ${item.data.questionText?.substring(0, 30) || "Untitled"
+                  }`,
                 duration: item.duration, // Correct reference
               };
             case "MULTIPLE_CHOICE":
               return {
                 ...baseItem,
-                title: `MCQ - ${
-                  item.data.question?.substring(0, 30) || "Untitled"
-                }`,
+                title: `MCQ - ${item.data.question?.substring(0, 30) || "Untitled"
+                  }`,
                 duration: item.data.duration,
               };
             case "MATCHING":
@@ -468,6 +465,10 @@ const GameActivityEditor = () => {
       ]);
     }
   };
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [activeTypeFilter, searchQuery, activities]);
 
   const addHint = () => {
     if (!currentHint.trim()) return;
@@ -764,76 +765,6 @@ const GameActivityEditor = () => {
                   </label>
                 </div>
               </div>
-
-              {game?.settings?.teamBased && (
-                <div className="team-settings-subsection !col-span-full !bg-indigo-50 !rounded-lg !p-5 !border !border-indigo-100 !animate-fade-in">
-                  <h4 className="!text-indigo-700 !font-medium !mb-4 !flex !items-center">
-                    <svg
-                      className="!w-5 !h-5 !mr-2"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                      xmlns="http://www.w3.org/2000/svg"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth="2"
-                        d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
-                      ></path>
-                    </svg>
-                    Team Configuration
-                  </h4>
-                  <div className="form-row !grid !grid-cols-1 !sm:grid-cols-2 !gap-4">
-                    <div className="form-group">
-                      <label className="!block !text-sm !font-medium !text-gray-700 !mb-1">
-                        Min Team Size
-                      </label>
-                      <input
-                        type="number"
-                        min="2"
-                        value={game.settings.teamSettings?.minTeamSize || 2}
-                        onChange={(e) =>
-                          setGame({
-                            ...game,
-                            settings: {
-                              ...game.settings,
-                              teamSettings: {
-                                ...game.settings.teamSettings,
-                                minTeamSize: parseInt(e.target.value),
-                              },
-                            },
-                          })
-                        }
-                        className="!w-full !px-4 !py-2 !border !border-gray-300 !rounded-lg !shadow-sm !focus:ring-2 !focus:ring-indigo-500 !focus:border-indigo-500 !transition-colors"
-                      />
-                    </div>
-                    <div className="form-group">
-                      <label className="!block !text-sm !font-medium !text-gray-700 !mb-1">
-                        Max Team Size
-                      </label>
-                      <input
-                        type="number"
-                        min="2"
-                        value={game.settings.teamSettings?.maxTeamSize || 5}
-                        onChange={(e) =>
-                          setGame({
-                            ...game,
-                            settings: {
-                              ...game.settings,
-                              teamSettings: {
-                                ...game.settings.teamSettings,
-                                maxTeamSize: parseInt(e.target.value),
-                              },
-                            },
-                          })
-                        }
-                        className="!w-full !px-4 !py-2 !border !border-gray-300 !rounded-lg !shadow-sm !focus:ring-2 !focus:ring-indigo-500 !focus:border-indigo-500 !transition-colors"
-                      />
-                    </div>
-                  </div>
-                </div>
-              )}
             </div>
           </div>
 
@@ -888,10 +819,10 @@ const GameActivityEditor = () => {
                               {activity.activityType === "MULTIPLE_CHOICE"
                                 ? "Multiple Choice"
                                 : activity.activityType === "SORTING"
-                                ? "Sorting"
-                                : activity.activityType === "MATCHING"
-                                ? "Matching"
-                                : activity.activityType}
+                                  ? "Sorting"
+                                  : activity.activityType === "MATCHING"
+                                    ? "Matching"
+                                    : activity.activityType}
                             </span>
                             <span className="activity-points-badge !inline-flex !items-center !px-2.5 !py-0.5 !rounded-full !text-xs !font-medium !bg-yellow-100 !text-yellow-800">
                               <Award size={14} className="!mr-1" />{" "}
@@ -981,36 +912,34 @@ const GameActivityEditor = () => {
 
         {isAddingActivity && (
           <div className="modal-overlay !fixed !inset-0 !bg-black !bg-opacity-50 !flex !items-center !justify-center !z-50 !p-4 !overflow-y-auto">
-            <div className="modal-content activity-modal !bg-white !rounded-xl !shadow-xl !w-full !max-w-4xl !max-h-[90vh] !flex !flex-col !animate-scale-in">
+            <div className="modal-content activity-modal !bg-white !rounded-xl !shadow-xl !w-full !max-w-7xl !max-h-[95vh] !flex !flex-col !animate-scale-in">
               <div className="modal-header !flex !justify-between !items-center !p-6 !border-b !border-gray-200">
-                <h2 className="!text-xl !font-semibold !text-gray-800">
+                <h2 className="!text-2xl !font-semibold !text-gray-800">
                   Add Activities to Game
                 </h2>
                 <button
                   className="close-modal !p-2 !rounded-full !text-gray-500 !hover:text-gray-700 !hover:bg-gray-100 !transition-colors"
                   onClick={closeAddActivityModal}
                 >
-                  <X size={20} />
+                  <X size={24} />
                 </button>
               </div>
 
               <div className="modal-tabs !flex !border-b !border-gray-200">
                 <button
-                  className={`!flex-1 !py-3 !px-4 !font-medium !flex !items-center !justify-center !gap-2 !transition-colors ${
-                    !isCreatingActivity
-                      ? "!bg-indigo-50 !text-indigo-700 !border-b-2 !border-indigo-500 active-tab"
-                      : "!text-gray-600 !hover:bg-gray-50"
-                  }`}
+                  className={`!flex-1 !py-3 !px-4 !font-medium !flex !items-center !justify-center !gap-2 !transition-colors ${!isCreatingActivity
+                    ? "!bg-indigo-50 !text-indigo-700 !border-b-2 !border-indigo-500 active-tab"
+                    : "!text-gray-600 !hover:bg-gray-50"
+                    }`}
                   onClick={() => setIsCreatingActivity(false)}
                 >
                   <BookOpen size={16} /> Select Existing
                 </button>
                 <button
-                  className={`!flex-1 !py-3 !px-4 !font-medium !flex !items-center !justify-center !gap-2 !transition-colors ${
-                    isCreatingActivity
-                      ? "!bg-indigo-50 !text-indigo-700 !border-b-2 !border-indigo-500 active-tab"
-                      : "!text-gray-600 !hover:bg-gray-50"
-                  }`}
+                  className={`!flex-1 !py-3 !px-4 !font-medium !flex !items-center !justify-center !gap-2 !transition-colors ${isCreatingActivity
+                    ? "!bg-indigo-50 !text-indigo-700 !border-b-2 !border-indigo-500 active-tab"
+                    : "!text-gray-600 !hover:bg-gray-50"
+                    }`}
                   onClick={() => setIsCreatingActivity(true)}
                 >
                   <FilePlus size={16} /> Create New
@@ -1047,119 +976,100 @@ const GameActivityEditor = () => {
                       margin: "20px 0",
                     }}
                   >
-                    <div className="create-activity-form !p-6">
-                      <div className="form-row !grid !grid-cols-1 !md:grid-cols-2 !gap-6 !mb-6">
-                        <div className="form-group">
-                          <label
-                            htmlFor="activityTitle"
-                            className="!block !text-sm !font-medium !text-gray-700 !mb-1"
-                          >
-                            Activity Title{" "}
-                            <span className="!text-red-500">*</span>
-                          </label>
-                          <input
-                            id="activityTitle"
-                            type="text"
-                            value={newActivity.title}
-                            onChange={(e) =>
-                              setNewActivity({
-                                ...newActivity,
-                                title: e.target.value,
-                              })
-                            }
-                            className="form-input !w-full !px-4 !py-2 !border !border-gray-300 !rounded-lg !shadow-sm !focus:ring-2 !focus:ring-indigo-500 !focus:border-indigo-500 !transition-colors"
-                            required
-                            placeholder="Enter activity title"
-                          />
-                        </div>
-                        <div className="form-group">
-                          <label
-                            htmlFor="activityType"
-                            className="!block !text-sm !font-medium !text-gray-700 !mb-1"
-                          >
-                            Activity Type
-                          </label>
-                          <select
-                            id="activityType"
-                            value={newActivity.type}
-                            onChange={(e) =>
-                              setNewActivity({
-                                ...newActivity,
-                                type: e.target.value,
-                              })
-                            }
-                            className="form-select !w-full !px-4 !py-2 !border !border-gray-300 !rounded-lg !shadow-sm !focus:ring-2 !focus:ring-indigo-500 !focus:border-indigo-500 !transition-colors !appearance-none !bg-white"
-                          >
-                            {activityTypes.map((type) => (
-                              <option key={type} value={type}>
-                                {type === "MULTIPLE_CHOICE"
-                                  ? "Multiple Choice"
-                                  : type === "SORTING"
-                                  ? "Sorting"
-                                  : type === "MATCHING"
-                                  ? "Matching"
-                                  : type === "FILL_IN_BLANK"
-                                  ? "Fill In Blank"
-                                  : type}
-                              </option>
-                            ))}
-                          </select>
-                        </div>
-                      </div>
+                    <div className="create-activity-form !p-8">
+                      <div className="!flex !flex-col md:!flex-row !gap-8 !mb-8">
+                        {/* Left Column - Form Groups (20%) */}
+                        <div className="!w-full md:!w-1/5 !flex !flex-col !gap-6">
+                          {/* Activity Title */}
+                          <div className="form-group">
+                            <label className="!block !text-sm !font-medium !text-gray-700 !mb-2">
+                              Activity Title <span className="!text-red-500">*</span>
+                            </label>
+                            <input
+                              value={newActivity.title}
+                              onChange={(e) => setNewActivity({ ...newActivity, title: e.target.value })}
+                              className="!w-full !px-4 !py-3 !border !border-gray-300 !rounded-lg !shadow-sm !focus:ring-2 !focus:ring-indigo-500 !focus:border-indigo-500"
+                              placeholder="Enter activity title"
+                            />
+                          </div>
 
-                      <div className="form-row !grid !grid-cols-1 !md:grid-cols-1 !gap-6 !mb-6">
-                        <div className="form-group">
-                          <label
-                            htmlFor="difficulty"
-                            className="!block !text-sm !font-medium !text-gray-700 !mb-1"
-                          >
-                            Difficulty
-                          </label>
-                          <select
-                            id="difficulty"
-                            value={newActivity.difficulty}
-                            onChange={(e) =>
-                              setNewActivity({
-                                ...newActivity,
-                                difficulty: e.target.value,
-                              })
-                            }
-                            className="form-select !w-full !px-4 !py-2 !border !border-gray-300 !rounded-lg !shadow-sm !focus:ring-2 !focus:ring-indigo-500 !focus:border-indigo-500 !transition-colors !appearance-none !bg-white"
-                          >
-                            <option value="EASY">Easy</option>
-                            <option value="MEDIUM">Medium</option>
-                            <option value="HARD">Hard</option>
-                          </select>
-                        </div>
-                      </div>
+                          {/* Activity Type */}
+                          <div className="form-group">
+                            <label className="!block !text-sm !font-medium !text-gray-700 !mb-2">
+                              Activity Type
+                            </label>
+                            <div className="!flex !flex-col !gap-2">
+                              {activityTypes.map((type) => (
+                                <button
+                                  key={type}
+                                  onClick={() => setNewActivity({ ...newActivity, type })}
+                                  className={`!text-left !px-3 !py-2 !rounded !text-sm !font-medium !transition-colors
+                ${newActivity.type === type
+                                      ? '!bg-indigo-600 !text-white'
+                                      : '!bg-gray-100 !text-gray-700 !hover:bg-gray-200'
+                                    }`}
+                                >
+                                  {type.replace(/_/g, ' ')}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
 
-                      <div className="form-group !col-span-full !mb-6">
-                        <div className="checkbox-group !flex !items-center !space-x-3 !bg-gray-50 !p-4 !rounded-lg !border !border-gray-100">
-                          <input
-                            type="checkbox"
-                            id="isPublic"
-                            checked={newActivity.isPublic}
-                            onChange={(e) =>
-                              setNewActivity({
-                                ...newActivity,
-                                isPublic: e.target.checked,
-                              })
-                            }
-                            className="!w-5 !h-5 !text-indigo-600 !rounded !border-gray-300 !focus:ring-indigo-500 !transition-colors"
-                          />
-                          <label
-                            htmlFor="isPublic"
-                            className="!text-gray-700 !font-medium !select-none"
-                          >
-                            Make this activity public
-                          </label>
+                          {/* Difficulty Level */}
+                          <div className="form-group">
+                            <label className="!block !text-sm !font-medium !text-gray-700 !mb-2">
+                              Difficulty Level
+                            </label>
+                            <div className="!flex !flex-col !gap-2">
+                              {['EASY', 'MEDIUM', 'HARD'].map((level) => (
+                                <button
+                                  key={level}
+                                  onClick={() => setNewActivity({ ...newActivity, difficulty: level })}
+                                  className={`!text-left !px-3 !py-2 !rounded !text-sm !font-medium !transition-colors
+                ${newActivity.difficulty === level
+                                      ? `!${level === 'EASY' ? 'bg-green-600 text-white' :
+                                        level === 'MEDIUM' ? 'bg-yellow-600 text-white' :
+                                          'bg-red-600 text-white'}`
+                                      : '!bg-gray-100 !text-gray-700 !hover:bg-gray-200'
+                                    }`}
+                                >
+                                  {level.charAt(0) + level.slice(1).toLowerCase()}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+
+                          {/* Visibility */}
+                          <div className="form-group">
+                            <label className="!block !text-sm !font-medium !text-gray-700 !mb-2">
+                              Visibility
+                            </label>
+                            <div className="!flex !items-center !gap-3 !bg-gray-100 !p-3 !rounded">
+                              <div
+                                onClick={() => setNewActivity({ ...newActivity, isPublic: !newActivity.isPublic })}
+                                className={`!relative !inline-block !w-14 !h-8 !rounded-full !cursor-pointer !transition-colors
+              ${newActivity.isPublic ? '!bg-indigo-600' : '!bg-gray-300'}`}
+                              >
+                                <div className={`!absolute !top-1 !h-6 !w-6 !bg-white !rounded-full !shadow-md !transform !transition-transform
+              ${newActivity.isPublic ? '!translate-x-6' : '!translate-x-1'}`}
+                                />
+                              </div>
+                              <span className="!text-sm !text-gray-700">
+                                {newActivity.isPublic ? 'Public' : 'Private'}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Right Column - Activity Content (80%) */}
+                        <div className="!w-full md:!w-4/5 !min-h-[600px] !p-6">
+                          <div className="!bg-gray-50 !rounded-xl !p-6 !border !border-gray-200 !h-full">
+                            {renderActivityForm()}
+                          </div>
                         </div>
                       </div>
 
-                      <div className="!bg-gray-50 !rounded-xl !p-6 !mb-6 !border !border-gray-200">
-                        {renderActivityForm()}
-                      </div>
-
+                      {/* Form Actions */}
                       <div className="modal-actions !flex !justify-end !gap-3 !mt-6">
                         <button
                           className="cancel-button !px-4 !py-2 !border !border-gray-300 !text-gray-700 !font-medium !rounded-lg !hover:bg-gray-50 !transition-colors"
@@ -1171,20 +1081,7 @@ const GameActivityEditor = () => {
                           className="create-button !px-4 !py-2 !bg-indigo-600 !hover:bg-indigo-700 !text-white !font-medium !rounded-lg !shadow-sm !transition-colors !flex !items-center !gap-2"
                           onClick={createActivity}
                         >
-                          <svg
-                            className="!w-5 !h-5"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                            xmlns="http://www.w3.org/2000/svg"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth="2"
-                              d="M12 6v6m0 0v6m0-6h6m-6 0H6"
-                            ></path>
-                          </svg>
+                          <Plus size={18} />
                           Create Activity
                         </button>
                       </div>
@@ -1195,7 +1092,7 @@ const GameActivityEditor = () => {
                 <div className="select-activity-content !flex !flex-col !flex-1 !overflow-hidden">
                   <div className="activity-selection-container !flex !flex-1 !overflow-hidden">
                     {/* Vertical sidebar for activity type filters */}
-                    <div className="activity-type-sidebar !w-64 !border-r !border-gray-200 !bg-gray-50 !overflow-y-auto">
+                    <div className="activity-type-sidebar !w-72 !border-r !border-gray-200 !bg-gray-50 !overflow-y-auto">
                       <div className="activity-type-sidebar-header !p-4 !border-b !border-gray-200">
                         <h3 className="!text-sm !font-semibold !text-gray-500 !uppercase !tracking-wider">
                           Filter Types
@@ -1203,11 +1100,10 @@ const GameActivityEditor = () => {
                       </div>
                       <div className="activity-type-list !py-2">
                         <button
-                          className={`activity-type-item !w-full !text-left !px-4 !py-2 !flex !items-center !gap-2 !transition-colors ${
-                            activeTypeFilter === "ALL"
-                              ? "!bg-indigo-50 !text-indigo-700 !font-medium active"
-                              : "!text-gray-700 !hover:bg-gray-100"
-                          }`}
+                          className={`activity-type-item !w-full !text-left !px-4 !py-2 !flex !items-center !gap-2 !transition-colors ${activeTypeFilter === "ALL"
+                            ? "!bg-indigo-50 !text-indigo-700 !font-medium active"
+                            : "!text-gray-700 !hover:bg-gray-100"
+                            }`}
                           onClick={() => setActiveTypeFilter("ALL")}
                         >
                           <ListOrdered size={16} /> All Types
@@ -1238,11 +1134,10 @@ const GameActivityEditor = () => {
                           return (
                             <button
                               key={type}
-                              className={`activity-type-item !w-full !text-left !px-4 !py-2 !flex !items-center !gap-2 !transition-colors ${
-                                activeTypeFilter === type
-                                  ? "!bg-indigo-50 !text-indigo-700 !font-medium active"
-                                  : "!text-gray-700 !hover:bg-gray-100"
-                              }`}
+                              className={`activity-type-item !w-full !text-left !px-4 !py-2 !flex !items-center !gap-2 !transition-colors ${activeTypeFilter === type
+                                ? "!bg-indigo-50 !text-indigo-700 !font-medium active"
+                                : "!text-gray-700 !hover:bg-gray-100"
+                                }`}
                               onClick={() => setActiveTypeFilter(type)}
                             >
                               {icon}
@@ -1250,14 +1145,14 @@ const GameActivityEditor = () => {
                                 {type === "MULTIPLE_CHOICE"
                                   ? "Multiple Choice"
                                   : type === "SORTING"
-                                  ? "Sorting"
-                                  : type === "MATCHING"
-                                  ? "Matching"
-                                  : type === "FILL_IN_BLANK"
-                                  ? "Fill In Blank"
-                                  : type === "TEAM_CHALLENGE"
-                                  ? "Team Challenge"
-                                  : type}
+                                    ? "Sorting"
+                                    : type === "MATCHING"
+                                      ? "Matching"
+                                      : type === "FILL_IN_BLANK"
+                                        ? "Fill In Blank"
+                                        : type === "TEAM_CHALLENGE"
+                                          ? "Team Challenge"
+                                          : type}
                               </span>
                             </button>
                           );
@@ -1277,7 +1172,7 @@ const GameActivityEditor = () => {
                             placeholder="Search activities..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            className="activity-search-input !pl-9 !pr-4 !py-2 !border !border-gray-300 !rounded-lg !shadow-sm !focus:ring-2 !focus:ring-indigo-500 !focus:border-indigo-500 !transition-colors !w-64"
+                            className="activity-search-input !pl-9 !pr-4 !py-2 !border !border-gray-300 !rounded-lg !shadow-sm !focus:ring-2 !focus:ring-indigo-500 !focus:border-indigo-500 !transition-colors !w-80"
                           />
                           <svg
                             className="!w-5 !h-5 !text-gray-400 !absolute !left-3 !top-1/2 !transform !-translate-y-1/2"
@@ -1295,9 +1190,9 @@ const GameActivityEditor = () => {
                           </svg>
                         </div>
                       </div>
-                      <div className="activities-list-scrollable !flex-1 !overflow-y-auto !p-4">
+                      <div className="activities-list-scrollable !flex-1 !overflow-y-auto !p-6">
                         {filteredActivities.length > 0 ? (
-                          <div className="!space-y-3">
+                          <div className="!grid !grid-cols-1 !gap-6">
                             {paginatedActivities.map((activity) => {
                               const isSelected =
                                 selectedActivities.findIndex(
@@ -1306,17 +1201,15 @@ const GameActivityEditor = () => {
                               return (
                                 <div
                                   key={activity.id}
-                                  className={`activity-select-item !border !rounded-lg !overflow-hidden !transition-all !duration-200 !cursor-pointer !hover:shadow-md ${
-                                    isSelected
-                                      ? "!border-indigo-500 !bg-indigo-50 selected"
-                                      : "!border-gray-200 !bg-white !hover:border-indigo-200"
-                                  }`}
+                                  className={`activity-select-item !border !rounded-lg !overflow-hidden !transition-all !duration-200 !cursor-pointer !hover:shadow-md 
+          ${isSelected ? "!border-indigo-500 !bg-indigo-50" : "!border-gray-200 !bg-white"} 
+          !w-full !mb-4 !p-6`}
                                   onClick={() => selectActivity(activity)}
                                 >
                                   <div className="!p-4 !flex !items-center !justify-between !gap-4">
                                     <div className="activity-select-info !flex-1 !min-w-0">
                                       <div className="activity-select-title !flex !items-center !gap-2">
-                                        <h3 className="!font-medium !text-gray-800 !truncate">
+                                        <h3 className="!text-lg !font-medium !text-gray-800">
                                           {activity.title}
                                         </h3>
                                       </div>
@@ -1326,12 +1219,12 @@ const GameActivityEditor = () => {
                                           {activity.type === "MULTIPLE_CHOICE"
                                             ? "Multiple Choice"
                                             : activity.type === "SORTING"
-                                            ? "Sorting"
-                                            : activity.type === "MATCHING"
-                                            ? "Matching"
-                                            : activity.type === "FILL_IN_BLANK"
-                                            ? "Fill In Blank"
-                                            : activity.type}
+                                              ? "Sorting"
+                                              : activity.type === "MATCHING"
+                                                ? "Matching"
+                                                : activity.type === "FILL_IN_BLANK"
+                                                  ? "Fill In Blank"
+                                                  : activity.type}
                                         </span>
                                         <span className="activity-points-badge !inline-flex !items-center !px-2.5 !py-0.5 !rounded-full !text-xs !font-medium !bg-yellow-100 !text-yellow-800">
                                           <Award size={14} className="!mr-1" />{" "}
@@ -1352,14 +1245,13 @@ const GameActivityEditor = () => {
                                         )}
                                         {activity.difficulty && (
                                           <span
-                                            className={`activity-difficulty !flex !items-center !gap-1 ${
-                                              activity.difficulty === "EASY"
-                                                ? "!text-green-600"
-                                                : activity.difficulty ===
-                                                  "MEDIUM"
+                                            className={`activity-difficulty !flex !items-center !gap-1 ${activity.difficulty === "EASY"
+                                              ? "!text-green-600"
+                                              : activity.difficulty ===
+                                                "MEDIUM"
                                                 ? "!text-yellow-600"
                                                 : "!text-red-600"
-                                            } ${activity.difficulty.toLowerCase()}`}
+                                              } ${activity.difficulty.toLowerCase()}`}
                                           >
                                             <svg
                                               className="!w-4 !h-4"
@@ -1437,8 +1329,7 @@ const GameActivityEditor = () => {
                         )}
                       </div>
 
-                      {/* Pagination Controls */}
-                      {filteredActivities.length > activitiesPerPage && (
+                      {totalPages > 1 && (
                         <div className="pagination-controls !p-4 !border-t !border-gray-200 !bg-white !flex !items-center !justify-between">
                           <div className="!flex !items-center !gap-2">
                             <button
@@ -1544,15 +1435,15 @@ const GameActivityEditor = () => {
                     </div>
                   </div>
 
-                  <div className="modal-actions !p-4 !border-t !border-gray-200 !bg-gray-50 !flex !justify-end !gap-3">
+                  <div className="modal-actions !p-6 !border-t !border-gray-200 !bg-gray-50 !flex !justify-end !gap-4">
                     <button
-                      className="cancel-button !px-4 !py-2 !border !border-gray-300 !text-gray-700 !font-medium !rounded-lg !hover:bg-gray-100 !transition-colors"
+                      className="cancel-button !px-6 !py-3 !border !border-gray-300 !text-gray-700 !font-medium !rounded-lg !hover:bg-gray-100 !transition-colors"
                       onClick={closeAddActivityModal}
                     >
                       Cancel
                     </button>
                     <button
-                      className="add-button !px-4 !py-2 !bg-indigo-600 !hover:bg-indigo-700 !text-white !font-medium !rounded-lg !shadow-sm !transition-colors !flex !items-center !gap-2 !disabled:opacity-50 !disabled:cursor-not-allowed"
+                      className="add-button !px-6 !py-3 !bg-indigo-600 !hover:bg-indigo-700 !text-white !font-medium !rounded-lg !shadow-sm !transition-colors !flex !items-center !gap-2 !disabled:opacity-50 !disabled:cursor-not-allowed"
                       onClick={addActivitiesToGame}
                       disabled={selectedActivities.length === 0}
                     >

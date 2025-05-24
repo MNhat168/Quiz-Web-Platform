@@ -626,6 +626,7 @@
   
   .activity-select-info {
     flex: 1;
+    padding-right: 8px !important;
   }
   
   .activity-select-title {
@@ -634,6 +635,7 @@
     gap: 8px;
     margin-bottom: 8px;
     font-weight: 500;
+    font-size: 14px !important;
   }
   
   .selection-order {
@@ -651,7 +653,7 @@
   
   .activity-select-badges {
     display: flex;
-    gap: 8px;
+    gap: 4px !important;
     flex-wrap: wrap;
   }
   
@@ -670,7 +672,8 @@
   
   .activity-select-details {
     display: flex;
-    gap: 12px;
+    flex-wrap: wrap;
+  gap: 8px;
     font-size: 0.75rem;
     color: #6b7280;
   }
@@ -706,6 +709,7 @@
     display: flex;
     align-items: center;
     gap: 0.25rem; /* khoảng cách giữa số thứ tự và icon */
+     min-width: 40px !important;
 }
   
   /* No Activities State */
@@ -896,10 +900,9 @@
 }
 
 .activities-list-scrollable {
-    flex: 1;
-    overflow-y: auto;
-    max-height: none; /* Remove max-height restriction */
-    height: calc(100% - 100px); /* Subtract header and pagination height */
+  max-height: none !important;
+  height: auto !important;
+  min-height: 600px; /* Adjust based on your needs */
     padding: 0;
     &::-webkit-scrollbar {
       display: none;
@@ -907,8 +910,8 @@
 }
 .modal-content.activity-modal {
   width: 90%; /* Increase from previous width */
-  max-width: 1200px; /* Larger max-width */
-  height: 80vh; /* Set a height relative to viewport */
+  max-height: 90vh !important;
+  height: 90vh !important;/* Set a height relative to viewport */
   max-height: 800px; /* Increase max height */
 }
 .pagination-controls {
@@ -946,7 +949,8 @@
 
 .activity-select-item {
     border-bottom: 1px solid #eee;
-    padding: 12px 15px;
+    padding: 12px !important;
+  margin-bottom: 8px !important;
     cursor: pointer;
     transition: background-color 0.2s;
 }
@@ -960,3 +964,152 @@
     border-left: 3px solid #1890ff;
 }
 
+/* Updated Modal Overlay */
+.modal-overlay {
+  background: linear-gradient(135deg, rgba(76, 81, 191, 0.95) 0%, rgba(96, 165, 250, 0.95) 100%) !important;
+  backdrop-filter: blur(8px) saturate(180%);
+}
+
+/* Glassmorphism Modal Content */
+.modal-content {
+  background: rgba(255, 255, 255, 0.1) !important;
+  border-radius: 24px !important;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(16px) saturate(180%);
+  box-shadow: 0 8px 32px rgba(31, 38, 135, 0.37);
+  overflow: hidden;
+  position: relative;
+}
+
+/* Bubble shape decoration */
+.modal-content:before {
+  content: '';
+  position: absolute;
+  width: 200px;
+  height: 200px;
+  background: radial-gradient(circle at 50% 50%, rgba(96, 165, 250, 0.4) 0%, rgba(76, 81, 191, 0.2) 100%);
+  top: -50px;
+  right: -50px;
+  border-radius: 50%;
+}
+
+.modal-content:after {
+  content: '';
+  position: absolute;
+  width: 150px;
+  height: 150px;
+  background: radial-gradient(circle at 50% 50%, rgba(96, 165, 250, 0.3) 0%, rgba(76, 81, 191, 0.1) 100%);
+  bottom: -30px;
+  left: -30px;
+  border-radius: 50%;
+}
+
+/* Modal Header */
+.modal-header {
+  background: linear-gradient(90deg, rgba(76, 81, 191, 0.2) 0%, rgba(96, 165, 250, 0.1) 100%);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+/* Modal Tabs */
+.modal-tabs button {
+  background: transparent !important;
+  color: rgba(255, 255, 255, 0.8) !important;
+  border-bottom: 3px solid transparent !important;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.modal-tabs button:before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, rgba(76, 81, 191, 0.3) 0%, rgba(96, 165, 250, 0.2) 100%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.modal-tabs button:hover:before {
+  opacity: 1;
+}
+
+.modal-tabs .active-tab {
+  color: white !important;
+  border-bottom-color: #60a5fa !important;
+}
+
+/* Form Elements */
+.form-input, .form-select, .form-textarea {
+  background: rgba(255, 255, 255, 0.05) !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  color: white !important;
+  border-radius: 12px !important;
+}
+
+/* Activity Items */
+.activity-select-item {
+  background: rgba(255, 255, 255, 0.05) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  border-radius: 16px !important;
+  transition: all 0.3s ease;
+}
+
+.activity-select-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+}
+
+/* Buttons */
+.create-button, .add-button {
+  background: linear-gradient(135deg, #4F46E5 0%, #60a5fa 100%) !important;
+  border-radius: 12px !important;
+  border: none;
+  position: relative;
+  overflow: hidden;
+}
+
+.create-button:before, .add-button:before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, transparent 100%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.create-button:hover:before, .add-button:hover:before {
+  opacity: 1;
+}
+
+/* Pagination */
+.pagination-button {
+  background: rgba(255, 255, 255, 0.05) !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  color: white !important;
+  border-radius: 8px !important;
+}
+
+/* Text Colors */
+.modal-header h2, .activity-select-title, .activity-type-badge {
+  color: white !important;
+}
+
+.activity-select-details {
+  color: rgba(255, 255, 255, 0.7) !important;
+}
+
+/* Scrollbars */
+.activities-list-scrollable::-webkit-scrollbar {
+  width: 6px;
+}
+
+.activities-list-scrollable::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+}

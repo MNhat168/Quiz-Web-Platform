@@ -17,7 +17,9 @@ import {
   Layers,
   Settings,
   Save,
-  Share
+  Share,
+  ChevronUp,
+  ChevronDown
 } from "lucide-react"
 import Sidebar from "../../layout/teacher/teacherSidebar"
 import Header from "../../layout/teacher/teacherHeader";
@@ -205,130 +207,150 @@ const TeacherCreateGame = () => {
         <Sidebar />
 
         <div className="game-main-content">
-          <div className="flex flex-col gap-4">
-            {/* Header Section */}
-            <div className="flex justify-between items-center px-4">
-              <h1 className="text-2xl font-bold text-gray-800">My Games</h1>
-              <button
-                onClick={() => setIsModalOpen(true)}
-                className="create-quiz-button bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg flex items-center gap-2"
-              >
-                <Plus className="w-5 h-5" />
-                Create New Game
-              </button>
-            </div>
-
-            {/* Pagination Controls */}
-            {games.length > itemsPerPage && (
+          <div className="flex">
+            {/* Main content area */}
+            <div className="flex-1 flex flex-col gap-4">
+              {/* Header Section */}
               <div className="flex justify-between items-center px-4">
-                <span className="text-sm text-gray-600">
-                  Showing {(currentPage - 1) * itemsPerPage + 1} - {Math.min(currentPage * itemsPerPage, games.length)} of {games.length} games
-                </span>
-                <div className="flex gap-2">
-                  <button
-                    onClick={handlePrevious}
-                    disabled={currentPage === 1}
-                    className="px-3 py-1 rounded-md bg-gray-100 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    Previous
-                  </button>
-                  <span className="px-3 py-1 text-gray-700">
-                    Page {currentPage} of {totalPages}
-                  </span>
-                  <button
-                    onClick={handleNext}
-                    disabled={currentPage === totalPages}
-                    className="px-3 py-1 rounded-md bg-gray-100 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    Next
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* Games List Content */}
-            {loading ? (
-              <div className="game-loading-container">
-                <svg
-                  className="game-spinner text-purple-600"
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
+                <h1 className="text-2xl font-bold text-gray-800">My Games</h1>
+                <button
+                  onClick={() => setIsModalOpen(true)}
+                  className="create-quiz-button bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg flex items-center gap-2"
                 >
-                  <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path
-                    fill="currentColor"
-                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                  ></path>
-                </svg>
+                  <Plus className="w-5 h-5" />
+                  Create New Game
+                </button>
               </div>
-            ) : Array.isArray(games) && games.length === 0 ? (
-              <div className="game-empty-state">
-                <Gamepad className="game-empty-icon text-gray-300" />
-                <p>You haven't created any games yet.</p>
-              </div>
-            ) : (
-              <div className="game-list-container">
-                <div className="game-card-grid">
-                  {currentGames.map((game) => (
-                    <div key={game.id} className="game-item-card bg-white rounded-lg shadow p-4">
-                      {/* Title and Description - Top Left */}
-                      <div className="game-header-section mb-2">
-                        <h3 className="game-card-title font-semibold text-lg">{game.title}</h3>
-                        {game.description && (
-                          <p className="game-description text-gray-600 text-sm line-clamp-2">
-                            {game.description}
-                          </p>
-                        )}
-                      </div>
 
-                      {/* Meta and Tags - Bottom Left */}
-                      <div className="game-meta-section mt-auto">
-                        <div className="game-meta flex items-center text-xs text-gray-500 mb-2">
-                          <Book className="h-4 w-4 mr-1" />
-                          <span>{game.subject}</span>
-                          <Layers className="h-4 w-4 ml-3 mr-1" />
-                          <span>{game.activities?.length || 0} activities</span>
+              {/* Games List Content */}
+              {loading ? (
+                <div className="game-loading-container">
+                  <svg
+                    className="game-spinner text-purple-600"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    ></path>
+                  </svg>
+                </div>
+              ) : Array.isArray(games) && games.length === 0 ? (
+                <div className="game-empty-state">
+                  <Gamepad className="game-empty-icon text-gray-300" />
+                  <p>You haven't created any games yet.</p>
+                </div>
+              ) : (
+                <div className="game-list-container">
+                  <div className="game-card-grid">
+                    {currentGames.map((game) => (
+                      <div key={game.id} className="game-item-card bg-white rounded-lg shadow p-4">
+                        {/* Title and Description - Top Left */}
+                        <div className="game-header-section mb-2">
+                          <h3 className="game-card-title font-semibold text-lg">{game.title}</h3>
+                          {game.description && (
+                            <p className="game-description text-gray-600 text-sm line-clamp-2">
+                              {game.description}
+                            </p>
+                          )}
                         </div>
 
-                        {game.tags && game.tags.length > 0 && (
-                          <div className="game-tags-container flex flex-wrap  ">
-                            {game.tags.slice(0, 3).map((tag, index) => (
-                              <span
-                                key={index}
-                                className="game-tag bg-gray-100 text-gray-700 text-xs px-2 py-1 rounded mr-2 mb-2"
-                              >
-                                {tag}
-                              </span>
-                            ))}
-                            {game.tags.length > 3 && (
-                              <span className="game-more-tag bg-gray-200 text-gray-600 text-xs px-2 py-1 rounded italic">
-                                +{game.tags.length - 3}
-                              </span>
-                            )}
+                        {/* Meta and Tags - Bottom Left */}
+                        <div className="game-meta-section mt-auto">
+                          <div className="game-meta flex items-center text-xs text-gray-500 mb-2">
+                            <Book className="h-4 w-4 mr-1" />
+                            <span>{game.subject}</span>
+                            <Layers className="h-4 w-4 ml-3 mr-1" />
+                            <span>{game.activities?.length || 0} activities</span>
                           </div>
-                        )}
-                      </div>
 
-                      {/* Actions - Bottom Right */}
-                      <div className="game-actions-section flex justify-end items-center mt-3 pt-3 border-t border-gray-100">
-                        <button
-                          onClick={() => editGame(game.id)}
-                          className="game-edit-button flex items-center bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1 rounded text-sm"
-                        >
-                          <Settings className="h-4 w-4 mr-1" />
-                          <span>Edit</span>
-                        </button>
-                        <button
-                          onClick={() => viewGameDetails(game.id)}
-                          className="game-edit-button flex items-center bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1 rounded text-sm"
-                        >
-                          <span>Detail</span>
-                          <ChevronRight className="h-5 w-5" />
-                        </button>
+                          {game.tags && game.tags.length > 0 && (
+                            <div className="game-tags-container flex flex-wrap  ">
+                              {game.tags.slice(0, 3).map((tag, index) => (
+                                <span
+                                  key={index}
+                                  className="game-tag bg-gray-100 text-gray-700 text-xs px-2 py-1 rounded mr-2 mb-2"
+                                >
+                                  {tag}
+                                </span>
+                              ))}
+                              {game.tags.length > 3 && (
+                                <span className="game-more-tag bg-gray-200 text-gray-600 text-xs px-2 py-1 rounded italic">
+                                  +{game.tags.length - 3}
+                                </span>
+                              )}
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Actions - Bottom Right */}
+                        <div className="game-actions-section flex justify-end items-center mt-3 pt-3 border-t border-gray-100">
+                          <button
+                            onClick={() => editGame(game.id)}
+                            className="game-edit-button flex items-center bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1 rounded text-sm"
+                          >
+                            <Settings className="h-4 w-4 mr-1" />
+                            <span>Edit</span>
+                          </button>
+                          <button
+                            onClick={() => viewGameDetails(game.id)}
+                            className="game-edit-button flex items-center bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1 rounded text-sm"
+                          >
+                            <span>Detail</span>
+                            <ChevronRight className="h-5 w-5" />
+                          </button>
+                        </div>
                       </div>
-                    </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Vertical Pagination Controls - Right Side */}
+            {games.length > itemsPerPage && (
+              <div className="flex flex-col items-center justify-between py-4 w-16 bg-gradient-to-b from-purple-600 to-blue-500 rounded-xl shadow-lg">
+                {/* Previous Button */}
+                <button
+                  onClick={handlePrevious}
+                  disabled={currentPage === 1}
+                  className="p-2 hover:bg-white/10 rounded-full transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                  title="Previous page"
+                >
+                  <ChevronUp className="w-6 h-6 text-white" />
+                </button>
+
+                {/* Page Dots */}
+                <div className="flex flex-col gap-3">
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                    <button
+                      key={page}
+                      onClick={() => setCurrentPage(page)}
+                      className={`h-2 w-2 rounded-full transition-all ${page === currentPage
+                          ? 'bg-white scale-125'
+                          : 'bg-white/50 hover:bg-white/70'
+                        }`}
+                      title={`Go to page ${page}`}
+                    />
                   ))}
+                </div>
+
+                {/* Next Button */}
+                <button
+                  onClick={handleNext}
+                  disabled={currentPage === totalPages}
+                  className="p-2 hover:bg-white/10 rounded-full transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                  title="Next page"
+                >
+                  <ChevronDown className="w-6 h-6 text-white" />
+                </button>
+
+                {/* Items Count */}
+                <div className="text-center text-white/70 text-xs mt-4">
+                  {Math.min(currentPage * itemsPerPage, games.length)}/{games.length}
                 </div>
               </div>
             )}
