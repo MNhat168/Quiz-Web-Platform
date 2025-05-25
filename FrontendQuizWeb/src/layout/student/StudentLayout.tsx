@@ -12,6 +12,8 @@ const StudentLayout: React.FC = () => {
       setActiveNav("CLASS");
     } else if (path === "/student/profile") {
       setActiveNav("PROFILE");
+    } else if (path === "/student/logout") {
+      setActiveNav("LOGOUT");
     }
   }, [location]);
 
@@ -21,6 +23,8 @@ const StudentLayout: React.FC = () => {
       navigate("/student/profile");
     } else if (navText === "CLASS") {
       navigate("/student");
+    } else if (navText === "LOGOUT") {
+      navigate("/student/logout");
     }
   };
 
@@ -55,10 +59,10 @@ const StudentLayout: React.FC = () => {
               onClick={() => handleNavClick("PROFILE")}
             />
             <NavItem 
-              icon={<img src="/History.svg" alt="History" className="!w-10 !h-10 relative left-2 !mr-3.5" />} 
-              text="HISTORY"
-              active={activeNav === "HISTORY"}
-              onClick={() => handleNavClick("HISTORY")}
+              icon={<img src="/Logout.svg" alt="Logout" className="!w-10 !h-10 relative left-2 !mr-3.5" />} 
+              text="LOGOUT"
+              active={activeNav === "LOGOUT"}
+              onClick={() => handleNavClick("LOGOUT")}
             />
             <NavItem 
               icon={<img src="/rank.svg" alt="Ranking" className="!w-9 !h-10 relative left-2.5 !mr-5" />} 

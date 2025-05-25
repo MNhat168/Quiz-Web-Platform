@@ -23,6 +23,7 @@ import StudentLayout from './layout/student/StudentLayout';
 import SimpleSocketTest from './screens/teacher/Sockettest';
 import GameActivityEditor from './screens/teacher/GameEditor';
 import TeacherProfile from './screens/teacher/TeacherProfile';
+import Logout from './screens/student/Logout';
 
 import StudentGamePlay from './screens/student/StudentGameplay';
 import GameCompletedLeaderboard from './screens/student/activities/Leaderboard';
@@ -151,6 +152,7 @@ function App() {
           >
             <Route index element={<StudentHome />} />
             <Route path="profile" element={<ProfileStudent />} />
+            <Route path="logout" element={<Logout />} />
           </Route>
 
           <Route path="/unauthorized" element={<Unauthorized />} />
