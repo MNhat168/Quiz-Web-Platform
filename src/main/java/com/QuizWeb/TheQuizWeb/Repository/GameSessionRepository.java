@@ -12,6 +12,7 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface GameSessionRepository extends MongoRepository<GameSession, String> {
     Optional<GameSession> findByAccessCode(String accessCode);
+    Optional<GameSession> findById(String id);
     List<GameSession> findByClassId(String classId);
     List<GameSession> findByTeacherId(String teacherId);
     List<GameSession> findByClassIdAndStatus(String classId, GameSession.SessionStatus status);
