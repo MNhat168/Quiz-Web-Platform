@@ -60,6 +60,7 @@ interface StudentProgress {
   recentSessions: GameSession[];
   learningProfile: LearningProfile;
   subjectProgressList: SubjectProgress[];
+  displayName?: string;
 }
 
 const API_BASE_URL = 'http://localhost:8080/api/student-progress';
@@ -280,7 +281,7 @@ const ProfileStudent: React.FC = () => {
                 <span className="!text-indigo-500 !text-lg">👋</span>
               </div>
               <h2 className="!text-indigo-700 !text-3xl !font-bold">
-                Welcome back, {studentProgress.studentId}!
+                Welcome back, {studentProgress.displayName}!
               </h2>
             </div>
             <p className="!text-gray-700 !text-lg !ml-10">

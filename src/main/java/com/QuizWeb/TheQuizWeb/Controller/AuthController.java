@@ -119,6 +119,7 @@ public class AuthController {
     public ResponseEntity<?> verifyOtp(@RequestBody Map<String, String> request) {
         String email = request.get("email");
         String otp = request.get("otp");
+        boolean isPasswordReset = Boolean.parseBoolean(request.get("isPasswordReset"));
 
         if (email == null || otp == null) {
             return ResponseEntity.badRequest().body("Email and OTP are required");
@@ -130,20 +131,72 @@ public class AuthController {
             return ResponseEntity.badRequest().body(result.getMessage());
         }
 
-        // Get pending user
-        User user = otpService.getPendingUser(email);
-        if (user == null) {
-            return ResponseEntity.badRequest().body("No pending registration found");
+        if (isPasswordReset) {
+            // Get the new password from temporary storage
+            String newPassword = otpService.getPendingPassword(email);
+            if (newPassword == null) {
+                return ResponseEntity.badRequest().body("No pending password reset found");
+            }
+
+            // Update user's password
+            User user = userRepository.findByEmail(email)
+                    .orElseThrow(() -> new IllegalArgumentException("User not found"));
+            user.setPasswordHash(passwordEncoder.encode(newPassword));
+            userRepository.save(user);
+
+            // Clear OTP and pending password
+            otpService.clearOtp(email);
+            otpService.clearPendingPassword(email);
+
+            return ResponseEntity.ok("Password has been reset successfully. Please login with your new password.");
+        } else {
+            // Get pending user
+            User user = otpService.getPendingUser(email);
+            if (user == null) {
+                return ResponseEntity.badRequest().body("No pending registration found");
+            }
+
+            // Enable and save user to database
+            user.setEnabled(true);
+            userRepository.save(user);
+
+            // Clear OTP and pending user from temporary storage
+            otpService.clearOtp(email);
+            otpService.clearPendingUser(email);
+
+            return ResponseEntity.ok("Registration successful! Please login.");
+        }
+    }
+
+    @PostMapping("/forgot-password")
+    public ResponseEntity<?> forgotPassword(@RequestBody Map<String, String> request) {
+        String email = request.get("email");
+        String newPassword = request.get("newPassword");
+
+        if (email == null || newPassword == null) {
+            return ResponseEntity.badRequest().body("Email and new password are required");
         }
 
-        // Enable and save user to database
-        user.setEnabled(true);
-        userRepository.save(user);
+        // Check if user exists
+        if (!userRepository.findByEmail(email).isPresent()) {
+            return ResponseEntity.badRequest().body("User not found");
+        }
 
-        // Clear OTP and pending user from temporary storage
-        otpService.clearOtp(email);
-        otpService.clearPendingUser(email);
+        // Generate OTP
+        String otp = otpService.generateOtp();
+        
+        // Save OTP and new password to temporary storage
+        otpService.saveOtp(email, otp);
+        otpService.savePendingPassword(email, newPassword);
 
-        return ResponseEntity.ok("Registration successful! Please login.");
+        // Send OTP via email
+        try {
+            emailService.sendOtpEmail(email, otp);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Failed to send OTP email");
+        }
+
+        return ResponseEntity.ok("OTP has been sent to your email. Please verify to reset your password.");
     }
 }

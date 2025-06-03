@@ -4,6 +4,7 @@ import com.QuizWeb.TheQuizWeb.Model.StudentProgress;
 import com.QuizWeb.TheQuizWeb.Model.GameSession;
 import com.QuizWeb.TheQuizWeb.Model.Activity;
 import com.QuizWeb.TheQuizWeb.Model.Games;
+import com.QuizWeb.TheQuizWeb.Model.User;
 import com.QuizWeb.TheQuizWeb.Repository.StudentProgressRepository;
 import com.QuizWeb.TheQuizWeb.Repository.ActivityRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -31,6 +32,9 @@ public class StudentProgressService {
     @Autowired
     private GameService gameService;
 
+    @Autowired
+    private UserService userService;
+
     public StudentProgress getStudentProgress(String studentId) {
         logger.info("Getting progress for student: {}", studentId);
         
@@ -51,6 +55,12 @@ public class StudentProgressService {
                 cleanupDuplicateRecords(studentId, latestProgress.getId());
             }
             
+            // Get and set display name using email
+            Optional<User> userOptional = userService.getUserByEmail(studentId);
+            if (userOptional.isPresent()) {
+                latestProgress.setDisplayName(userOptional.get().getDisplayName());
+            }
+            
             return latestProgress;
         }
         
@@ -61,6 +71,10 @@ public class StudentProgressService {
 
     public StudentProgress updateProgress(String studentId, List<GameSession> sessions) {
         logger.info("Updating progress for student: {}", studentId);
+
+        // Get user's display name using email
+        Optional<User> userOptional = userService.getUserByEmail(studentId);
+        String displayName = userOptional.map(User::getDisplayName).orElse(null);
 
         // Filter completed sessions for the student
         List<GameSession> completedSessions = sessions.stream()
@@ -75,6 +89,7 @@ public class StudentProgressService {
         // Initialize progress
         StudentProgress progress = new StudentProgress();
         progress.setStudentId(studentId);
+        progress.setDisplayName(displayName);
         progress.setTotalSessions(completedSessions.size());
         progress.setLastActivityDate(new Date());
 
@@ -190,8 +205,13 @@ public class StudentProgressService {
     private StudentProgress createInitialProgress(String studentId) {
         logger.info("Creating initial progress for student: {}", studentId);
         
+        // Get user's display name using email
+        Optional<User> userOptional = userService.getUserByEmail(studentId);
+        String displayName = userOptional.map(User::getDisplayName).orElse(null);
+        
         StudentProgress progress = new StudentProgress();
         progress.setStudentId(studentId);
+        progress.setDisplayName(displayName);
         progress.setTotalScore(0);
         progress.setTotalSessions(0);
         progress.setLastActivityDate(new Date());

@@ -17,13 +17,20 @@ const Checkotp = () => {
     try {
       const response = await axios.post('http://localhost:8080/api/auth/verify-otp', {
         email: location.state?.email,
-        otp: otp
+        otp: otp,
+        isPasswordReset: location.state?.isPasswordReset || false
       });
 
       if (response.status === 200) {
         setMessage('Xác thực thành công! Đang chuyển hướng...');
         setTimeout(() => {
-          navigate('/login');
+          navigate('/login', { 
+            state: { 
+              message: location.state?.isPasswordReset 
+                ? 'Đặt lại mật khẩu thành công! Vui lòng đăng nhập với mật khẩu mới.'
+                : 'Đăng ký thành công! Vui lòng đăng nhập.'
+            }
+          });
         }, 2000);
       }
     } catch (error: any) {
@@ -56,10 +63,15 @@ const Checkotp = () => {
               type="text"
               required
               maxLength={6}
+              pattern="[0-9]*"
+              inputMode="numeric"
               className="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
               placeholder="Nhập mã OTP"
               value={otp}
-              onChange={(e) => setOtp(e.target.value)}
+              onChange={(e) => {
+                const value = e.target.value.replace(/[^0-9]/g, '');
+                setOtp(value);
+              }}
             />
           </div>
 

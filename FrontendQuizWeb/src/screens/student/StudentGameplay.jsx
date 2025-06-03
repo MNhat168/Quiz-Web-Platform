@@ -267,8 +267,8 @@ const StudentGamePlay = () => {
                         } !animate-popIn`}
                         style={{ animationDelay: `${idx * 0.1 + 0.3}s` }}
                       >
-                        {entry.avatar
-                          ? <img src={entry.avatar} className="!w-full !h-full !object-cover" />
+                        {entry.avatarUrl
+                          ? <img src={entry.avatarUrl} className="!w-full !h-full !object-cover" />
                           : <span className="!text-3xl !font-bold !text-gray-500">{entry.displayName?.charAt(0) || ''}</span>
                         }
                       </div>
@@ -317,8 +317,8 @@ const StudentGamePlay = () => {
                         </div>
                       </div>
                       <div className="!flex !items-center !gap-3">
-                        {entry.avatar
-                          ? <img src={entry.avatar || "/placeholder.svg"} className="!w-10 !h-10 !rounded-full !border-2 !border-gray-200 !shadow-sm" />
+                        {entry.avatarUrl
+                          ? <img src={entry.avatarUrl} className="!w-10 !h-10 !rounded-full !border-2 !border-gray-200 !shadow-sm" />
                           : <div className="!w-10 !h-10 !rounded-full !bg-gradient-to-br !from-purple-100 !to-blue-100 !flex !items-center !justify-center !shadow-sm">
                               <span className="!text-purple-500 !font-bold">{entry.displayName.charAt(0)}</span>
                             </div>

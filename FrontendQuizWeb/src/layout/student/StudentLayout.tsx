@@ -10,7 +10,7 @@ const StudentLayout: React.FC = () => {
     const path = location.pathname;
     if (path === "/student") {
       setActiveNav("CLASS");
-    } else if (path === "/student/profile") {
+    } else if (path === "/student/info") {
       setActiveNav("PROFILE");
     } else if (path === "/student/logout") {
       setActiveNav("LOGOUT");
@@ -20,11 +20,13 @@ const StudentLayout: React.FC = () => {
   const handleNavClick = (navText: string) => {
     setActiveNav(navText);
     if (navText === "PROFILE") {
-      navigate("/student/profile");
+      navigate("/student/info");
     } else if (navText === "CLASS") {
       navigate("/student");
     } else if (navText === "LOGOUT") {
       navigate("/student/logout");
+    } else if (navText === "HISTORY") {
+      navigate("/student/profile");
     }
   };
 
@@ -47,16 +49,16 @@ const StudentLayout: React.FC = () => {
               onClick={() => handleNavClick("CLASS")}
             />
             <NavItem 
-              icon={<img src="/game controller.svg" alt="Game" className="relative !w-10 !h-12 left-2 !mr-4" />} 
-              text="EXPLORE"
-              active={activeNav === "EXPLORE"}
-              onClick={() => handleNavClick("EXPLORE")}
-            />
-            <NavItem 
-              icon={<img src="/profile.svg" alt="Profile" className="!w-12 !h-10 !mr-2" />} 
+              icon={<img src="/profile.svg" alt="Profile" className="relative !w-10 !h-12 left-2 !mr-4" />} 
               text="PROFILE"
               active={activeNav === "PROFILE"}
               onClick={() => handleNavClick("PROFILE")}
+            />
+            <NavItem 
+              icon={<img src="/avartar.svg" alt="History" className="!w-12 !h-10 !mr-2" />} 
+              text="HISTORY"
+              active={activeNav === "HISTORY"}
+              onClick={() => handleNavClick("HISTORY")}
             />
             <NavItem 
               icon={<img src="/Logout.svg" alt="Logout" className="!w-10 !h-10 relative left-2 !mr-3.5" />} 

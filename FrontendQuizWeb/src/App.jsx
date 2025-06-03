@@ -1,6 +1,7 @@
 import { useState, useContext } from 'react'
 import Login from "./screens/Login";
 import Signup from "./screens/Signup";
+import ForgotPass from "./screens/ForgotPass";
 import AdminDashboard from './screens/admin/AdminDashboard';
 import TeacherDashboard from './screens/teacher/TeacherDashboard';
 import Unauthorized from './screens/Unauthorized';
@@ -24,6 +25,7 @@ import SimpleSocketTest from './screens/teacher/Sockettest';
 import GameActivityEditor from './screens/teacher/GameEditor';
 import TeacherProfile from './screens/teacher/TeacherProfile';
 import Logout from './screens/student/Logout';
+import Info from './screens/student/Info';
 
 import StudentGamePlay from './screens/student/StudentGameplay';
 import GameCompletedLeaderboard from './screens/student/activities/Leaderboard';
@@ -39,6 +41,7 @@ function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
           <Route path="/checkotp" element={<Checkotp />} />
+          <Route path="/forgot-password" element={<ForgotPass />} />
 
           <Route
             path="/admin"
@@ -152,6 +155,7 @@ function App() {
           >
             <Route index element={<StudentHome />} />
             <Route path="profile" element={<ProfileStudent />} />
+            <Route path="info" element={<Info />} />
             <Route path="logout" element={<Logout />} />
           </Route>
 
