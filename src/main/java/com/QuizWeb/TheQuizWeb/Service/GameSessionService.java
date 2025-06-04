@@ -369,7 +369,6 @@ public class GameSessionService {
         }
     }
 
-
     private boolean evaluateMultipleChoice(Object content, Object answer) {
         try {
             int questionIndex = 0;
@@ -401,7 +400,6 @@ public class GameSessionService {
         }
     }
 
-    
     private List<?> getOptionsForQuestion(Object content, int questionIndex) {
         if (content instanceof Activity.MultipleChoiceContent) {
             Activity.MultipleChoiceContent mcContent = (Activity.MultipleChoiceContent) content;
@@ -941,7 +939,10 @@ public class GameSessionService {
             return false;
 
         String normalizedGuess = guess.trim().toLowerCase();
-        String normalizedPrompt = currentPrompt.getPrompt().trim().toLowerCase();
+        String promptString = currentPrompt.getPrompt();
+        if (promptString == null)
+            return false;
+        String normalizedPrompt = promptString.trim().toLowerCase();
 
         Activity.TeamChallengeContent.GuessValidation validationMethod = teamChallengeContent
                 .getPictionarySettings() != null ? teamChallengeContent.getPictionarySettings().getGuessValidation()
@@ -1070,60 +1071,6 @@ public class GameSessionService {
         return false;
     }
 
-    private Activity.TeamChallengeContent convertMapToTeamChallengeContent(Map<String, Object> contentMap) {
-        Activity.TeamChallengeContent teamChallengeContent = new Activity.TeamChallengeContent();
-        List<Activity.TeamChallengeContent.DrawingPrompt> prompts = new ArrayList<>();
-
-        if (contentMap.containsKey("prompts")) {
-            List<?> promptEntries = (List<?>) contentMap.get("prompts");
-            for (Object entry : promptEntries) {
-                Activity.TeamChallengeContent.DrawingPrompt prompt = new Activity.TeamChallengeContent.DrawingPrompt();
-
-                if (entry instanceof String) {
-                    // Handle simple string prompts
-                    prompt.setPrompt((String) entry);
-                    prompt.setPoints(100);
-                    prompt.setTimeLimit(60);
-                    prompt.setSynonyms(new ArrayList<>());
-                    prompt.setHints(new ArrayList<>());
-                } else if (entry instanceof Map) {
-                    // Handle full prompt objects
-                    Map<String, Object> promptMap = (Map<String, Object>) entry;
-                    prompt.setPrompt((String) promptMap.getOrDefault("prompt", ""));
-                    prompt.setPoints(((Number) promptMap.getOrDefault("points", 100)).intValue());
-                    prompt.setTimeLimit(((Number) promptMap.getOrDefault("timeLimit", 60)).intValue());
-                    prompt.setSynonyms((List<String>) promptMap.getOrDefault("synonyms", new ArrayList<>()));
-                    prompt.setHints((List<String>) promptMap.getOrDefault("hints", new ArrayList<>()));
-                }
-                prompts.add(prompt);
-            }
-        }
-
-        // Handle pictionary settings
-        if (contentMap.containsKey("pictionarySettings")) {
-            Map<String, Object> settingsMap = (Map<String, Object>) contentMap.get("pictionarySettings");
-            Activity.TeamChallengeContent.PictionarySettings settings = new Activity.TeamChallengeContent.PictionarySettings();
-
-            settings.setRotateDrawers((Boolean) settingsMap.getOrDefault("rotateDrawers", false));
-            settings.setRoundsPerPlayer(((Number) settingsMap.getOrDefault("roundsPerPlayer", 1)).intValue());
-            settings.setAllowPartialPoints((Boolean) settingsMap.getOrDefault("allowPartialPoints", false));
-            settings.setRevealAnswerOnFail((Boolean) settingsMap.getOrDefault("revealAnswerOnFail", true));
-            settings.setMaxGuessesPerTeam(((Number) settingsMap.getOrDefault("maxGuessesPerTeam", 3)).intValue());
-
-            try {
-                settings.setGuessValidation(Activity.TeamChallengeContent.GuessValidation.valueOf(
-                        (String) settingsMap.getOrDefault("guessValidation", "EXACT_MATCH")));
-            } catch (IllegalArgumentException e) {
-                settings.setGuessValidation(Activity.TeamChallengeContent.GuessValidation.EXACT_MATCH);
-            }
-
-            teamChallengeContent.setPictionarySettings(settings);
-        }
-
-        teamChallengeContent.setPrompts(prompts);
-        return teamChallengeContent;
-    }
-
     public Map<String, Object> submitDrawing(String accessCode, String studentId, String teamId, String drawingData) {
         GameSession session = gameSessionRepository.findByAccessCode(accessCode)
                 .orElseThrow(() -> new RuntimeException("Session not found"));
@@ -1242,7 +1189,11 @@ public class GameSessionService {
                         } else if (entry instanceof Map) {
                             // Handle full prompt objects
                             Map<String, Object> promptMap = (Map<String, Object>) entry;
-                            prompt.setPrompt((String) promptMap.get("prompt"));
+                            String promptText = (String) promptMap.get("prompt");
+                            if (promptText == null) {
+                                promptText = (String) promptMap.get("text");
+                            }
+                            prompt.setPrompt(promptText);
                             prompt.setPoints(((Number) promptMap.getOrDefault("points", 100)).intValue());
                             prompt.setTimeLimit(((Number) promptMap.getOrDefault("timeLimit", 60)).intValue());
                         }

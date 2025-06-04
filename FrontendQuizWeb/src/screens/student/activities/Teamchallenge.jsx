@@ -386,6 +386,37 @@ const TeamChallengeActivity = ({ activity, content, accessCode, contentItem }) =
         return () => clearInterval(timer);
     }, [challengeStatus.status, timeRemaining]);
 
+    const [revealedHints, setRevealedHints] = useState([]);
+
+    // Function to get current prompt details
+    const getCurrentPrompt = useCallback(() => {
+        const currentPromptIndex = userTeam?.currentContentIndex || 0;
+        return contentItem?.data?.prompts?.[currentPromptIndex] || {};
+    }, [userTeam, contentItem]);
+
+    // Effect to manage hint revealing based on time
+    useEffect(() => {
+        if (userRole !== 'guesser' || challengeStatus.status !== 'ACTIVE') return;
+
+        const prompt = getCurrentPrompt();
+        const hints = prompt.hints || [];
+        if (hints.length === 0) return;
+
+        const totalTime = getDuration();
+        const hintIntervals = hints.map((_, i) =>
+            Math.max(10, totalTime * (1 - (i + 1) / (hints.length + 1))
+            ));
+
+        const newRevealed = [];
+        for (let i = 0; i < hints.length; i++) {
+            if (timeRemaining <= hintIntervals[i]) {
+                newRevealed.push(i);
+            }
+        }
+
+        setRevealedHints(newRevealed);
+    }, [timeRemaining, userRole, challengeStatus.status, getCurrentPrompt]);
+
     const handleStroke = useCallback((stroke) => {
         if (userRole === 'drawer' && userTeam?.teamId && canvasRef.current) {
             if (stompClientRef.current?.connected) {
@@ -531,27 +562,25 @@ const TeamChallengeActivity = ({ activity, content, accessCode, contentItem }) =
             }
         };
     }, [accessCode, userTeam?.teamId, userRole, fetchChallengeStatus]);
-    // Update renderPrompt function
     const renderPrompt = () => {
         if (!userTeam || userRole !== 'drawer') return null;
 
-        // Get index directly from the team's progress
-        const currentPromptIndex = userTeam.currentContentIndex || 0;
-        const currentWord = getPromptFromContentStructure(currentPromptIndex) ||
-            getLegacyPrompt(currentPromptIndex);
+        const prompt = getCurrentPrompt();
+        const promptText = prompt.text || prompt.prompt || '';
 
         return (
             <div className="drawing-prompt">
                 <h4>Draw this word:</h4>
-                <p className="prompt-word">{currentWord}</p>
-                {currentPromptIndex < (challengeStatus.totalPrompts - 1) && (
+                <p className="prompt-word">{promptText}</p>
+                {challengeStatus.currentPromptIndex < (challengeStatus.totalPrompts - 1) && (
                     <p className="prompt-counter">
-                        Word {currentPromptIndex + 1} of {challengeStatus.totalPrompts}
+                        Word {challengeStatus.currentPromptIndex + 1} of {challengeStatus.totalPrompts}
                     </p>
                 )}
             </div>
         );
     };
+
 
     useEffect(() => {
         if (challengeStatus.teams) {
@@ -568,8 +597,11 @@ const TeamChallengeActivity = ({ activity, content, accessCode, contentItem }) =
     const getPromptFromContentStructure = (index) => {
         if (contentItem?.data?.prompts) {
             const prompt = contentItem.data.prompts[index];
-            // Handle both string and object formats
-            return typeof prompt === 'string' ? prompt : prompt?.prompt;
+            if (!prompt) return null;
+            if (typeof prompt === 'object') {
+                return prompt.text || prompt.prompt || '';
+            }
+            return prompt;
         }
         return null;
     };
@@ -622,6 +654,8 @@ const TeamChallengeActivity = ({ activity, content, accessCode, contentItem }) =
     };
 
     const renderGuessingInterface = () => {
+        const prompt = getCurrentPrompt();
+        const hints = prompt.hints || [];
         if (userRole !== 'guesser') return null;
         return (
             <div className="guessing-interface">
@@ -648,6 +682,52 @@ const TeamChallengeActivity = ({ activity, content, accessCode, contentItem }) =
                         Refresh Canvas
                     </button>
                 </div>
+                {/* Add hints display for guesser */}
+                {hints.length > 0 && (
+                    <div className="hints-container" style={{
+                        marginTop: '15px',
+                        padding: '10px',
+                        backgroundColor: '#f8f9fa',
+                        borderRadius: '5px',
+                        borderLeft: '4px solid #4caf50'
+                    }}>
+                        <h5 style={{ marginBottom: '8px', color: '#2e7d32' }}>
+                            <i className="fas fa-lightbulb" style={{ marginRight: '5px' }}></i>
+                            Hints
+                        </h5>
+                        <ul style={{ listStyleType: 'none', padding: 0 }}>
+                            {hints.map((hint, idx) => (
+                                <li key={idx} style={{
+                                    padding: '5px 0',
+                                    display: revealedHints.includes(idx) ? 'block' : 'none'
+                                }}>
+                                    <span style={{
+                                        display: 'inline-block',
+                                        width: '25px',
+                                        height: '25px',
+                                        lineHeight: '25px',
+                                        textAlign: 'center',
+                                        backgroundColor: '#4caf50',
+                                        color: 'white',
+                                        borderRadius: '50%',
+                                        marginRight: '10px'
+                                    }}>{idx + 1}</span>
+                                    {hint}
+                                </li>
+                            ))}
+                        </ul>
+                        {revealedHints.length < hints.length && (
+                            <p style={{
+                                marginTop: '8px',
+                                fontSize: '0.9em',
+                                color: '#6c757d',
+                                fontStyle: 'italic'
+                            }}>
+                                More hints will appear as time runs out...
+                            </p>
+                        )}
+                    </div>
+                )}
                 <div className="guess-input" style={{ marginTop: '10px' }}>
                     <input
                         type="text"
@@ -677,21 +757,6 @@ const TeamChallengeActivity = ({ activity, content, accessCode, contentItem }) =
     const renderTeamInfo = () => {
         if (loading) {
             return <p>Loading team information...</p>;
-        }
-        if (!userTeam) {
-            return (
-                <div className="no-team-info">
-                    <p>Teams will be created automatically when the challenge starts.</p>
-                    {challengeStatus.status === 'ACTIVE' && (
-                        <div className="refresh-teams-btn">
-                            <p>Challenge has started - refreshing team assignments...</p>
-                            <button onClick={handleManualRefresh}>
-                                Refresh Teams
-                            </button>
-                        </div>
-                    )}
-                </div>
-            );
         }
         const teamId = userTeam.id || userTeam.teamId;
         const teamName = userTeam.teamName || userTeam.name || 'Your Team';
@@ -779,7 +844,7 @@ const TeamChallengeActivity = ({ activity, content, accessCode, contentItem }) =
                         <h5>Recent Guesses:</h5>
                         <ul style={{ listStyleType: 'none', padding: '5px', backgroundColor: '#f9f9f9', borderRadius: '5px' }}>
                             {challengeStatus.currentRound.guesses
-                                .filter(guess => guess.teamId === userTeam?.teamId) // Filter by current team
+                                .filter(guess => guess.teamId === userTeam?.teamId) 
                                 .map((guess, index) => (
                                     <li key={index}
                                         style={{
@@ -801,31 +866,6 @@ const TeamChallengeActivity = ({ activity, content, accessCode, contentItem }) =
     const renderContent = () => {
         if (loading) {
             return <div className="loading">Loading game...</div>;
-        }
-        if (challengeStatus.status !== 'ACTIVE') {
-            return (
-                <div className="waiting">
-                    {teams.length === 0 ? (
-                        <div>
-                            <p>Teams will be created automatically when the activity starts.</p>
-                            <p>Please wait for the teacher to start the activity.</p>
-                        </div>
-                    ) : (
-                        <p>Waiting for the challenge to start...</p>
-                    )}
-                </div>
-            );
-        }
-        if (!userTeam) {
-            return (
-                <div className="waiting-assignment">
-                    <p>The challenge has started and teams are being assigned.</p>
-                    <p>You'll be automatically placed on a team momentarily...</p>
-                    <div className="refresh-teams-btn">
-                        <button onClick={handleManualRefresh}>Refresh Teams</button>
-                    </div>
-                </div>
-            );
         }
         return (
             <>

@@ -4,6 +4,7 @@ import lombok.Data;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
@@ -27,7 +28,7 @@ public class GameSession {
     private List<PowerUpEvent> powerUpEvents;
     private SessionSettings settings;
     private SessionStatistics statistics;
-    private List<SessionActivity> completedActivities;
+    private List<SessionActivity> completedActivities = new ArrayList<>(); 
 
     // Team class now tracks content item index for team-based activities
     @Data

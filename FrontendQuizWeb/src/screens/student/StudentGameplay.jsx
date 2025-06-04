@@ -183,182 +183,179 @@ const StudentGamePlay = () => {
     const renderFinalLeaderboard = () => {
         // Sắp xếp top 3 đúng thứ tự: top1 ở giữa, top2 trái, top3 phải
         const sortedTop3 = [...participantScores]
-          .sort((a, b) => b.score - a.score)
-          .slice(0, 3);
+            .sort((a, b) => b.score - a.score)
+            .slice(0, 3);
         while (sortedTop3.length < 3) sortedTop3.push({ displayName: '', score: 0, userId: `empty${sortedTop3.length}` });
         const podiumOrder = [1, 0, 2];
         const podiumHeights = ['!h-24', '!h-32', '!h-20'];
         const borderColors = ['!border-gray-300', '!border-yellow-400', '!border-amber-700'];
         const bgPodium = ['!bg-gray-200', '!bg-yellow-300', '!bg-amber-200'];
         const medalIcons = [
-          <span className="!text-2xl">🥈</span>,
-          <span className="!text-3xl">🏆</span>,
-          <span className="!text-xl">🥉</span>
+            <span className="!text-2xl">🥈</span>,
+            <span className="!text-3xl">🏆</span>,
+            <span className="!text-xl">🥉</span>
         ];
-        
+
         return (
-          <div className="!relative !min-h-screen !flex !items-center !justify-center !z-10 !overflow-hidden">
-            {/* SHAPE NỀN với animation Tailwind */}
-            <div className="!absolute !top-0 !left-0 !w-96 !h-96 !bg-blue-400 !rounded-full !opacity-20 !-translate-x-1/2 !-translate-y-1/2 !z-0 !animate-[float-slow_8s_ease-in-out_infinite]" />
-            <div className="!absolute !bottom-0 !right-0 !w-96 !h-96 !bg-orange-300 !rounded-full !opacity-20 !translate-x-1/2 !translate-y-1/2 !z-0 !animate-[float-medium_7s_ease-in-out_infinite]" />
-            
-            {/* CARD CHÍNH */}
-            <div className="!relative !w-[95%] !max-w-[1200px] !bg-white !rounded-3xl !shadow-xl !p-6 !z-10 !animate-fadeIn">
-              {/* HEADER */}
-              <div className="!flex !items-center !justify-between !mb-8">
-                <div className="!flex !items-center !gap-4">
-                  <button
-                    className="!flex !items-center !gap-2 !px-4 !py-2 !rounded-full !bg-gray-100 !hover:bg-gray-200 !text-gray-700 !font-semibold !shadow !transition-all !duration-200 !group"
-                    onClick={handleReturnToLobby}
-                  >
-                    <svg
-                      className="!w-5 !h-5 !text-purple-600 !group-hover:-translate-x-1 !transition-transform !duration-200"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth={2}
-                      viewBox="0 0 24 24"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <path d="M15 18l-6-6 6-6" />
-                    </svg>
-                    <span className="!hidden sm:!inline">Back to Lobby</span>
-                  </button>
-                  <div className="!flex !items-center !gap-2">
-                    <div className="!flex !items-center !justify-center !w-10 !h-10 !rounded-full !bg-purple-600 !text-white !font-bold !text-lg !animate-pulse">
-                      {game?.currentActivityIndex + 1}/{game?.activities?.length || 1}
-                    </div>
-                    <div>
-                      <h2 className="!font-bold !text-xl">{game?.title}</h2>
-                      <p className="!text-gray-500 !text-sm">Activity</p>
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="!flex !items-center !gap-3">
-                  <div className="!bg-orange-300 !text-orange-800 !rounded-xl !px-4 !py-2 !font-semibold !animate-bounce">
-                    Code: {accessCode}
-                  </div>
-                  <div className="!bg-purple-700 !text-white !rounded-xl !px-4 !py-2 !font-bold !flex !items-center !gap-1 !animate-pulse">
-                    <svg className="!w-5 !h-5 !inline-block" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 17.75V6.25" strokeWidth="2" strokeLinecap="round"/><path d="M18.25 12L12 17.75L5.75 12" strokeWidth="2" strokeLinecap="round"/></svg>
-                    {participantScores.findIndex(entry => entry.userId === getStudentId()) + 1}st
-                  </div>
-                  <div className="!bg-purple-700 !text-white !rounded-xl !px-4 !py-2 !font-bold !animate-pulse">
-                    {participantScores.find(entry => entry.userId === getStudentId())?.score || 0} Points
-                  </div>
-                </div>
-              </div>
-              
-              {/* PODIUM TOP 3 */}
-              <div className="!flex !justify-center !items-end !gap-8 !mb-12">
-                {podiumOrder.map((orderIdx, idx) => {
-                  const entry = sortedTop3[orderIdx];
-                  return (
-                    <div
-                      key={entry.userId}
-                      className={`!flex !flex-col !items-center !relative !transition-all !duration-500 ${
-                        idx === 1 ? '!z-10 !scale-110' : '!z-0'
-                      } !animate-slideUp`}
-                      style={{ animationDelay: `${idx * 0.1 + 0.2}s` }}
-                    >
-                      <div
-                        className={`!relative !rounded-full !border-4 ${borderColors[idx]} !bg-gray-100 !flex !items-center !justify-center !overflow-hidden !shadow-lg ${
-                          idx === 1 ? '!w-28 !h-28' : idx === 0 ? '!w-24 !h-24' : '!w-20 !h-20'
-                        } !animate-popIn`}
-                        style={{ animationDelay: `${idx * 0.1 + 0.3}s` }}
-                      >
-                        {entry.avatar
-                          ? <img src={entry.avatar} className="!w-full !h-full !object-cover" />
-                          : <span className="!text-3xl !font-bold !text-gray-500">{entry.displayName?.charAt(0) || ''}</span>
-                        }
-                      </div>
-                      {/* Podium base */}
-                      <div className="!mt-2 !flex !flex-col !items-center">
-                        <div className={`!w-16 ${podiumHeights[idx]} ${bgPodium[idx]} !rounded-t-lg !flex !items-center !justify-center !mb-1 !animate-shine`}>
-                          {medalIcons[idx]}
-                        </div>
-                        <div className="!font-bold !text-center">{entry.displayName}</div>
-                        <div className="!text-gray-500 !text-sm">{entry.score} pts</div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-              
-              {/* LEADERBOARD TABLE */}
-              <div className="!bg-white !rounded-2xl !shadow-lg !p-6 !border !border-purple-100 !animate-slide-up !delay-300">
-                <h3 className="!text-xl !font-bold !text-gray-800 !mb-4 !flex !items-center !gap-2">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="!w-6 !h-6 !text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                  </svg>
-                  Leaderboard
-                </h3>
-                <div className="!grid !grid-cols-4 !gap-4 !text-gray-600 !border-b !pb-3 !font-semibold !text-sm !md:text-base">
-                  <div>Rank</div>
-                  <div>Player</div>
-                  <div>Correct Answers</div>
-                  <div>Accuracy</div>
-                </div>
-                {participantScores.slice(0, 10).map((entry, idx) => {
-                  const totalAnswers = entry.correctCount + entry.incorrectCount;
-                  const correctPercentage = totalAnswers > 0
-                    ? (entry.correctCount / totalAnswers) * 100
-                    : 0;
-                  const isCurrentUser = entry.userId === getStudentId();
-                  return (
-                    <div 
-                      key={entry.userId} 
-                      className={`!grid !grid-cols-4 !gap-4 !py-3 !items-center !border-b !transition-all !duration-300 ${isCurrentUser ? '!bg-purple-50' : idx % 2 === 0 ? '!bg-gray-50' : ''} !hover:bg-purple-50 !rounded-lg !my-1 !animate-fade-in`} 
-                      style={{ animationDelay: `${0.1 + idx * 0.05}s` }}
-                    >
-                      <div className="!flex !items-center !gap-2">
-                        <div className={`!w-8 !h-8 !rounded-full ${idx < 3 ? rankColors[idx] : rankColors[3]} !flex !items-center !justify-center !font-bold !shadow-sm`}>
-                          {idx + 1}
-                        </div>
-                      </div>
-                      <div className="!flex !items-center !gap-3">
-                        {entry.avatar
-                          ? <img src={entry.avatar || "/placeholder.svg"} className="!w-10 !h-10 !rounded-full !border-2 !border-gray-200 !shadow-sm" />
-                          : <div className="!w-10 !h-10 !rounded-full !bg-gradient-to-br !from-purple-100 !to-blue-100 !flex !items-center !justify-center !shadow-sm">
-                              <span className="!text-purple-500 !font-bold">{entry.displayName.charAt(0)}</span>
+            <div className="!relative !min-h-screen !flex !items-center !justify-center !z-10 !overflow-hidden">
+                {/* SHAPE NỀN với animation Tailwind */}
+                <div className="!absolute !top-0 !left-0 !w-96 !h-96 !bg-blue-400 !rounded-full !opacity-20 !-translate-x-1/2 !-translate-y-1/2 !z-0 !animate-[float-slow_8s_ease-in-out_infinite]" />
+                <div className="!absolute !bottom-0 !right-0 !w-96 !h-96 !bg-orange-300 !rounded-full !opacity-20 !translate-x-1/2 !translate-y-1/2 !z-0 !animate-[float-medium_7s_ease-in-out_infinite]" />
+
+                {/* CARD CHÍNH */}
+                <div className="!relative !w-[95%] !max-w-[1200px] !bg-white !rounded-3xl !shadow-xl !p-6 !z-10 !animate-fadeIn">
+                    {/* HEADER */}
+                    <div className="!flex !items-center !justify-between !mb-8">
+                        <div className="!flex !items-center !gap-4">
+                            <button
+                                className="!flex !items-center !gap-2 !px-4 !py-2 !rounded-full !bg-gray-100 !hover:bg-gray-200 !text-gray-700 !font-semibold !shadow !transition-all !duration-200 !group"
+                                onClick={handleReturnToLobby}
+                            >
+                                <svg
+                                    className="!w-5 !h-5 !text-purple-600 !group-hover:-translate-x-1 !transition-transform !duration-200"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    strokeWidth={2}
+                                    viewBox="0 0 24 24"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                >
+                                    <path d="M15 18l-6-6 6-6" />
+                                </svg>
+                                <span className="!hidden sm:!inline">Back to Lobby</span>
+                            </button>
+                            <div className="!flex !items-center !gap-2">
+                                <div className="!flex !items-center !justify-center !w-10 !h-10 !rounded-full !bg-purple-600 !text-white !font-bold !text-lg !animate-pulse">
+                                    {game?.currentActivityIndex + 1}/{game?.activities?.length || 1}
+                                </div>
+                                <div>
+                                    <h2 className="!font-bold !text-xl">{game?.title}</h2>
+                                    <p className="!text-gray-500 !text-sm">Activity</p>
+                                </div>
                             </div>
-                        }
-                        <span className={`!font-medium ${isCurrentUser ? '!text-purple-700' : ''}`}>{entry.displayName}</span>
-                        {isCurrentUser && (
-                          <span className="!bg-purple-200 !text-purple-800 !text-xs !px-2 !py-0.5 !rounded-full">You</span>
-                        )}
-                      </div>
-                      <div className="!flex !items-center !gap-2">
-                        <div className="!w-6 !h-6 !rounded-full !bg-green-100 !flex !items-center !justify-center">
-                          <svg xmlns="http://www.w3.org/2000/svg" className="!w-4 !h-4 !text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                          </svg>
                         </div>
-                        <span className="!font-medium">{entry.correctCount}</span>
-                      </div>
-                      <div>
-                        <div className="!w-full !bg-gray-200 !rounded-full !h-2.5 !mb-1 !max-w-[120px]">
-                          <div 
-                            className="!h-2.5 !rounded-full !bg-gradient-to-r !from-green-400 !to-green-500" 
-                            style={{ width: `${correctPercentage}%` }}
-                          ></div>
+
+                        <div className="!flex !items-center !gap-3">
+                            <div className="!bg-orange-300 !text-orange-800 !rounded-xl !px-4 !py-2 !font-semibold !animate-bounce">
+                                Code: {accessCode}
+                            </div>
+                            <div className="!bg-purple-700 !text-white !rounded-xl !px-4 !py-2 !font-bold !flex !items-center !gap-1 !animate-pulse">
+                                <svg className="!w-5 !h-5 !inline-block" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 17.75V6.25" strokeWidth="2" strokeLinecap="round" /><path d="M18.25 12L12 17.75L5.75 12" strokeWidth="2" strokeLinecap="round" /></svg>
+                                {participantScores.findIndex(entry => entry.userId === getStudentId()) + 1}st
+                            </div>
+                            <div className="!bg-purple-700 !text-white !rounded-xl !px-4 !py-2 !font-bold !animate-pulse">
+                                {participantScores.find(entry => entry.userId === getStudentId())?.score || 0} Points
+                            </div>
                         </div>
-                        <span className={`!text-xs !font-semibold !px-2 !py-1 !rounded-full ${
-                          correctPercentage >= 80 ? '!bg-green-100 !text-green-700' : 
-                          correctPercentage >= 50 ? '!bg-yellow-100 !text-yellow-700' : 
-                          '!bg-red-100 !text-red-700'
-                        }`}>
-                          {correctPercentage.toFixed(1)}%
-                        </span>
-                      </div>
                     </div>
-                  );
-                })}
-              </div>
+
+                    {/* PODIUM TOP 3 */}
+                    <div className="!flex !justify-center !items-end !gap-8 !mb-12">
+                        {podiumOrder.map((orderIdx, idx) => {
+                            const entry = sortedTop3[orderIdx];
+                            return (
+                                <div
+                                    key={entry.userId}
+                                    className={`!flex !flex-col !items-center !relative !transition-all !duration-500 ${idx === 1 ? '!z-10 !scale-110' : '!z-0'
+                                        } !animate-slideUp`}
+                                    style={{ animationDelay: `${idx * 0.1 + 0.2}s` }}
+                                >
+                                    <div
+                                        className={`!relative !rounded-full !border-4 ${borderColors[idx]} !bg-gray-100 !flex !items-center !justify-center !overflow-hidden !shadow-lg ${idx === 1 ? '!w-28 !h-28' : idx === 0 ? '!w-24 !h-24' : '!w-20 !h-20'
+                                            } !animate-popIn`}
+                                        style={{ animationDelay: `${idx * 0.1 + 0.3}s` }}
+                                    >
+                                        {entry.avatar
+                                            ? <img src={entry.avatar} className="!w-full !h-full !object-cover" />
+                                            : <span className="!text-3xl !font-bold !text-gray-500">{entry.displayName?.charAt(0) || ''}</span>
+                                        }
+                                    </div>
+                                    {/* Podium base */}
+                                    <div className="!mt-2 !flex !flex-col !items-center">
+                                        <div className={`!w-16 ${podiumHeights[idx]} ${bgPodium[idx]} !rounded-t-lg !flex !items-center !justify-center !mb-1 !animate-shine`}>
+                                            {medalIcons[idx]}
+                                        </div>
+                                        <div className="!font-bold !text-center">{entry.displayName}</div>
+                                        <div className="!text-gray-500 !text-sm">{entry.score} pts</div>
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+
+                    {/* LEADERBOARD TABLE */}
+                    <div className="!bg-white !rounded-2xl !shadow-lg !p-6 !border !border-purple-100 !animate-slide-up !delay-300">
+                        <h3 className="!text-xl !font-bold !text-gray-800 !mb-4 !flex !items-center !gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="!w-6 !h-6 !text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                            </svg>
+                            Leaderboard
+                        </h3>
+                        <div className="!grid !grid-cols-4 !gap-4 !text-gray-600 !border-b !pb-3 !font-semibold !text-sm !md:text-base">
+                            <div>Rank</div>
+                            <div>Player</div>
+                            <div>Correct Answers</div>
+                            <div>Accuracy</div>
+                        </div>
+                        {participantScores.slice(0, 10).map((entry, idx) => {
+                            const totalAnswers = entry.correctCount + entry.incorrectCount;
+                            const correctPercentage = totalAnswers > 0
+                                ? (entry.correctCount / totalAnswers) * 100
+                                : 0;
+                            const isCurrentUser = entry.userId === getStudentId();
+                            return (
+                                <div
+                                    key={entry.userId}
+                                    className={`!grid !grid-cols-4 !gap-4 !py-3 !items-center !border-b !transition-all !duration-300 ${isCurrentUser ? '!bg-purple-50' : idx % 2 === 0 ? '!bg-gray-50' : ''} !hover:bg-purple-50 !rounded-lg !my-1 !animate-fade-in`}
+                                    style={{ animationDelay: `${0.1 + idx * 0.05}s` }}
+                                >
+                                    <div className="!flex !items-center !gap-2">
+                                        <div className={`!w-8 !h-8 !rounded-full ${idx < 3 ? rankColors[idx] : rankColors[3]} !flex !items-center !justify-center !font-bold !shadow-sm`}>
+                                            {idx + 1}
+                                        </div>
+                                    </div>
+                                    <div className="!flex !items-center !gap-3">
+                                        {entry.avatar
+                                            ? <img src={entry.avatar || "/placeholder.svg"} className="!w-10 !h-10 !rounded-full !border-2 !border-gray-200 !shadow-sm" />
+                                            : <div className="!w-10 !h-10 !rounded-full !bg-gradient-to-br !from-purple-100 !to-blue-100 !flex !items-center !justify-center !shadow-sm">
+                                                <span className="!text-purple-500 !font-bold">{entry.displayName.charAt(0)}</span>
+                                            </div>
+                                        }
+                                        <span className={`!font-medium ${isCurrentUser ? '!text-purple-700' : ''}`}>{entry.displayName}</span>
+                                        {isCurrentUser && (
+                                            <span className="!bg-purple-200 !text-purple-800 !text-xs !px-2 !py-0.5 !rounded-full">You</span>
+                                        )}
+                                    </div>
+                                    <div className="!flex !items-center !gap-2">
+                                        <div className="!w-6 !h-6 !rounded-full !bg-green-100 !flex !items-center !justify-center">
+                                            <svg xmlns="http://www.w3.org/2000/svg" className="!w-4 !h-4 !text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                            </svg>
+                                        </div>
+                                        <span className="!font-medium">{entry.correctCount}</span>
+                                    </div>
+                                    <div>
+                                        <div className="!w-full !bg-gray-200 !rounded-full !h-2.5 !mb-1 !max-w-[120px]">
+                                            <div
+                                                className="!h-2.5 !rounded-full !bg-gradient-to-r !from-green-400 !to-green-500"
+                                                style={{ width: `${correctPercentage}%` }}
+                                            ></div>
+                                        </div>
+                                        <span className={`!text-xs !font-semibold !px-2 !py-1 !rounded-full ${correctPercentage >= 80 ? '!bg-green-100 !text-green-700' :
+                                                correctPercentage >= 50 ? '!bg-yellow-100 !text-yellow-700' :
+                                                    '!bg-red-100 !text-red-700'
+                                            }`}>
+                                            {correctPercentage.toFixed(1)}%
+                                        </span>
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
             </div>
-          </div>
         );
-      };
+    };
     useEffect(() => {
         if (sessionStatus === 'ACTIVE' && !isCountdownDone) {
             setCountdown(3);
@@ -663,9 +660,9 @@ const StudentGamePlay = () => {
                             <span className="!text-sm !font-bold !text-purple-600">{currentStudentScore} points</span>
                         </div>
                         <div className="!text-xs !text-purple-500 !font-medium">
-                            {currentStudentRank === 1 ? '🏆 Leading!' : 
-                             currentStudentRank <= 3 ? '🔥 Top 3!' : 
-                             currentStudentRank <= 5 ? '⭐ Top 5!' : 'Keep going!'}
+                            {currentStudentRank === 1 ? '🏆 Leading!' :
+                                currentStudentRank <= 3 ? '🔥 Top 3!' :
+                                    currentStudentRank <= 5 ? '⭐ Top 5!' : 'Keep going!'}
                         </div>
                     </div>
                 </div>
@@ -674,11 +671,10 @@ const StudentGamePlay = () => {
                     {participantScores.slice(0, 5).map((entry, idx) => (
                         <div
                             key={entry.userId}
-                            className={`!flex !items-center !p-2 !rounded-lg !transition-all !duration-300 ${
-                                entry.userId === currentStudentId
+                            className={`!flex !items-center !p-2 !rounded-lg !transition-all !duration-300 ${entry.userId === currentStudentId
                                     ? '!bg-purple-100 !border !border-purple-200'
                                     : '!bg-gray-50'
-                            }`}
+                                }`}
                         >
                             <span className="!w-6 !h-6 !flex !items-center !justify-center !rounded-full !mr-2 !text-sm !font-medium !bg-purple-100 !text-purple-600">
                                 {idx + 1}
@@ -826,7 +822,7 @@ const StudentGamePlay = () => {
             <div className="!absolute !w-16 !h-16 !bg-blue-200 !rounded-full !opacity-20 !top-[30%] !right-[8%] !animate-float-medium"></div>
             <div className="!absolute !w-12 !h-12 !bg-purple-200 !rounded-full !opacity-20 !bottom-[15%] !left-[15%] !animate-float-fast"></div>
             <div className="!absolute !w-24 !h-24 !bg-pink-200 !rounded-full !opacity-20 !bottom-[25%] !right-[12%] !animate-float-slow"></div>
-            
+
             {/* Decorative game elements */}
             <div className="!absolute !top-10 !left-10 !transform !rotate-12 !hidden !lg:block">
                 <div className="!w-10 !h-10 !text-yellow-400 !opacity-30 !animate-spin-very-slow">✦</div>
@@ -834,7 +830,7 @@ const StudentGamePlay = () => {
             <div className="!absolute !bottom-10 !right-20 !transform !-rotate-12 !hidden !lg:block">
                 <div className="!w-10 !h-10 !text-purple-400 !opacity-30 !animate-spin-very-slow">✦</div>
             </div>
-            
+
             {renderCountdown()}
 
             {gameCompleted ? (
@@ -869,7 +865,7 @@ const StudentGamePlay = () => {
                                 <div className="!px-5 !py-2.5 !bg-gradient-to-r !from-purple-500 !to-pink-500 !text-white !rounded-full !text-sm !font-medium !shadow-md !flex !items-center !animate-pulse-subtle">
                                     <div className="!w-6 !h-6 !mr-2 !relative">
                                         <div className="!absolute !inset-0 !border-3 !border-white !border-opacity-30 !rounded-full"></div>
-                                        <div 
+                                        <div
                                             className="!absolute !inset-0 !border-3 !border-transparent !border-t-white !rounded-full !animate-spin"
                                             style={{ animationDuration: '2s' }}
                                         ></div>
@@ -892,7 +888,7 @@ const StudentGamePlay = () => {
                                 <div className="!absolute !bottom-0 !right-0 !w-16 !h-16 !overflow-hidden">
                                     <div className="!absolute !bottom-0 !right-0 !w-20 !h-20 !bg-indigo-100 !rounded-full !translate-x-10 !translate-y-10"></div>
                                 </div>
-                                
+
                                 <div className="!relative !z-10">
                                     {renderActivity()}
                                 </div>
@@ -904,7 +900,7 @@ const StudentGamePlay = () => {
                             <div className="!bg-white !bg-opacity-95 !backdrop-blur-sm !rounded-2xl !shadow-lg !p-5 !animate-slide-left !border-2 !border-indigo-100 !relative">
                                 {/* Decorative element */}
                                 <div className="!absolute !top-0 !right-0 !w-20 !h-20 !bg-gradient-to-br !from-yellow-200 !to-yellow-100 !opacity-50 !rounded-full !-translate-y-10 !translate-x-10"></div>
-                                
+
                                 {/* Leaderboard content with margin instead of padding */}
                                 <div className="!relative !z-20 ">
                                     {renderLeaderboard()}
@@ -925,7 +921,7 @@ const StudentGamePlay = () => {
                             <div className="!absolute !inset-0 !border-4 !border-indigo-200 !rounded-full"></div>
                             <div className="!absolute !inset-0 !border-4 !border-transparent !border-t-indigo-500 !rounded-full !animate-spin"></div>
                         </div>
-                        
+
                         {/* Cute loading character */}
                         <div className="!absolute !top-1/2 !left-1/2 !transform !-translate-x-1/2 !-translate-y-1/2 !w-12 !h-12">
                             <div className="!w-12 !h-12 !bg-white !rounded-full !flex !items-center !justify-center !animate-bounce-slow">

@@ -47,13 +47,7 @@ const StudentLayout: React.FC = () => {
               onClick={() => handleNavClick("CLASS")}
             />
             <NavItem 
-              icon={<img src="/game controller.svg" alt="Game" className="relative !w-10 !h-12 left-2 !mr-4" />} 
-              text="EXPLORE"
-              active={activeNav === "EXPLORE"}
-              onClick={() => handleNavClick("EXPLORE")}
-            />
-            <NavItem 
-              icon={<img src="/profile.svg" alt="Profile" className="!w-12 !h-10 !mr-2" />} 
+              icon={<img src="/Anime-Girl-Pfp-PNG-HD-Quality.png" alt="Profile" className="!w-12 !h-10 !mr-2" />} 
               text="PROFILE"
               active={activeNav === "PROFILE"}
               onClick={() => handleNavClick("PROFILE")}
@@ -63,18 +57,6 @@ const StudentLayout: React.FC = () => {
               text="LOGOUT"
               active={activeNav === "LOGOUT"}
               onClick={() => handleNavClick("LOGOUT")}
-            />
-            <NavItem 
-              icon={<img src="/rank.svg" alt="Ranking" className="!w-9 !h-10 relative left-2.5 !mr-5" />} 
-              text="RANKING"
-              active={activeNav === "RANKING"}
-              onClick={() => handleNavClick("RANKING")}
-            />
-            <NavItem 
-              icon={<img src="/more.svg" alt="More" className="!w-11 !h-10 !mr-3 relative left-2" />} 
-              text="MORE"
-              active={activeNav === "MORE"}
-              onClick={() => handleNavClick("MORE")}
             />
           </div>
         </div>
