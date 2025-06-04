@@ -6,6 +6,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Map;
 import java.util.UUID;
+ import java.net.URLDecoder;
 
 import org.apache.tomcat.util.buf.StringUtils;
 import org.springframework.stereotype.Service;
@@ -49,7 +50,10 @@ public class UploadImageFileImpl implements UploadImageFile{
             
             Map<?, ?> uploadResult = cloudinary.uploader().upload(
                 fileUpload, 
-                ObjectUtils.asMap("public_id", publicValue)
+                ObjectUtils.asMap(
+                    "public_id", "quizizzes/" + publicValue,
+                    "resource_type", "auto"
+                )
             );
             
             // 5. Kiểm tra kết quả upload
@@ -58,7 +62,7 @@ public class UploadImageFileImpl implements UploadImageFile{
             }
             
             cleanDisk(fileUpload);
-            String filePath = cloudinary.url().generate(publicValue + "." + extension);
+            String filePath = (String) uploadResult.get("url");
             
             log.info("File uploaded successfully to: {}", filePath);
             return filePath;
@@ -94,5 +98,30 @@ public class UploadImageFileImpl implements UploadImageFile{
     
     public String[] getFileName(String originalName){
         return originalName.split("\\.");
+    }
+
+    public String extractPublicIdFromUrl(String url) {
+        if (url == null) return null;
+        int uploadIndex = url.indexOf("/upload/");
+        if (uploadIndex == -1) return null;
+        String afterUpload = url.substring(uploadIndex + 8); // 8 là độ dài "/upload/"
+        // Bỏ version nếu có (bắt đầu bằng 'v' + số + '/')
+        if (afterUpload.startsWith("v")) {
+            int slashIndex = afterUpload.indexOf('/');
+            if (slashIndex != -1) {
+                afterUpload = afterUpload.substring(slashIndex + 1);
+            }
+        }
+        int dotIndex = afterUpload.lastIndexOf('.');
+        if (dotIndex == -1) return urlDecode(afterUpload);
+        return urlDecode(afterUpload.substring(0, dotIndex));
+    }
+
+    private String urlDecode(String s) {
+        try {
+            return URLDecoder.decode(s, "UTF-8");
+        } catch (Exception e) {
+            return s;
+        }
     }
 }

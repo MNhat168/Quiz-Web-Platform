@@ -11,6 +11,7 @@ public class StudentProgress {
     @Id
     private String id;
     private String studentId;
+    private String displayName;
     private int totalScore;
     private int totalSessions;
     private Date lastActivityDate;

@@ -16,6 +16,7 @@ public class OtpService {
     private final Map<String, String> otpStorage = new HashMap<>();
     private final Map<String, LocalDateTime> otpExpirationTime = new HashMap<>();
     private final Map<String, User> pendingUsers = new HashMap<>();
+    private final Map<String, String> pendingPasswords = new HashMap<>();
 
     public String generateOtp() {
         Random random = new Random();
@@ -67,6 +68,18 @@ public class OtpService {
 
     public void clearPendingUser(String email) {
         pendingUsers.remove(email);
+    }
+
+    public void savePendingPassword(String email, String password) {
+        pendingPasswords.put(email, password);
+    }
+
+    public String getPendingPassword(String email) {
+        return pendingPasswords.get(email);
+    }
+
+    public void clearPendingPassword(String email) {
+        pendingPasswords.remove(email);
     }
 
     public static class OtpVerificationResult {

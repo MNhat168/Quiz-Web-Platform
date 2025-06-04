@@ -1,14 +1,22 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import axios from "axios";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
 function Login() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { login } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    if (location.state?.message) {
+      setMessage(location.state.message);
+    }
+  }, [location.state]);
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -159,7 +167,12 @@ function Login() {
                   Remember me
                 </label>
               </div>
-              <div className="!text-white !hover:text-purple-200 !cursor-pointer">Forgot password?</div>
+              <div 
+                onClick={() => navigate('/forgot-password')}
+                className="!text-white !hover:text-purple-200 !cursor-pointer"
+              >
+                Forgot password?
+              </div>
             </div>
   
             <button
