@@ -66,18 +66,6 @@ const StudentLayout: React.FC = () => {
               active={activeNav === "LOGOUT"}
               onClick={() => handleNavClick("LOGOUT")}
             />
-            <NavItem 
-              icon={<img src="/rank.svg" alt="Ranking" className="!w-9 !h-10 relative left-2.5 !mr-5" />} 
-              text="RANKING"
-              active={activeNav === "RANKING"}
-              onClick={() => handleNavClick("RANKING")}
-            />
-            <NavItem 
-              icon={<img src="/more.svg" alt="More" className="!w-11 !h-10 !mr-3 relative left-2" />} 
-              text="MORE"
-              active={activeNav === "MORE"}
-              onClick={() => handleNavClick("MORE")}
-            />
           </div>
         </div>
       </nav>

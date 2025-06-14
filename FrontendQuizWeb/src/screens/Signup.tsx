@@ -193,10 +193,10 @@ const Signup = () => {
         navigate('/checkotp', { state: { email: formData.email } });
       }
     } catch (error: any) {
-      if (error.response) {
-        setMessage(error.response.data);
+      if (error.response?.data === 'Email already registered') {
+        setMessage('Email đã tồn tại');
       } else {
-        setMessage('An error occurred during registration');
+        setMessage('Đăng ký thất bại. Vui lòng thử lại.');
       }
     } finally {
       setIsLoading(false);
@@ -368,7 +368,7 @@ const Signup = () => {
               className="!font-medium !text-white !hover:text-purple-200 !cursor-pointer"
             >
               Sign in
-            </span>
+            </span> 
           </div>
   
           {message && (

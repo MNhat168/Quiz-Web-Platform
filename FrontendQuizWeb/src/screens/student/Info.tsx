@@ -146,102 +146,154 @@ const Info: React.FC = () => {
     }
 
     return (
-        <div className="!min-h-screen !w-screen !flex !items-center !justify-start !relative !bg-gray-900">
-            {/* Spline Background */}
-            <div className="!fixed !inset-0 !z-0">
+        <div className="!min-h-screen !w-screen !flex !items-center !justify-center !relative !bg-gray-900 !overflow-hidden">
+            {/* Spline Background with your custom light and strings */}
+            <div className="!fixed !inset-0 ">
                 <iframe
-                    src="https://my.spline.design/assemblyline-cDKWMqbwtGLBI9wDd9vUpU17/"
+                    src="https://my.spline.design/untitled-FbbF2ZO7RTADdkdKK4lNGxa8/"
                     frameBorder="0"
                     width="100%"
                     height="100%"
                     className="!w-full !h-full"
                 ></iframe>
-                {/* Dark overlay */}
-                <div className="!absolute !inset-0 !bg-black !opacity-70"></div>
             </div>
-            {/* Content always above Spline */}
-            <div className="!relative !z-10 !max-w-4xl !w-full !px-8 !text-left !ml-20">
-                <div className="!animate-fade-in">
-                    <div className="!flex !justify-between !items-center !mb-8">
-                        <h1 className="!text-4xl !md:text-5xl !font-bold !text-white !leading-tight">
-                            Student Profile
+            
+            {/* Content above Spline */}
+            <div className="!relative !z-10 !w-full !max-w-5xl !px-8 !flex  !my-12 !ml-20 !mt-40 right-65">
+                {/* Main content container */}
+                <div className="!bg-white/10 !border !border-white/20 !rounded-md !p-8 !w-full !shadow-lg !relative">
+                    {/* Header with title and buttons */}
+                    <div className="!flex !justify-between !items-center !mb-8 !relative">
+                        <h1 className="!text-5xl !font-bold !text-amber-100 !leading-tight !font-serif !flex !items-center">
+                            <span className="!bg-red-900/50 !px-4 !py-2 !border !border-red-800/30 !text-4xl"> PROFILE</span>
                         </h1>
+                        
                         {!isEditing ? (
                             <button
                                 onClick={handleEdit}
-                                className="!px-4 !py-2 !bg-blue-600 !text-white !rounded-lg !hover:bg-blue-700 !transition-colors"
+                                className="!px-6 !py-3 !bg-amber-900/70 !text-amber-100 !rounded-sm !hover:bg-amber-800/40 !transition-colors !font-mono !text-base !border !border-amber-800/30"
                             >
-                                Edit Profile
+                                EDIT FILE
                             </button>
                         ) : (
-                            <div className="!space-x-2">
+                            <div className="!space-x-3 !flex">
                                 <button
                                     onClick={handleSave}
-                                    className="!px-4 !py-2 !bg-green-600 !text-white !rounded-lg !hover:bg-green-700 !transition-colors"
+                                    className="!px-6 !py-3 !bg-emerald-900/40 !text-emerald-100 !rounded-sm !hover:bg-emerald-800/40 !transition-colors !font-mono !text-base !border !border-emerald-800/30"
                                 >
-                                    Save
+                                    SAVE
                                 </button>
                                 <button
                                     onClick={handleCancel}
-                                    className="!px-4 !py-2 !bg-gray-600 !text-white !rounded-lg !hover:bg-gray-700 !transition-colors"
+                                    className="!px-6 !py-3 !bg-red-900/40 !text-red-100 !rounded-sm !hover:bg-red-800/40 !transition-colors !font-mono !text-base !border !border-red-800/30"
                                 >
-                                    Cancel
+                                    CANCEL
                                 </button>
                             </div>
                         )}
                     </div>
-                    <div className="!bg-gray-800 !bg-opacity-50 !p-8 !rounded-2xl !backdrop-blur-sm !border !border-gray-700">
-                        <div className="!grid !grid-cols-2 !gap-8">
-                            <div>
-                                <h2 className="!text-2xl !font-semibold !text-white !mb-4">Personal Information</h2>
-                                <div className="!space-y-4">
-                                    <div>
-                                        <p className="!text-gray-400 !text-sm">Display Name</p>
-                                        {isEditing ? (
-                                            <input
-                                                type="text"
-                                                name="displayName"
-                                                value={editedProfile?.displayName || ''}
-                                                onChange={handleInputChange}
-                                                className="!w-full !bg-gray-700 !text-white !rounded-lg !px-3 !py-2 !mt-1"
-                                            />
-                                        ) : (
-                                            <p className="!text-white !text-lg !font-medium">{profile?.displayName || 'N/A'}</p>
-                                        )}
-                                    </div>
-                                    <div>
-                                        <p className="!text-gray-400 !text-sm">Username</p>
-                                        {isEditing ? (
-                                            <input
-                                                type="text"
-                                                name="username"
-                                                value={editedProfile?.username || ''}
-                                                onChange={handleInputChange}
-                                                className="!w-full !bg-gray-700 !text-white !rounded-lg !px-3 !py-2 !mt-1"
-                                            />
-                                        ) : (
-                                            <p className="!text-white !text-lg !font-medium">{profile?.username || 'N/A'}</p>
-                                        )}
-                                    </div>
-                                    <div>
-                                        <p className="!text-gray-400 !text-sm">Email</p>
-                                        <p className="!text-white !text-lg !font-medium">{profile?.email || 'N/A'}</p>
-                                    </div>
+                    
+                    {/* Main content grid */}
+                    <div className="!grid !grid-cols-3 !gap-6 !relative">
+                        {/* Personal Information */}
+                        <div className="!col-span-1 !bg-amber-950/70 !p-6 !rounded-sm !shadow-md !border !border-amber-800/20 !transform !rotate-[-1deg] !hover:rotate-0 !transition-transform">
+                            <div className="!absolute !top-[-5px] !left-[10px] !w-4 !h-4 !rounded-full !bg-red-600/60"></div>
+                            <div className="!absolute !top-[-5px] !right-[10px] !w-4 !h-4 !rounded-full !bg-amber-600/60"></div>
+                            
+                            <h2 className="!text-xl !font-mono !text-amber-100 !mb-4 !uppercase !border-b !border-amber-800/20 !pb-2">
+                                Personal Information
+                            </h2>
+                            
+                            <div className="!space-y-4 !font-mono">
+                                <div>
+                                    <p className="!text-amber-200/80 !text-sm !uppercase">Display Name</p>
+                                    {isEditing ? (
+                                        <input
+                                            type="text"
+                                            name="displayName"
+                                            value={editedProfile?.displayName || ''}
+                                            onChange={handleInputChange}
+                                            className="!w-full !bg-amber-950/50 !text-amber-100 !rounded-none !border !border-amber-800/30 !px-3 !py-2 !mt-1 !font-mono !text-base"
+                                        />
+                                    ) : (
+                                        <p className="!text-amber-100 !font-bold !text-lg">{profile?.displayName || 'REDACTED'}</p>
+                                    )}
+                                </div>
+                                
+                                <div>
+                                    <p className="!text-amber-200/80 !text-sm !uppercase">Username</p>
+                                    {isEditing ? (
+                                        <input
+                                            type="text"
+                                            name="username"
+                                            value={editedProfile?.username || ''}
+                                            onChange={handleInputChange}
+                                            className="!w-full !bg-amber-950/50 !text-amber-100 !rounded-none !border !border-amber-800/30 !px-3 !py-2 !mt-1 !font-mono !text-base"
+                                        />
+                                    ) : (
+                                        <p className="!text-amber-100 !font-bold !text-lg">{profile?.username || 'UNKNOWN'}</p>
+                                    )}
+                                </div>
+                                
+                                <div>
+                                    <p className="!text-amber-200/80 !text-sm !uppercase">Email</p>
+                                    <p className="!text-amber-100 !font-bold !text-lg">{profile?.email || 'CLASSIFIED'}</p>
                                 </div>
                             </div>
-                            <div className="!flex !flex-col !justify-center !items-center">
-                                <h2 className="!text-2xl !font-semibold !text-white !mb-4">Account</h2>
-                                <div className="!space-y-4 !w-full !flex !flex-col !items-center">
-                                    <div>
-                                        <p className="!text-gray-400 !text-sm">Role</p>
-                                        <p className="!text-white !text-lg !font-medium">{profile?.role || 'N/A'}</p>
-                                    </div>
-                                </div>
+                            
+                            {/* Stamp */}
+                            <div className="!absolute !bottom-3 !right-3 !transform !rotate-[-15deg] !text-red-500 !border-2 !border-red-600/30 !rounded-sm !px-2 !py-1 !text-sm !font-bold !opacity-80">
+                                CONFIDENTIAL
                             </div>
                         </div>
-                        <div className="!mt-8 !flex !justify-center !relative">
+                        
+                        {/* Account Info */}
+                        <div className="!col-span-1 !bg-amber-950/70 !p-6 !rounded-sm !shadow-md !border !border-amber-800/20 !transform !rotate-[1deg] !hover:rotate-0 !transition-transform">
+                            <div className="!absolute !top-[-5px] !left-[10px] !w-4 !h-4 !rounded-full !bg-blue-600/60"></div>
+                            <div className="!absolute !top-[-5px] !right-[10px] !w-4 !h-4 !rounded-full !bg-emerald-600/60"></div>
+                            
+                            <h2 className="!text-xl !font-serif !text-amber-100 !mb-4 !uppercase !border-b !border-amber-800/20 !pb-2">
+                                Account Details
+                            </h2>
+                            
+                            <div className="!space-y-4 !font-serif">
+                                <div>
+                                    <p className="!text-amber-200/80 !text-base">Role:</p>
+                                    <div className="!flex !items-center">
+                                        <p className="!text-amber-100 !text-xl !font-bold">{profile?.role || 'UNKNOWN'}</p>
+                                        {profile?.role === 'ADMIN' && (
+                                            <div className="!ml-3 !px-3 !py-1 !bg-red-900/40 !text-red-100 !text-sm !font-bold !rotate-[-5deg] !border !border-red-800/30">
+                                                HIGH CLEARANCE
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                                
+                                <div>
+                                    <p className="!text-amber-200/80 !text-base">Status:</p>
+                                    <p className="!text-emerald-300 !font-bold !text-lg">ACTIVE</p>
+                                </div>
+                                
+                               
+                            </div>
+                            
+                            {/* Handwritten note */}
+                            <div className="!absolute !bottom-3 !right-3 !transform !rotate-[-20deg] !text-blue-300 !font-serif !text-sm !italic">
+                                Check background!
+                            </div>
+                        </div>
+                        
+                        {/* Photo and Evidence */}
+                        <div className="!col-span-1 !bg-amber-950/70 !p-6 !rounded-sm !shadow-md !border !border-amber-800/20 !transform !rotate-[-1deg] !hover:rotate-0 !transition-transform">
+                            <div className="!absolute !top-[-5px] !left-[10px] !w-4 !h-4 !rounded-full !bg-yellow-600/60"></div>
+                            <div className="!absolute !top-[-5px] !right-[10px] !w-4 !h-4 !rounded-full !bg-red-600/60"></div>
+                            
+                            <h2 className="!text-xl !font-mono !text-amber-100 !mb-4 !uppercase !border-b !border-amber-800/20 !pb-2">
+                                Personal Photo
+                            </h2>
+                            
                             <div 
-                                className="!relative !group !cursor-pointer"
+                                className="!relative !group !cursor-pointer !mb-4"
                                 onClick={handleAvatarClick}
                                 role="button"
                                 tabIndex={0}
@@ -251,15 +303,19 @@ const Info: React.FC = () => {
                                     }
                                 }}
                             >
-                                <img 
-                                    src={profile?.avatarUrl || 'https://via.placeholder.com/150'} 
-                                    alt="Profile" 
-                                    className="!w-32 !h-32 !rounded-full !object-cover !border-4 !border-gray-700"
-                                />
-                                <div className="!absolute !inset-0 !flex !items-center !justify-center !bg-black !bg-opacity-50 !rounded-full !opacity-0 !group-hover:opacity-100 !transition-opacity">
-                                    <span className="!text-white !text-sm">Click to Change Avatar</span>
+                                <div className="!bg-amber-950/50 !p-2 !mb-2">
+                                    <img 
+                                        src={profile?.avatarUrl || 'https://via.placeholder.com/150'} 
+                                        alt="Profile" 
+                                        className="!w-full !h-40 !object-cover"
+                                    />
+                                </div>
+                                
+                                <div className="!absolute !inset-0 !flex !items-center !justify-center !bg-amber-950/50 !opacity-0 !group-hover:opacity-100 !transition-opacity">
+                                    <span className="!text-amber-100 !text-sm !font-mono !bg-amber-950/60 !p-2">CHANGE PHOTO</span>
                                 </div>
                             </div>
+                            
                             <input
                                 type="file"
                                 ref={fileInputRef}
@@ -267,15 +323,33 @@ const Info: React.FC = () => {
                                 accept="image/jpeg,image/png,image/gif"
                                 className="!hidden"
                             />
+                            
                             {uploadingAvatar && (
-                                <div className="!absolute !inset-0 !flex !items-center !justify-center !bg-black !bg-opacity-50 !rounded-full">
-                                    <div className="!text-white !flex !flex-col !items-center">
-                                        <div className="!animate-spin !rounded-full !h-8 !w-8 !border-b-2 !border-white !mb-2"></div>
-                                        <span>Uploading...</span>
+                                <div className="!absolute !inset-0 !flex !items-center !justify-center !bg-amber-950/50">
+                                    <div className="!text-amber-100 !flex !flex-col !items-center">
+                                        <div className="!animate-spin !rounded-full !h-8 !w-8 !border-b-2 !border-amber-100 !mb-2"></div>
+                                        <span className="!font-mono !text-sm">UPLOADING...</span>
                                     </div>
                                 </div>
                             )}
+                            
+                            <div className="!font-mono !text-sm !text-amber-200/80 !space-y-2">
+                                <div className="!flex !justify-between">
+                                    <span>PERSONAL ID:</span>
+                                    <span className="!font-bold !text-amber-100 !text-base">{profile?.username?.toUpperCase() || 'UNKNOWN'}</span>
+                                </div>
+                                <div className="!flex !justify-between">
+                                    <span>DATE:</span>
+                                    <span className="!text-amber-100 !text-base">{new Date().toLocaleDateString()}</span>
+                                </div>
+                            </div>
                         </div>
+                    </div>
+                    
+                    {/* Notes section - small post-it */}
+                    <div className="!absolute !top-20 !right-[-80px] !w-40 !h-40 !bg-amber-200/70 !p-4 !shadow-md !transform !rotate-6 !z-20 !font-serif !text-sm !hover:rotate-0 !transition-transform">
+                        <p className="!text-amber-900 !text-base">Check connections to previous cases. Possible pattern.</p>
+                        <p className="!mt-3 !text-amber-800 !text-sm">- Detective</p>
                     </div>
                 </div>
             </div>
