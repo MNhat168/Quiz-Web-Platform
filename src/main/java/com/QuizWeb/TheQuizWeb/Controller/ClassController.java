@@ -22,7 +22,7 @@ import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/classes")
-@CrossOrigin(origins = "http://localhost:5173", allowCredentials = "true")
+@CrossOrigin(origins = "https://quiz-fe-q6sx.vercel.app", allowCredentials = "true")
 public class ClassController {
 
     @Autowired

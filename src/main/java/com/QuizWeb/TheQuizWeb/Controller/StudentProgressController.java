@@ -19,7 +19,7 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/student-progress")
-@CrossOrigin(origins = "http://localhost:5173", allowCredentials = "true")
+@CrossOrigin(origins = "https://quiz-fe-q6sx.vercel.app", allowCredentials = "true")
 public class StudentProgressController {
     private static final Logger logger = LoggerFactory.getLogger(StudentProgressController.class);
 

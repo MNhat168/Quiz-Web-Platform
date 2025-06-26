@@ -30,7 +30,7 @@ import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/sessions")
-@CrossOrigin(origins = "http://localhost:5173", allowCredentials = "true")
+@CrossOrigin(origins = "https://quiz-fe-q6sx.vercel.app", allowCredentials = "true")
 public class GameSessionController {
 
     @Autowired

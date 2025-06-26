@@ -15,7 +15,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/games")
-@CrossOrigin(origins = "http://localhost:5173", allowCredentials = "true")
+@CrossOrigin(origins = "https://quiz-fe-q6sx.vercel.app", allowCredentials = "true")
 public class GameController {
 
     @Autowired
