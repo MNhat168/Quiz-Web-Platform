@@ -1049,26 +1049,40 @@ public class GameSessionService {
                 ? answerMap.get("answer").toString().trim().toLowerCase()
                 : "";
 
-        // Get acceptable answers from the answer data
-        Map<String, Map<String, List<String>>> acceptableAnswers = null;
-        if (answerMap.get("acceptableAnswers") instanceof Map) {
-            acceptableAnswers = (Map<String, Map<String, List<String>>>) answerMap.get("acceptableAnswers");
-        }
+        // Get acceptable answers - handle both structures
+        List<String> acceptableAnswers = new ArrayList<>();
+        Object acceptableObj = answerMap.get("acceptableAnswers");
 
-        if (acceptableAnswers != null &&
-                acceptableAnswers.containsKey(String.valueOf(questionIndex)) &&
-                acceptableAnswers.get(String.valueOf(questionIndex)).containsKey(String.valueOf(blankIndex))) {
+        // Structure 1: Nested map (multi-question)
+        if (acceptableObj instanceof Map) {
+            Map<?, ?> outerMap = (Map<?, ?>) acceptableObj;
+            Object innerObj = outerMap.get(String.valueOf(questionIndex));
 
-            List<String> answersForThisBlank = acceptableAnswers.get(String.valueOf(questionIndex))
-                    .get(String.valueOf(blankIndex));
-            if (answersForThisBlank != null) {
-                return answersForThisBlank.stream()
-                        .map(String::toLowerCase)
-                        .map(String::trim)
-                        .anyMatch(correctAns -> correctAns.equals(answerStr));
+            if (innerObj instanceof Map) {
+                Map<?, ?> innerMap = (Map<?, ?>) innerObj;
+                Object answersObj = innerMap.get(String.valueOf(blankIndex));
+
+                if (answersObj instanceof List) {
+                    for (Object item : (List<?>) answersObj) {
+                        if (item != null) {
+                            acceptableAnswers.add(item.toString().toLowerCase().trim());
+                        }
+                    }
+                }
             }
         }
-        return false;
+        // Structure 2: Flat list (single question)
+        else if (acceptableObj instanceof List) {
+            for (Object item : (List<?>) acceptableObj) {
+                if (item != null) {
+                    acceptableAnswers.add(item.toString().toLowerCase().trim());
+                }
+            }
+        }
+
+        // Check if answer matches any acceptable variant
+        return !acceptableAnswers.isEmpty() &&
+                acceptableAnswers.contains(answerStr);
     }
 
     public Map<String, Object> submitDrawing(String accessCode, String studentId, String teamId, String drawingData) {
