@@ -329,16 +329,12 @@ public class GameSessionService {
         try {
             Map<String, Object> contentMap = (Map<String, Object>) content;
             Map<String, Object> answerMap = (Map<String, Object>) answer;
-            Map<String, Object> studentAnswer = (Map<String, Object>) answerMap.get("answer");
 
-            // Lấy danh sách cặp đúng từ content
             List<Map<String, Object>> pairs = (List<Map<String, Object>>) contentMap.get("pairs");
 
-            // Lấy matchedPairs từ câu trả lời của học sinh (dữ liệu bạn gửi)
-            List<Map<String, Object>> matchedPairs = (List<Map<String, Object>>) studentAnswer.get("matchedPairs");
+            List<Map<String, Object>> matchedPairs = (List<Map<String, Object>>) answerMap.get("matchedPairs");
 
             if (matchedPairs == null || matchedPairs.size() != pairs.size()) {
-                // Số cặp trả lời không bằng số cặp đúng
                 return false;
             }
 
