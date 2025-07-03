@@ -20,7 +20,7 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/upload")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "https://quiz-fe-q6sx.vercel.app/", allowCredentials = "true")
+@CrossOrigin(origins = "https://quiz-fe-q6sx.vercel.app", allowCredentials = "true")
 public class UploadFileController {
 
     private final UploadImageFile uploadImageFile;
